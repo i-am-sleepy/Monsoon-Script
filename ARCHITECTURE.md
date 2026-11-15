@@ -1,7 +1,13 @@
 # ARCHITECTURE (map for agents; update in the same commit as any structural change)
 
-Status: skeleton only. Exists: `ime/MonsoonIme.kt` (placeholder panel), `settings/SetupActivity.kt` (enable/choose screen),
-`.github/workflows/build.yml`. Everything else below is planned; replace "planned" with real paths as you build.
+Status: v0.1 in progress. Exists:
+- `ime/MonsoonIme.kt`: commits text, backspace/enter/tab as key events, enter honors the editor's IME action, globe = next IME,
+  auto-caps (asked only after space . ! ? and at start, because getCursorCapsMode blocks on the app), no fullscreen extract UI.
+- `view/KeyboardView.kt`: one Canvas view (strip icons + 4 rows), multi-touch (4 pointers), commit on release, finger sliding
+  switches the pressed key, shift/caps lock, backspace repeat, digit long-press hints, key bubble, light/dark palette, no allocations in touch/draw.
+- `layout/Keys.kt` + `layout/Layouts.kt`: key model and the letters / symbols / symbols2 pages as data.
+- `settings/SetupActivity.kt` (enable/choose screen), `.github/workflows/build.yml`.
+Strip icons for emoji, clipboard and mic are drawn but do nothing yet. Everything else below is planned; replace "planned" with real paths as you build.
 
 ## Build and CI
 - No local Android build is possible in the cloud sandbox (Maven and Gradle hosts are blocked). CI is the compiler.
