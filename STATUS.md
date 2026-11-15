@@ -1,7 +1,7 @@
 # STATUS (the baton: rewrite it, keep it under one page)
 
-Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Release-signed APKs update in place. T3 (soft keyboard) is pushed; its CI
-result is recorded on the ci-status branch (check it first: a red build blocks everything).
+Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Release-signed APKs update in place. T3 (soft keyboard) is pushed and CI run #3
+(commit 9e6c2f0) is green and published at the `latest` link; waiting for the user's test feedback. Always re-check ci-status first.
 
 ## Now
 Milestone **v0.1**: a bare English keyboard that installs from a CI-built APK and never interferes with physical keyboards.
