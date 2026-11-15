@@ -15,3 +15,7 @@
 - D10 2026-11-16 Internet: the INTERNET permission is allowed, but the owner must be able to turn networking off completely.
   Required: a master "Offline mode" setting that hard-blocks every network code path (no exceptions, no silent calls).
   Typed text must never be sent anywhere. Open: also build an offline-only flavor without the permission (STATUS Needs user #4).
+- D11 2026-11-16 Key style: rounded keys with small gaps, Gboard-like (owner chose).
+- D12 2026-11-16 Colors: follow the phone's light/dark mode (owner chose). Custom themes come in v0.5.
+- D13 2026-11-16 Top strip above the keys: suggestion area in the middle plus always-visible shortcut icons (language/IME globe, emoji, clipboard, mic) (owner chose).
+- D14 2026-11-16 Numbers: no number row by default; long-press top-row letters for digits (hint shown on the key); an optional full number row is a later setting (owner chose).
