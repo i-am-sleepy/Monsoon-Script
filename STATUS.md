@@ -14,6 +14,9 @@ T1: create the Gradle Android project skeleton (see T1). Then T2 so every push p
       `InputMethodService` stub + `method.xml`, launcher/setup activity (guides enabling the IME). Gradle wrapper committed.
 - [ ] T2 GitHub Actions: build the debug APK on push to main, publish it to a rolling pre-release `latest` (downloadable
       from a phone without logging in). Needs a stable signing key so updates install over old builds. See Needs user #1.
+      Note: agent sessions may not be able to read Actions logs (the gh CLI token is invalid in the sandbox). So make the
+      workflow push the last ~80 lines of a failed build log to a `ci-status` branch (file `last-build.txt`) that agents can
+      `git fetch`; the user then never has to paste logs.
 - [ ] T3 Minimal soft keyboard: Canvas-drawn QWERTY, shift/caps, backspace with repeat, enter (honor IME action),
       space, symbols page, key popups. Layout look is a design decision: show options to the user first (Needs user #2).
 - [ ] T4 Hardware keyboard pass-through (Enter/Shift/Ctrl/Alt/arrows/Tab untouched; soft view hides when a physical
