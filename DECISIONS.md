@@ -6,7 +6,7 @@
 - D3 2026-11-16 App name "Monsoon Script". Package id `com.monsoonscript.keyboard` (routine choice, changeable before release).
 - D4 2026-11-16 minSdk 26 (Android 8.0), chosen so the Oppo A3s backup phone is covered.
 - D5 2026-11-16 Avro: port the phonetic engine from the uploaded MPL-2.0 Avro Keyboard source into Kotlin, credited. Ported
-  files stay MPL-2.0; the rest of the app is licensed separately (license choice pending, STATUS Needs user #5).
+  files stay MPL-2.0; the rest of the app is licensed separately (license choice pending, STATUS Needs user #3).
 - D6 2026-11-16 Ridmik is a feature reference only: reimplement, no code or assets used, no decompiling.
 - D7 2026-11-16 First milestone v0.1 = bare English keyboard + hardware keyboard pass-through (user's biggest complaint with Ridmik).
 - D8 2026-11-16 Reference data lives in `third_party/avro-reference/` (engine sources, layout XML with images stripped, docs).
