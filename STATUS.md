@@ -1,24 +1,26 @@
 # STATUS (the baton: rewrite it, keep it under one page)
 
-Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Code: none yet. CI: none yet. Latest APK: none.
+Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Code: skeleton pushed, first CI run NOT yet verified. Latest APK: none verified.
 
 ## Now
 Milestone **v0.1**: a bare English keyboard that installs from a CI-built APK and never interferes with physical keyboards.
 
 ## Next step (do this first)
-T1: create the Gradle Android project skeleton (see T1). Then T2 so every push produces a downloadable APK.
+1. Verify the first CI run: `git fetch origin ci-status && git show origin/ci-status:last-build.txt` (wait ~4-8 min after a code push).
+   If `result: failure`, fix the build before anything else.
+2. Signing key (T2b): generate the keystore, give the user the 4 secret values and phone steps (see T2b).
+3. Then T3 after asking the user the layout question (Needs user #1).
 
 ## Tasks (the only place tasks live)  [ ] todo  [~] in progress  [x] done  [?] blocked on user
 - [x] T0 Handoff docs, Avro reference files (`third_party/avro-reference/`), requirements spec
-- [ ] T1 Project skeleton: Kotlin, minSdk 26, package `com.monsoonscript.keyboard`, app name "Monsoon Script",
-      `InputMethodService` stub + `method.xml`, launcher/setup activity (guides enabling the IME). Gradle wrapper committed.
-- [ ] T2 GitHub Actions: build the debug APK on push to main, publish it to a rolling pre-release `latest` (downloadable
-      from a phone without logging in). Needs a stable signing key so updates install over old builds. See D9: signing key lives in GitHub
-      Secrets (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD). Generate it with keytool, then give the user exact
-      phone-browser steps to add the 4 secrets (tell them the key was visible in chat; regenerating means one reinstall).
-      Note: agent sessions may not be able to read Actions logs (the gh CLI token is invalid in the sandbox). So make the
-      workflow push the last ~80 lines of a failed build log to a `ci-status` branch (file `last-build.txt`) that agents can
-      `git fetch`; the user then never has to paste logs.
+- [~] T1 Project skeleton written: Kotlin, minSdk 26, `com.monsoonscript.keyboard`, IME stub (placeholder panel, no key
+      overrides), `method.xml`, setup activity (Enable / Choose keyboard). Placeholder launcher icon. No Gradle wrapper
+      (CI uses setup-gradle 8.10.2); no local build is possible in the sandbox. Mark [x] once CI is green.
+- [~] T2 `.github/workflows/build.yml` written: release APK on push to main (docs-only pushes skipped), rolling pre-release
+      `latest` (APK link in ARCHITECTURE.md), result and log tail pushed to branch `ci-status`. Mark [x] once verified.
+- [ ] T2b Signing (D9): create PKCS12 keystore with openssl (alias `monsoon`), give the user the 4 GitHub Secrets
+      (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD) with phone-browser steps. Tell them the key was visible
+      in chat and that builds made before the secrets exist (temporary debug key) need one uninstall/reinstall.
 - [ ] T3 Minimal soft keyboard: Canvas-drawn QWERTY, shift/caps, backspace with repeat, enter (honor IME action),
       space, symbols page, key popups. Layout look is a design decision: show options to the user first (Needs user #1).
 - [ ] T4 Hardware keyboard pass-through (Enter/Shift/Ctrl/Alt/arrows/Tab untouched; soft view hides when a physical

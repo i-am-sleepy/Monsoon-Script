@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Monsoon Script</string>
+    <string name="ime_label">Monsoon Script</string>
+    <string name="subtype_english">English</string>
+    <string name="setup_enable">1. Enable keyboard</string>
+    <string name="setup_choose">2. Choose keyboard</string>
+    <string name="setup_status_off">Not enabled yet. Tap step 1 and turn Monsoon Script on.</string>
+    <string name="setup_status_enabled">Enabled. Tap step 2 and pick Monsoon Script.</string>
+    <string name="setup_status_active">Monsoon Script is your active keyboard.</string>
+    <string name="ime_placeholder">Monsoon Script (skeleton build)</string>
+</resources>

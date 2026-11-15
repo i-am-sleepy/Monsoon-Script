@@ -1,6 +1,16 @@
 # ARCHITECTURE (map for agents; update in the same commit as any structural change)
 
-Status: PLANNED. Nothing below exists until STATUS.md says so. Replace "planned" with real paths as you build.
+Status: skeleton only. Exists: `ime/MonsoonIme.kt` (placeholder panel), `settings/SetupActivity.kt` (enable/choose screen),
+`.github/workflows/build.yml`. Everything else below is planned; replace "planned" with real paths as you build.
+
+## Build and CI
+- No local Android build is possible in the cloud sandbox (Maven and Gradle hosts are blocked). CI is the compiler.
+- Pinned: Gradle 8.10.2 (via setup-gradle, no wrapper), AGP 8.7.3, Kotlin 2.0.21, JDK 17, compileSdk 35, targetSdk 34, minSdk 26.
+- Workflow `.github/workflows/build.yml`: builds `assembleRelease` on push to main (md/docs/third_party-only pushes skip it).
+- Result and log tail: `git fetch origin ci-status && git show origin/ci-status:last-build.txt` (first run takes ~4-8 min).
+- APK (rolling pre-release): https://github.com/i-am-sleepy/Monsoon-Script/releases/download/latest/MonsoonScript.apk
+- Signing: release key from GitHub Secrets (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD); without them it
+  falls back to a temporary debug key. versionCode = GitHub run number.
 
 ## Layout (planned)
 ```

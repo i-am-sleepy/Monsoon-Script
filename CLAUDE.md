@@ -13,7 +13,8 @@ tier, and test APKs built by GitHub Actions. Many Claude sessions/accounts will 
 
 ## While working
 - Commit straight to `main` in small steps and push after every finished step. Never end a turn with unpushed work.
-- Every push must keep CI green. If you break the build, fix it first or revert.
+- Every push must keep CI green. If you break the build, fix it first or revert. You cannot compile locally (Maven is blocked
+  in the sandbox): after pushing code, wait ~4-8 min, then read `git fetch origin ci-status && git show origin/ci-status:last-build.txt`.
 - After each finished step, rewrite the relevant lines of STATUS.md (state, not history; keep it under ~1 page).
 - "checkpoint" from the user (or usage nearly out): commit and push WIP now, then update STATUS.md with the exact next
   action, half-done files and known bugs, even if the work is unfinished.
