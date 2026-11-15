@@ -1,0 +1,16 @@
+# Avro reference material (read-only)
+
+Source: Avro Keyboard (OmicronLab), Windows/Delphi, licensed under the Mozilla Public License 2.0 (see `LICENSE.txt`).
+Included here only as reference for the Kotlin port of the Avro Phonetic engine and the fixed layouts.
+
+- `engine/`   Pascal sources: phonetic conversion, regex builder, constants, Bangla chars, autocorrect, Unicode-to-Bijoy converter, `autodict.dct`
+- `layouts/`  `.avrolayout` XML key maps with the embedded bitmap images removed (only key mappings kept)
+- `docs/`     Avro's own typing guides (phonetic and fixed layouts)
+
+Not included: `Database.db3` (5.4 MB suggestion dictionary).
+
+## Ported files (keep this list current)
+Every Kotlin file derived from the sources above must stay MPL-2.0, keep the MPL header, live under `.../lang/avro/`
+(or `.../lang/bijoy/` for Bijoy conversion), and be listed here.
+
+(none yet)
