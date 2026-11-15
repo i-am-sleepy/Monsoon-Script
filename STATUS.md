@@ -1,16 +1,14 @@
 # STATUS (the baton: rewrite it, keep it under one page)
 
-Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). CI run #1 green (commit 25899ab, temporary debug key). APK is published
-but NOT for installing yet: wait for the release-signed build (T2b).
+Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). CI run #2 green (commit 5c7bbd6), APK signed with the release key and
+published at the `latest` link; safe to install and update over. Skeleton only (no keys yet).
 
 ## Now
 Milestone **v0.1**: a bare English keyboard that installs from a CI-built APK and never interferes with physical keyboards.
 
 ## Next step (do this first)
-T2b: the user is adding the 4 GitHub Secrets (they will say "secrets added"). Then push any small code change (e.g. bump
-`versionName` in app/build.gradle.kts) so CI builds a release-signed APK, confirm `signed: release key` in
-`git fetch origin ci-status && git show origin/ci-status:last-build.txt`, and tell the user to install it and run the
-checklist below. After that: ask the layout question (Needs user #1), then T3.
+Get the user's answers to the layout/look questions (Needs user #1, asked in session 1; check DECISIONS.md D11+ for the
+answers), then build T3 (soft keyboard). If the user reported problems from the skeleton checklist below, fix those first.
 
 ## Test checklist for the skeleton build (user)
 1. Download https://github.com/i-am-sleepy/Monsoon-Script/releases/download/latest/MonsoonScript.apk and install it
@@ -26,10 +24,9 @@ checklist below. After that: ask the layout question (Needs user #1), then T3.
       placeholder launcher icon). No Gradle wrapper (CI uses setup-gradle 8.10.2). Builds green in CI.
 - [x] T2 CI: `.github/workflows/build.yml` builds the release APK on push to main, publishes rolling pre-release `latest`,
       pushes result and log tail to branch `ci-status`. Verified working (run #1).
-- [?] T2b Signing (D9): keystore generated (PKCS12, alias `monsoon`) and the 4 values sent to the user in chat; waiting for
-      them to add KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD at
-      github.com/i-am-sleepy/Monsoon-Script/settings/secrets/actions. The key was visible in chat; if lost or regenerated the
-      user must reinstall once. The key is NOT stored in the repo or memory; only GitHub Secrets hold it now.
+- [x] T2b Signing (D9): PKCS12 key (alias `monsoon`) is in GitHub Secrets (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS,
+      KEY_PASSWORD); build #2 confirmed `signed: release key`. The key was visible in chat once; if it is ever regenerated the
+      user must uninstall/reinstall once. It is NOT in the repo or memory. Never change the secrets without telling the user.
 - [ ] T3 Minimal soft keyboard: Canvas-drawn QWERTY, shift/caps, backspace with repeat, enter (honor IME action),
       space, symbols page, key popups. Layout look is a design decision: show options to the user first (Needs user #1).
 - [ ] T4 Hardware keyboard pass-through (Enter/Shift/Ctrl/Alt/arrows/Tab untouched; soft view hides when a physical
