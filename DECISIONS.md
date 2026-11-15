@@ -11,3 +11,7 @@
 - D7 2026-11-16 First milestone v0.1 = bare English keyboard + hardware keyboard pass-through (user's biggest complaint with Ridmik).
 - D8 2026-11-16 Reference data lives in `third_party/avro-reference/` (engine sources, layout XML with images stripped, docs).
   Not copied: Avro's 5.4 MB `Database.db3` suggestion dictionary; fetch it from the user's Avro zip or OmicronLab's repo when T-suggestions starts.
+- D9 2026-11-16 Signing: one fixed release key kept in GitHub Secrets (not in the repo), so builds update in place.
+- D10 2026-11-16 Internet: the INTERNET permission is allowed, but the owner must be able to turn networking off completely.
+  Required: a master "Offline mode" setting that hard-blocks every network code path (no exceptions, no silent calls).
+  Typed text must never be sent anywhere. Open: also build an offline-only flavor without the permission (STATUS Needs user #4).
