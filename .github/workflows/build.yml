@@ -45,6 +45,12 @@ jobs:
             echo "signed=TEMPORARY debug key - add the KEYSTORE secrets, then updates can install over each other" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Unit tests
+        id: tests
+        run: |
+          set -o pipefail
+          gradle --stacktrace testDebugUnitTest 2>&1 | tee test.log
+
       - name: Build release APK
         id: build
         env:
@@ -77,16 +83,27 @@ jobs:
         if: always()
         env:
           RESULT: ${{ steps.build.outcome }}
+          TESTS: ${{ steps.tests.outcome }}
           SIGNED: ${{ steps.sign.outputs.signed }}
         run: |
           d="$RUNNER_TEMP/ci-status"
           mkdir -p "$d"
           {
+            if [ "$TESTS" != "success" ]; then RESULT="FAILED (unit tests: ${TESTS:-not-run})"; fi
             echo "result: ${RESULT:-not-run}"
+            echo "tests: ${TESTS:-not-run}"
             echo "run: #${{ github.run_number }} ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "commit: $GITHUB_SHA"
             echo "signed: $SIGNED"
             echo "time: $(date -u +%FT%TZ)"
+            if [ "$TESTS" != "success" ] && [ -f test.log ]; then
+              echo
+              echo "--- test failures ---"
+              grep -nE "FAILED|AssertionError|ComparisonFailure|expected:|^e: |What went wrong" -A3 test.log | head -80 || true
+              echo
+              echo "--- test tail ---"
+              tail -n 30 test.log
+            fi
             if [ -f build.log ]; then
               echo
               echo "--- errors ---"

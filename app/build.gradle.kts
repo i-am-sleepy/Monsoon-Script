@@ -59,3 +59,8 @@ android {
         checkReleaseBuilds = false
     }
 }
+
+dependencies {
+    // Pure-JVM unit tests for the language engines (run in CI, see .github/workflows/build.yml).
+    testImplementation("junit:junit:4.13.2")
+}

@@ -17,4 +17,8 @@ Not included: the original `Database.db3` binary.
 Every Kotlin file derived from the sources above must stay MPL-2.0, keep the MPL header, live under `.../lang/avro/`
 (or `.../lang/bijoy/` for Bijoy conversion), and be listed here.
 
-(none yet)
+- `app/src/main/kotlin/com/monsoonscript/keyboard/lang/avro/AvroPhoneticConverter.kt` (from clsEnglishToBangla.pas)
+- `.../lang/avro/AvroAutoCorrect.kt` (from uAutoCorrect.pas)
+- `.../lang/avro/AvroRules.kt` and `.../lang/avro/AvroBanglaChars.kt` (generated from clsEnglishToBangla.pas and BanglaChars.pas)
+- `app/src/main/assets/avro/autodict.dct` (unmodified copy of `engine/autodict.dct`)
+- `app/src/test/resources/avro/golden.tsv` (test data produced with a translation of the same Pascal rules)

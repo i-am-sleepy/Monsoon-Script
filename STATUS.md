@@ -1,17 +1,21 @@
 # STATUS (the baton: rewrite it, keep it under one page)
 
-Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). CI #4 green (commit 4d171e6), release-signed APK published at the `latest`
-link (updates install in place). The v0.1 typing keyboard is CONFIRMED working on the owner's phone. Always re-check ci-status first.
+Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Last confirmed green: CI #4 (4d171e6). The T7 push (Avro engine + tests + CI test step)
+is waiting for its first CI run: check ci-status first. Release-signed APK at the `latest` link (updates install in place).
 
 ## Now
-v0.1 is done except owner confirmation of build #4 (gap fix, globe long-press, physical keyboard). Starting **v0.2 Bangla**.
+v0.2 Bangla. T7 (Avro Phonetic engine) is written, tested locally (11 JUnit tests pass, 40k random inputs identical to an independent
+Python translation) and pushed; waiting for CI to confirm `tests: success`. The engine is not wired to the keyboard yet.
 
 ## Next step (do this first)
-1. Confirm the newest build is green on ci-status; fix it first if not. Fix what the owner reports from the checklist below.
-2. T7: Avro Phonetic engine as pure Kotlin (no Android classes) under `lang/avro/`, ported from `third_party/avro-reference/engine`
-   (MPL-2.0 header on each ported file, list them in NOTICE.md), with JUnit tests run in CI (add a test step to build.yml that
-   also reports to ci-status). Tests first: known words ("ami" -> আমি, etc.), then the UI. The suggestion dictionary is in the repo as TSV
-   (`third_party/avro-reference/data/`, 159k words + 749 suffixes); turn it into a compact app-side index at T8 (not raw SQLite).
+1. `git fetch origin ci-status && git show origin/ci-status:last-build.txt`. If `tests:` or `result:` is not success, fix it first
+   (the file lists the failing test / compile error). Then mark T7 `[x]`.
+2. T8: language model in the IME. Plan: `lang/Language.kt` (ENGLISH, AVRO, PROVAT, BIJOY, NATIONAL), IME keeps a raw Latin buffer for Avro,
+   calls `AvroPhoneticConverter.convert(buffer)` on every key and shows it as underlined composing text (`setComposingText`), space or
+   punctuation commits it (D16). Load `assets/avro/autodict.dct` once, off the main thread (`AvroAutoCorrect.load`). Then the language
+   key (EN / বাং) beside space + space-bar swipe (D15), then the strip suggestions (needs the dictionary index; do after the basics).
+   Keep each step small, push each one. Ask the owner before any new visible UI (language key look, hint labels on keys in Bangla mode).
+3. Fix whatever the owner reports from the checklist below.
 
 ## Test checklist for build #4 (owner)
 1. Install https://github.com/i-am-sleepy/Monsoon-Script/releases/download/latest/MonsoonScript.apk over the old one.
@@ -28,7 +32,7 @@ v0.1 is done except owner confirmation of build #4 (gap fix, globe long-press, p
 - [x] T5 Globe: tap = next keyboard, hold = picker (owner to confirm)
 - [ ] T6 Hardware-keyboard Bangla: only while a Bangla mode is active, translate printable keys in onKeyDown and pass everything
       else through; a shortcut (e.g. Ctrl+Space) toggles language; suggestions even when the soft view is hidden (candidates view)
-- [ ] T7 Avro Phonetic engine (pure Kotlin) + JUnit tests in CI (see Next step)
+- [~] T7 Avro Phonetic engine: DONE and pushed (`lang/avro/*`, tests, CI test step, assets/avro/autodict.dct); mark [x] once ci-status shows tests green
 - [ ] T8 Language model in the IME: languages English, Bangla Avro, Provat, Bijoy Classic, National; per-language layout and engine;
       language key (EN / বাং) beside space and swipe on the space bar (D15); live underlined composing text + suggestions in the strip (D16)
 - [ ] T9 Fixed layouts as data: Provat and National from `third_party/avro-reference/layouts` (key maps, images stripped); Bijoy Classic
