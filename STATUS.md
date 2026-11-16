@@ -1,10 +1,10 @@
 # STATUS (the baton: rewrite it, keep it under one page)
 
-Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Last confirmed green: CI #5 (77cb8b9: build + unit tests). The T8a push (Avro typing in the keyboard) is untested by CI at the time of writing: check ci-status first. Release-signed APK at the `latest` link (updates install in place).
+Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Last confirmed green: CI #6 (bef4011: T8a build + unit tests), APK at the `latest` link, awaiting the owner's device test. Always re-check ci-status first. Release-signed APK at the `latest` link (updates install in place).
 
 ## Now
 v0.2 Bangla. T7 engine done (CI #5). T8a pushed: language model, Avro live composing in the IME, language key (pill) in the strip next to
-the globe (D19), space-bar swipe. Android code cannot be compiled here, so CI is the first real compile: fix errors first if any.
+the globe (D19), space-bar swipe. CI #6 compiled and passed; nothing of T8a has been tried on a device yet.
 
 ## Next step (do this first)
 1. `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt` (a plain `origin/ci-status` ref may not exist after a one-branch
