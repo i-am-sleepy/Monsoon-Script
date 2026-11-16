@@ -30,9 +30,14 @@ class KeyboardView(context: Context) : View(context) {
         fun onEnter()
         fun onTab()
         fun onGlobe()
+        fun onGlobeLong()
     }
 
     var listener: Listener? = null
+
+    /** Keyboard background color; the IME paints its window and the navigation bar area with it. */
+    val backgroundColor: Int get() = pal.bg
+    val isLightTheme: Boolean get() = pal === LIGHT
 
     private val density = resources.displayMetrics.density
     private fun dp(v: Float) = v * density
@@ -205,7 +210,7 @@ class KeyboardView(context: Context) : View(context) {
 
     // ---------------------------------------------------------------- theme
 
-    private fun refreshTheme() {
+    fun refreshTheme() {
         val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         pal = if (night) DARK else LIGHT
         letterPaint.color = pal.text
@@ -405,7 +410,7 @@ class KeyboardView(context: Context) : View(context) {
         if (k.code == Codes.BACKSPACE) {
             listener?.onBackspace()
             uiHandler.postDelayed(repeatRunnable[slot], REPEAT_START_MS)
-        } else if (k.hint != null) {
+        } else if (hasLongPress(k)) {
             uiHandler.postDelayed(longPressRunnable[slot], LONG_PRESS_MS)
         }
     }
@@ -422,7 +427,7 @@ class KeyboardView(context: Context) : View(context) {
         cancelTimers(slot)
         ptrKey[slot] = idx
         invalidate()
-        if (idx >= 0 && keys[page][idx].hint != null) uiHandler.postDelayed(longPressRunnable[slot], LONG_PRESS_MS)
+        if (idx >= 0 && hasLongPress(keys[page][idx])) uiHandler.postDelayed(longPressRunnable[slot], LONG_PRESS_MS)
     }
 
     private fun up(id: Int) {
@@ -447,12 +452,22 @@ class KeyboardView(context: Context) : View(context) {
     private fun onLongPress(slot: Int) {
         val idx = ptrKey[slot]
         if (idx < 0 || page >= keys.size) return
-        val hint = keys[page][idx].hint ?: return
+        val k = keys[page][idx]
+        if (k.code == Codes.GLOBE) {
+            ptrLong[slot] = true
+            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            listener?.onGlobeLong()
+            invalidate()
+            return
+        }
+        val hint = k.hint ?: return
         ptrLong[slot] = true
         performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         listener?.onText(hint)
         invalidate()
     }
+
+    private fun hasLongPress(k: Key): Boolean = k.hint != null || k.code == Codes.GLOBE
 
     private fun onRepeat(slot: Int) {
         val idx = ptrKey[slot]

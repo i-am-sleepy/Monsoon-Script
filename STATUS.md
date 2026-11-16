@@ -1,15 +1,19 @@
 # STATUS (the baton: rewrite it, keep it under one page)
 
-Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Release-signed APKs update in place. T3 (soft keyboard) is pushed and CI run #3
-(commit 9e6c2f0) is green and published at the `latest` link; waiting for the user's test feedback. Always re-check ci-status first.
+Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Release-signed APKs update in place. T3 typing keyboard CONFIRMED working on the owner's phone
+(build #3). The newest build adds the fix for the see-through gap under the keys, globe long-press and hardware-key
+notes; waiting for the owner's feedback. Always re-check ci-status first.
 
 ## Now
 Milestone **v0.1**: a bare English keyboard that installs from a CI-built APK and never interferes with physical keyboards.
 
 ## Next step (do this first)
-1. Confirm the T3 build is green on ci-status; fix it first if not.
-2. Fix whatever the user reports from the checklist below (feel, wrong hits, visual bugs), then start T4 (hardware keyboard
-   pass-through behavior and toggle), then T5 (IME picker on globe long-press).
+1. Confirm the newest build is green on ci-status; fix it first if not.
+2. Fix whatever the user reports from the checklist below (gap under keys, physical keyboard results, feel).
+3. Start v0.2 Bangla with the Avro phonetic engine as pure Kotlin (no Android classes) under `lang/avro/`, ported from
+   `third_party/avro-reference/engine` (MPL-2.0 header, list in NOTICE.md), with JUnit tests run in CI (add a test step to
+   build.yml that reports to ci-status) before any UI. The language-switch UI answers are in DECISIONS.md (D15+) if the
+   owner has given them; otherwise ask first.
 
 ## Test checklist for the typing build (user)
 1. Download https://github.com/i-am-sleepy/Monsoon-Script/releases/download/latest/MonsoonScript.apk and install it over
@@ -20,8 +24,10 @@ Milestone **v0.1**: a bare English keyboard that installs from a CI-built APK an
 4. Backspace: tap deletes one, holding repeats and speeds up. Enter: new line, or search/send/go in fields that ask for it.
 5. Hold q..p for a moment: the digit shown in the corner is typed. Tap ?123 and =\< for symbol pages, ABC to return.
    A number-only field should open on the symbols page.
-6. Globe icon (top-left) switches to your next keyboard. Emoji, clipboard and mic icons do nothing yet.
-7. Switch phone dark/light mode and rotate the phone: colors and size should adapt.
+6. Globe icon (top-left): tap switches to your next keyboard, hold opens the keyboard picker. Emoji, clipboard and mic
+   icons do nothing yet.
+7. Switch phone dark/light mode and rotate the phone: colors and size should adapt. Under the keys there must be no
+   see-through gap, and the gesture bar line at the bottom must stay visible in both modes.
 8. Report: lag or missed taps, wrong keys hit, anything ugly, crashes. If you have a physical keyboard, try it and tell
    me what happens (hardware behavior is task T4).
 
@@ -37,9 +43,16 @@ Milestone **v0.1**: a bare English keyboard that installs from a CI-built APK an
 - [~] T3 Minimal soft keyboard (D11-D14): written and pushed (Canvas KeyboardView, letters/symbols/symbols2 pages, shift and
       caps lock, auto-caps, backspace repeat, enter honoring IME action, tab, digit long-press hints, key bubble, light/dark).
       Mark [x] when CI is green AND the user's checklist passes. Emoji/clipboard/mic strip icons are placeholders (no action).
-- [ ] T4 Hardware keyboard pass-through (Enter/Shift/Ctrl/Alt/arrows/Tab untouched; soft view hides when a physical
-      keyboard is attached, with a toggle). Add the test checklist here once built.
-- [ ] T5 In-keyboard switch to Gboard/other IME (`switchToNextInputMethod` / IME picker key)
+- [x] T3b Gap under the keys: IME window background and navigation bar painted with the keyboard color, gesture-pill
+      contrast follows light/dark (`MonsoonIme.applySystemBars`). Pushed; owner to confirm on device.
+- [~] T4 Hardware keyboard pass-through: MonsoonIme has no onKeyDown/onKeyUp overrides and no fullscreen UI, so physical
+      keys reach the app untouched; soft view visibility follows Android's own policy (system "show on-screen keyboard"
+      setting), like Gboard. Needs the owner's test with a physical keyboard: Enter, Shift, Ctrl+C/V/A, arrows, Tab, typing in
+      several apps. In-app toggle and extras come later.
+- [x] T5 Globe: tap = next keyboard, long-press = keyboard picker (owner to confirm).
+- [ ] T6 (v0.2) Hardware-keyboard Bangla: only while a Bangla mode is active, translate printable keys (Avro/Provat/Bijoy)
+      in onKeyDown and pass everything else through; a shortcut (e.g. Ctrl+Space) toggles language; suggestions strip
+      even when the soft view is hidden (candidates view).
 
 ## Roadmap after v0.1 (details in docs/REQUIREMENTS.md)
 v0.2 Bangla: Avro phonetic port, Provat, Bijoy, in-keyboard language switch. v0.3 Emoji (full set, search, recents) and
