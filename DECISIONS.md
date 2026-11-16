@@ -19,3 +19,10 @@
 - D12 2026-11-16 Colors: follow the phone's light/dark mode (owner chose). Custom themes come in v0.5.
 - D13 2026-11-16 Top strip above the keys: suggestion area in the middle plus always-visible shortcut icons (language/IME globe, emoji, clipboard, mic) (owner chose).
 - D14 2026-11-16 Numbers: no number row by default; long-press top-row letters for digits (hint shown on the key); an optional full number row is a later setting (owner chose).
+- D15 2026-11-16 Language switching: a language key (EN / বাং) beside the space bar AND swipe left/right on the space bar. Each must be
+  switchable on/off in settings (default on). The strip globe stays for other keyboards (tap = next, hold = picker).
+- D16 2026-11-16 Avro Phonetic: live Bangla composing text (underlined) with suggestions in the strip; space/punctuation accepts the
+  first suggestion, tapping another picks it. Optional later setting: typed Latin word first (like Ridmik "show typed word").
+- D17 2026-11-16 Fixed Bangla layouts: Provat, Bijoy Classic, National (Jatiya); Bornona, Munir Optima, Avro Easy later.
+  Bijoy Classic is not in Avro's pack: build it from the standard chart and have the owner verify it.
+- D18 2026-11-16 Digits in Bangla mode: English digits typed by default, Bangla digits shown as hints and typed on long-press.
