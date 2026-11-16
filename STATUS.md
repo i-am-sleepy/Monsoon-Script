@@ -1,15 +1,14 @@
 # STATUS (the baton: rewrite it, keep it under one page)
 
-Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Last confirmed green: CI #4 (4d171e6). The T7 push (Avro engine + tests + CI test step)
-is waiting for its first CI run: check ci-status first. Release-signed APK at the `latest` link (updates install in place).
+Updated: 2026-11-16, session 1 (Claude Sonnet 5.5). Last confirmed green: CI #5 (77cb8b9: build + unit tests). Always re-check ci-status first. Release-signed APK at the `latest` link (updates install in place).
 
 ## Now
-v0.2 Bangla. T7 (Avro Phonetic engine) is written, tested locally (11 JUnit tests pass, 40k random inputs identical to an independent
-Python translation) and pushed; waiting for CI to confirm `tests: success`. The engine is not wired to the keyboard yet.
+v0.2 Bangla. T7 (Avro Phonetic engine) is DONE: 11 JUnit tests pass in CI #5, 40k random inputs matched an independent Python translation.
+The engine is not wired to the keyboard yet (that is T8).
 
 ## Next step (do this first)
-1. `git fetch origin ci-status && git show origin/ci-status:last-build.txt`. If `tests:` or `result:` is not success, fix it first
-   (the file lists the failing test / compile error). Then mark T7 `[x]`.
+1. `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt` (a plain `origin/ci-status` ref may not exist after a one-branch fetch).
+   If `tests:` or `result:` is not success, fix it first (the file lists the failing test / compile error).
 2. T8: language model in the IME. Plan: `lang/Language.kt` (ENGLISH, AVRO, PROVAT, BIJOY, NATIONAL), IME keeps a raw Latin buffer for Avro,
    calls `AvroPhoneticConverter.convert(buffer)` on every key and shows it as underlined composing text (`setComposingText`), space or
    punctuation commits it (D16). Load `assets/avro/autodict.dct` once, off the main thread (`AvroAutoCorrect.load`). Then the language
@@ -32,7 +31,7 @@ Python translation) and pushed; waiting for CI to confirm `tests: success`. The 
 - [x] T5 Globe: tap = next keyboard, hold = picker (owner to confirm)
 - [ ] T6 Hardware-keyboard Bangla: only while a Bangla mode is active, translate printable keys in onKeyDown and pass everything
       else through; a shortcut (e.g. Ctrl+Space) toggles language; suggestions even when the soft view is hidden (candidates view)
-- [~] T7 Avro Phonetic engine: DONE and pushed (`lang/avro/*`, tests, CI test step, assets/avro/autodict.dct); mark [x] once ci-status shows tests green
+- [x] T7 Avro Phonetic engine in `lang/avro/*` + JUnit tests + CI test step + `assets/avro/autodict.dct` (CI #5 green)
 - [ ] T8 Language model in the IME: languages English, Bangla Avro, Provat, Bijoy Classic, National; per-language layout and engine;
       language key (EN / বাং) beside space and swipe on the space bar (D15); live underlined composing text + suggestions in the strip (D16)
 - [ ] T9 Fixed layouts as data: Provat and National from `third_party/avro-reference/layouts` (key maps, images stripped); Bijoy Classic
