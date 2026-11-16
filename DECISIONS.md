@@ -29,3 +29,11 @@
 - D19 2026-11-16 Language key placement (overturns the "beside the space bar" part of D15): the language key (EN / বাং) sits in the top
   strip right next to the globe (strip: globe, language key, emoji, clipboard ... mic). The bottom row stays as is. Tap = toggle English <->
   last-used Bangla layout; long-press = small popup to pick Avro / Provat / Bijoy / National (owner chose). Space-bar swipe (D15) stays.
+- D20 2026-11-17 Four Claude accounts work in parallel, named claude-l, claude-e, claude-g, claude-s. The owner's pasted command starts
+  with "You are claude-X"; each Claude has its own tasks (owner tag on every STATUS.md task line) and its own notes file `status/claude-X.md`
+  (steps numbered with progress, next step, half-done files, "Warnings" from others). Initial split (owner approved): claude-l = T8b + T8a fixes,
+  claude-e = T9 then T11, claude-g = T10, claude-s = T4 + T6. New tasks use ids with the Claude's letter (L1, E1, G1, S1) so ids never clash.
+- D21 2026-11-17 When another Claude's task is unfinished but nothing is broken, a newly started Claude goes ahead with the owner's request
+  and leaves a Warning in the other Claude's notes file for anything it changed in their area (owner chose).
+- D22 2026-11-17 The only work a Claude takes over from another is a broken build (fix it first, whoever caused it). Unfinished tasks are never
+  taken over; they wait for their owner (owner chose).
