@@ -10,8 +10,8 @@ v0.1 is done except owner confirmation of build #4 (gap fix, globe long-press, p
 1. Confirm the newest build is green on ci-status; fix it first if not. Fix what the owner reports from the checklist below.
 2. T7: Avro Phonetic engine as pure Kotlin (no Android classes) under `lang/avro/`, ported from `third_party/avro-reference/engine`
    (MPL-2.0 header on each ported file, list them in NOTICE.md), with JUnit tests run in CI (add a test step to build.yml that
-   also reports to ci-status). Tests first: known words ("ami" -> আমি, etc.), then the UI. Dictionary data (`Database.db3`, 5.4 MB)
-   is NOT in the repo: ask the owner to re-upload the Avro zip or fetch it from OmicronLab's Avro-Keyboard GitHub repo.
+   also reports to ci-status). Tests first: known words ("ami" -> আমি, etc.), then the UI. The suggestion dictionary is in the repo as TSV
+   (`third_party/avro-reference/data/`, 159k words + 749 suffixes); turn it into a compact app-side index at T8 (not raw SQLite).
 
 ## Test checklist for build #4 (owner)
 1. Install https://github.com/i-am-sleepy/Monsoon-Script/releases/download/latest/MonsoonScript.apk over the old one.

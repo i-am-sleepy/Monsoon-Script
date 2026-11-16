@@ -7,7 +7,11 @@ Included here only as reference for the Kotlin port of the Avro Phonetic engine 
 - `layouts/`  `.avrolayout` XML key maps with the embedded bitmap images removed (only key mappings kept)
 - `docs/`     Avro's own typing guides (phonetic and fixed layouts)
 
-Not included: `Database.db3` (5.4 MB suggestion dictionary).
+- `data/`     the suggestion dictionary exported from Avro's `Database.db3` as TSV (`avro-dictionary.tsv`: 159,425 words with
+              the first-phoneme bucket they were stored under; `avro-suffixes.tsv`: 749 English->Bangla suffix rows). Same MPL-2.0 license.
+              Any compact index shipped in the app is derived data: keep the attribution.
+
+Not included: the original `Database.db3` binary.
 
 ## Ported files (keep this list current)
 Every Kotlin file derived from the sources above must stay MPL-2.0, keep the MPL header, live under `.../lang/avro/`
