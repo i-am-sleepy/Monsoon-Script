@@ -4,15 +4,22 @@ import android.content.res.Configuration
 import android.graphics.drawable.ColorDrawable
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import com.monsoonscript.keyboard.lang.Language
+import com.monsoonscript.keyboard.lang.PhoneticComposer
+import com.monsoonscript.keyboard.lang.avro.AvroAutoCorrect
+import com.monsoonscript.keyboard.lang.avro.AvroPhoneticConverter
 import com.monsoonscript.keyboard.layout.Layouts
 import com.monsoonscript.keyboard.view.KeyboardView
+import java.io.IOException
 
 /**
  * The keyboard service.
@@ -21,14 +28,31 @@ import com.monsoonscript.keyboard.view.KeyboardView
  * extract UI), so physical key events always go straight to the app, untouched. Whether the on-screen keyboard shows
  * while a physical keyboard is connected is left to Android's own policy (the system "show on-screen keyboard"
  * setting), exactly like Gboard. See ARCHITECTURE.md, "Hardware keyboard rules".
+ *
+ * Avro Phonetic: letters are collected by a [PhoneticComposer] and shown as live, underlined Bangla composing text.
+ * Anything that is not part of a word (space, digits, punctuation, Enter, Tab, switching keyboard) first finishes the
+ * word, so the text in the editor is always exactly what the user sees.
  */
 class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     private var keyboard: KeyboardView? = null
 
+    private var language = Language.ENGLISH
+    private var lastBangla = Language.AVRO
+
+    /** Created on first use of Avro (loads the autocorrect dictionary from assets, a few ms). */
+    private var composer: PhoneticComposer? = null
+
+    /** Password, URL and e-mail fields get the typed letters as they are, even in a Bangla mode. */
+    private var composingAllowed = true
+    private var lastEditAt = 0L
+
+    private val avroActive: Boolean get() = language == Language.AVRO && composingAllowed
+
     override fun onCreateInputView(): View {
         val v = KeyboardView(this)
         v.listener = this
+        v.setLanguage(language.shortLabel, language.spaceLabel)
         keyboard = v
         applySystemBars()
         return v
@@ -45,17 +69,49 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
+        composer?.clear()
+        val inputType = info?.inputType ?: 0
+        val cls = inputType and InputType.TYPE_MASK_CLASS
+        composingAllowed = info != null && cls == InputType.TYPE_CLASS_TEXT && !isRawTextVariation(inputType)
         val v = keyboard ?: return
-        val cls = (info?.inputType ?: 0) and InputType.TYPE_MASK_CLASS
         val numeric = cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE || cls == InputType.TYPE_CLASS_DATETIME
         v.setPage(if (numeric) Layouts.PAGE_SYMBOLS else Layouts.PAGE_LETTERS)
+        v.setLanguage(language.shortLabel, language.spaceLabel)
         applySystemBars()
         refreshAutoCaps()
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        currentInputConnection?.finishComposingText()
+        composer?.clear()
         keyboard?.cancelAll()
+    }
+
+    /** The user moved the cursor or the app dropped the composing region: forget the word we were building. */
+    override fun onUpdateSelection(
+        oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int,
+    ) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        val comp = composer ?: return
+        if (!comp.isComposing) return
+        val sinceEdit = SystemClock.uptimeMillis() - lastEditAt
+        if (PhoneticComposer.externalMove(newSelStart, newSelEnd, candidatesStart, candidatesEnd, sinceEdit)) {
+            comp.clear()
+            currentInputConnection?.finishComposingText() // leave the old word as plain text
+        }
+    }
+
+    private fun isRawTextVariation(inputType: Int): Boolean {
+        return when (inputType and InputType.TYPE_MASK_VARIATION) {
+            InputType.TYPE_TEXT_VARIATION_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD,
+            InputType.TYPE_TEXT_VARIATION_URI,
+            InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
+            InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS -> true
+            else -> false
+        }
     }
 
     /**
@@ -86,19 +142,79 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
     }
 
+    // ---- composing (Avro Phonetic)
+
+    private fun ensureComposer(): PhoneticComposer {
+        composer?.let { return it }
+        val dict: Map<String, String> = try {
+            assets.open("avro/autodict.dct").use { AvroAutoCorrect.load(it) }
+        } catch (e: IOException) {
+            emptyMap() // no autocorrect, phonetic typing still works
+        }
+        val c = PhoneticComposer(AvroPhoneticConverter(dict))
+        composer = c
+        return c
+    }
+
+    private fun showComposing(ic: InputConnection, comp: PhoneticComposer) {
+        ic.setComposingText(comp.text(), 1)
+        lastEditAt = SystemClock.uptimeMillis()
+    }
+
+    /** What is shown is already the final Bangla text, so finishing just makes it normal (not underlined) text. */
+    private fun commitComposingIfAny() {
+        val comp = composer ?: return
+        if (!comp.isComposing) return
+        currentInputConnection?.finishComposingText()
+        comp.clear()
+        lastEditAt = SystemClock.uptimeMillis()
+    }
+
+    private fun setLanguage(l: Language) {
+        language = l
+        if (l.isBangla) lastBangla = l
+        keyboard?.setLanguage(l.shortLabel, l.spaceLabel)
+        refreshAutoCaps()
+    }
+
     // ---- KeyboardView.Listener
 
     override fun onText(text: String) {
-        currentInputConnection?.commitText(text, 1)
+        val ic = currentInputConnection ?: return
+        if (avroActive) {
+            val comp = ensureComposer()
+            if (text.length == 1 && comp.accepts(text[0])) {
+                comp.append(text[0])
+                showComposing(ic, comp)
+                return
+            }
+            if (comp.isComposing) {
+                commitComposingIfAny()
+                if (text == ".") { // a full stop right after a Bangla word is the dari
+                    ic.commitText(DARI, 1)
+                    return
+                }
+            }
+        }
+        ic.commitText(text, 1)
         // getCursorCapsMode is a blocking call into the app: only ask when the text could start a new sentence/word.
         if (text == " " || text == "." || text == "!" || text == "?") refreshAutoCaps()
     }
 
     override fun onBackspace() {
+        val comp = composer
+        val ic = currentInputConnection
+        if (avroActive && comp != null && comp.isComposing && ic != null) {
+            comp.deleteLast()
+            if (comp.isComposing) showComposing(ic, comp) else ic.commitText("", 1)
+            lastEditAt = SystemClock.uptimeMillis()
+            return
+        }
         sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
     }
 
     override fun onEnter() {
+        commitComposingIfAny()
         val options = currentInputEditorInfo?.imeOptions ?: 0
         val action = options and EditorInfo.IME_MASK_ACTION
         val noEnterAction = (options and EditorInfo.IME_FLAG_NO_ENTER_ACTION) != 0
@@ -111,12 +227,14 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onTab() {
+        commitComposingIfAny()
         sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
     }
 
     /** Tap: jump to the next enabled keyboard (Gboard etc.). Falls back to the picker if Android refuses. */
     @Suppress("DEPRECATION")
     override fun onGlobe() {
+        commitComposingIfAny()
         val imm = getSystemService(InputMethodManager::class.java)
         val switched = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             switchToNextInputMethod(false)
@@ -128,12 +246,28 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** Long press: the full keyboard picker. */
     override fun onGlobeLong() {
+        commitComposingIfAny()
         getSystemService(InputMethodManager::class.java)?.showInputMethodPicker()
     }
 
+    /** Language key / space-bar swipe: English <-> the Bangla layout used last (D19). */
+    override fun onLanguageToggle() {
+        commitComposingIfAny()
+        setLanguage(if (language.isBangla) Language.ENGLISH else lastBangla)
+    }
+
     private fun refreshAutoCaps() {
+        // Capitals mean different letters in Avro Phonetic (Dhaka vs dhaka), so never auto-capitalize in Bangla.
+        if (language.isBangla) {
+            keyboard?.applyAutoCaps(false)
+            return
+        }
         val ic = currentInputConnection ?: return
         val ei = currentInputEditorInfo ?: return
         keyboard?.applyAutoCaps(ic.getCursorCapsMode(ei.inputType) != 0)
+    }
+
+    private companion object {
+        const val DARI = "।"
     }
 }

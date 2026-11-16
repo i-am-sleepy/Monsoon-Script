@@ -14,9 +14,10 @@ object Layouts {
     private fun backspace(w: Float) = Key(Codes.BACKSPACE, "", w, Kind.SPECIAL)
     private fun enter(w: Float) = Key(Codes.ENTER, "", w, Kind.ACTION)
     private fun space(w: Float) = Key(Codes.SPACE, " ", w, Kind.SPACE, null, "English")
-    private fun strip(code: Int) = Key(code, "", 1f, Kind.STRIP)
+    private fun strip(code: Int, w: Float = 1f) = Key(code, "", w, Kind.STRIP)
 
-    val stripLeft: Array<Key> = arrayOf(strip(Codes.GLOBE), strip(Codes.EMOJI), strip(Codes.CLIPBOARD))
+    /** Strip cell width is `weight * 44dp`; the language key is a text pill, so it is wider. */
+    val stripLeft: Array<Key> = arrayOf(strip(Codes.GLOBE), strip(Codes.LANG, 1.25f), strip(Codes.EMOJI), strip(Codes.CLIPBOARD))
     val stripRight: Array<Key> = arrayOf(strip(Codes.MIC))
 
     private val letters: Array<Array<Key>> = arrayOf(

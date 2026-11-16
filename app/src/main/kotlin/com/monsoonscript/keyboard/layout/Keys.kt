@@ -16,6 +16,7 @@ object Codes {
     const val EMOJI = -10
     const val CLIPBOARD = -11
     const val MIC = -12
+    const val LANG = -13
 }
 
 /** How a key is drawn. */

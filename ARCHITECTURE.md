@@ -13,6 +13,12 @@ Status: v0.1 done, v0.2 in progress (Avro engine ported, not wired to the UI yet
   `AvroBanglaChars` (GENERATED constants). Hand-written parts: vowels, o/O, r/rri, j, dot, w/y/x, CutText, CorrectCase.
   The generated files come from `third_party/avro-reference/engine/*.pas`; if the tables ever need a change, fix the generator
   idea (parse `if Cnv('pat', expr) = True then`) or edit the Kotlin by hand and drop the GENERATED note.
+- `lang/Language.kt` (EN, AVRO; labels for the strip pill and space bar) and `lang/PhoneticComposer.kt` (the raw Latin word being typed,
+  `text()` = live Bangla, `accepts(ch)`, `externalMove(...)` = decide from onUpdateSelection whether the user moved the cursor). Pure Kotlin.
+- `MonsoonIme`: in Avro it shows the word with `setComposingText`; space, digits, punctuation, Enter, Tab, globe and language switch call
+  `finishComposingText` first, so editor text always equals what is shown. Backspace edits the Latin buffer while composing.
+  `onUpdateSelection` clears the buffer if the cursor leaves the word (ignores echoes within 250 ms of our own edit).
+  Strip order: globe, language pill (`Codes.LANG`, text pill, 1.25 cells wide), emoji, clipboard ... mic. `KeyboardView.setLanguage` pushes labels in.
 - Tests: `app/src/test/kotlin/.../lang/avro/AvroPhoneticConverterTest.kt` + `app/src/test/resources/avro/golden.tsv`
   (1,200 golden cases from an independent Python translation of the Pascal; 40k random inputs matched the port exactly).
 Strip icons for emoji, clipboard and mic are drawn but do nothing yet. Everything else below is planned; replace "planned" with real paths as you build.

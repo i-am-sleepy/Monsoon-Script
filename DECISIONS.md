@@ -26,3 +26,6 @@
 - D17 2026-11-16 Fixed Bangla layouts: Provat, Bijoy Classic, National (Jatiya); Bornona, Munir Optima, Avro Easy later.
   Bijoy Classic is not in Avro's pack: build it from the standard chart and have the owner verify it.
 - D18 2026-11-16 Digits in Bangla mode: English digits typed by default, Bangla digits shown as hints and typed on long-press.
+- D19 2026-11-16 Language key placement (overturns the "beside the space bar" part of D15): the language key (EN / বাং) sits in the top
+  strip right next to the globe (strip: globe, language key, emoji, clipboard ... mic). The bottom row stays as is. Tap = toggle English <->
+  last-used Bangla layout; long-press = small popup to pick Avro / Provat / Bijoy / National (owner chose). Space-bar swipe (D15) stays.

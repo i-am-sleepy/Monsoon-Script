@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Typeface
 import android.graphics.RectF
 import android.os.Handler
 import android.os.Looper
@@ -13,6 +14,7 @@ import android.os.SystemClock
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
+import kotlin.math.abs
 import com.monsoonscript.keyboard.layout.Codes
 import com.monsoonscript.keyboard.layout.Key
 import com.monsoonscript.keyboard.layout.Kind
@@ -31,6 +33,9 @@ class KeyboardView(context: Context) : View(context) {
         fun onTab()
         fun onGlobe()
         fun onGlobeLong()
+
+        /** Language key tap, or a swipe across the space bar: switch English <-> the last Bangla layout. */
+        fun onLanguageToggle()
     }
 
     var listener: Listener? = null
@@ -63,10 +68,18 @@ class KeyboardView(context: Context) : View(context) {
     private var shiftState = SHIFT_OFF
     private var lastShiftTap = 0L
 
+    // ---- language (the IME owns the state and pushes labels in)
+    private var langLabel = "EN"
+    private var spaceLabel = "English"
+    private var languageKeyEnabled = true
+    private var spaceSwipeEnabled = true
+
     // ---- pointers (multi-touch)
     private val ptrId = IntArray(MAX_PTR) { -1 }
     private val ptrKey = IntArray(MAX_PTR) { -1 }
     private val ptrLong = BooleanArray(MAX_PTR)
+    private val downX = FloatArray(MAX_PTR)
+    private val swipeArmed = BooleanArray(MAX_PTR)
     private val repeatCount = IntArray(MAX_PTR)
     private val uiHandler = Handler(Looper.getMainLooper())
     private val longPressRunnable = Array(MAX_PTR) { slot -> Runnable { onLongPress(slot) } }
@@ -79,6 +92,10 @@ class KeyboardView(context: Context) : View(context) {
     private val labelPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
     private val hintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.RIGHT }
     private val bubblePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+    private val stripTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
+    }
     private val iconPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
@@ -87,6 +104,7 @@ class KeyboardView(context: Context) : View(context) {
     private var letterBase = 0f
     private var labelBase = 0f
     private var bubbleBase = 0f
+    private var stripBase = 0f
     private var hintTop = 0f
     private var pal = DARK
 
@@ -119,6 +137,24 @@ class KeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
+    /** Labels for the strip's language key and the space bar. */
+    fun setLanguage(shortLabel: String, spaceBarLabel: String) {
+        if (shortLabel == langLabel && spaceBarLabel == spaceLabel) return
+        langLabel = shortLabel
+        spaceLabel = spaceBarLabel
+        invalidate()
+    }
+
+    /** The two switches from D15/D19 (settings wire them in T10). Hiding the language key re-flows the strip. */
+    fun setLanguageOptions(languageKey: Boolean, spaceSwipe: Boolean) {
+        spaceSwipeEnabled = spaceSwipe
+        if (languageKey != languageKeyEnabled) {
+            languageKeyEnabled = languageKey
+            if (width > 0) computeLayout(width)
+            cancelAll()
+        }
+    }
+
     /** Called by the IME after it checked the editor's auto-capitalization mode. Never overrides caps lock. */
     fun applyAutoCaps(on: Boolean) {
         if (shiftState == SHIFT_LOCKED) return
@@ -135,6 +171,7 @@ class KeyboardView(context: Context) : View(context) {
             ptrId[s] = -1
             ptrKey[s] = -1
             ptrLong[s] = false
+            swipeArmed[s] = false
         }
         invalidate()
     }
@@ -165,7 +202,9 @@ class KeyboardView(context: Context) : View(context) {
             val rl = ArrayList<RectF>()
             var x = padX
             for (k in Layouts.stripLeft) {
-                kl.add(k); rl.add(RectF(x, 0f, x + iconCell, stripH)); x += iconCell
+                if (k.code == Codes.LANG && !languageKeyEnabled) continue
+                val cw = iconCell * k.weight
+                kl.add(k); rl.add(RectF(x, 0f, x + cw, stripH)); x += cw
             }
             var rx = w - padX
             for (k in Layouts.stripRight.reversed()) {
@@ -197,9 +236,11 @@ class KeyboardView(context: Context) : View(context) {
         labelPaint.textSize = rowH * 0.27f
         hintPaint.textSize = rowH * 0.22f
         bubblePaint.textSize = rowH * 0.62f
+        stripTextPaint.textSize = stripH * 0.36f
         letterBase = baseline(letterPaint)
         labelBase = baseline(labelPaint)
         bubbleBase = baseline(bubblePaint)
+        stripBase = baseline(stripTextPaint)
         hintTop = dp(3f) - hintPaint.fontMetrics.ascent
     }
 
@@ -269,7 +310,7 @@ class KeyboardView(context: Context) : View(context) {
             }
             Codes.SPACE -> {
                 labelPaint.color = pal.textMuted
-                c.drawText(k.label, cx, cy + labelBase, labelPaint)
+                c.drawText(spaceLabel, cx, cy + labelBase, labelPaint)
                 labelPaint.color = pal.text
             }
             Codes.SHIFT -> {
@@ -304,6 +345,10 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     private fun drawStripIcon(c: Canvas, k: Key, r: RectF, pressed: Boolean) {
+        if (k.code == Codes.LANG) {
+            drawLanguagePill(c, r, pressed)
+            return
+        }
         if (pressed) {
             fillPaint.color = pal.specialPressed
             c.drawCircle(r.centerX(), r.centerY(), stripH * 0.42f, fillPaint)
@@ -341,6 +386,17 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
         c.restore()
+    }
+
+    /** Small rounded pill with the current language (EN / বাং) in the strip, next to the globe. */
+    private fun drawLanguagePill(c: Canvas, r: RectF, pressed: Boolean) {
+        val ph = stripH * 0.64f
+        val pw = r.width() - dp(8f)
+        tmp.set(r.centerX() - pw / 2, r.centerY() - ph / 2, r.centerX() + pw / 2, r.centerY() + ph / 2)
+        fillPaint.color = if (pressed) pal.keyPressed else pal.special
+        c.drawRoundRect(tmp, ph / 2, ph / 2, fillPaint)
+        stripTextPaint.color = pal.text
+        c.drawText(langLabel, tmp.centerX(), tmp.centerY() + stripBase, stripTextPaint)
     }
 
     private fun drawBubble(c: Canvas, k: Key, r: RectF) {
@@ -403,8 +459,11 @@ class KeyboardView(context: Context) : View(context) {
         ptrKey[slot] = idx
         ptrLong[slot] = false
         repeatCount[slot] = 0
+        swipeArmed[slot] = false
         if (idx < 0) return
         val k = keys[page][idx]
+        downX[slot] = x
+        swipeArmed[slot] = spaceSwipeEnabled && k.code == Codes.SPACE
         performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
         invalidate()
         if (k.code == Codes.BACKSPACE) {
@@ -418,6 +477,16 @@ class KeyboardView(context: Context) : View(context) {
     private fun move(id: Int, x: Float, y: Float) {
         val slot = slotOf(id)
         if (slot < 0 || ptrLong[slot]) return
+        if (swipeArmed[slot] && abs(x - downX[slot]) > dp(SWIPE_DP)) {
+            // Swipe across the space bar: switch language, and do not type a space on release.
+            swipeArmed[slot] = false
+            cancelTimers(slot)
+            ptrLong[slot] = true
+            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            listener?.onLanguageToggle()
+            invalidate()
+            return
+        }
         var idx = findKey(x, y)
         val old = ptrKey[slot]
         if (idx == old) return
@@ -494,6 +563,7 @@ class KeyboardView(context: Context) : View(context) {
             Codes.SYMBOLS2 -> setPage(Layouts.PAGE_SYMBOLS2)
             Codes.LETTERS -> setPage(Layouts.PAGE_LETTERS)
             Codes.GLOBE -> listener?.onGlobe()
+            Codes.LANG -> listener?.onLanguageToggle()
             else -> Unit // emoji, clipboard, mic: not built yet
         }
     }
@@ -539,6 +609,7 @@ class KeyboardView(context: Context) : View(context) {
         const val REPEAT_MS = 50L
         const val REPEAT_FAST_MS = 30L
         const val DOUBLE_TAP_MS = 350L
+        const val SWIPE_DP = 64f
 
         // Placeholder colors (owner has not picked a palette yet); custom themes come in v0.5.
         val DARK = Palette(
