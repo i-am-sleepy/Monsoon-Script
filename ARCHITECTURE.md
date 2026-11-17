@@ -1,6 +1,6 @@
 # ARCHITECTURE (map for agents; update in the same commit as any structural change)
 
-Status: v0.1 done, v0.2 in progress (Avro engine ported, not wired to the UI yet). Exists:
+Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion engine done, strip UI not wired yet). Exists:
 - `ime/MonsoonIme.kt`: commits text, backspace/enter/tab as key events, enter honors the editor's IME action, globe = next IME,
   auto-caps (asked only after space . ! ? and at start, because getCursorCapsMode blocks on the app), no fullscreen extract UI.
 - `view/KeyboardView.kt`: one Canvas view (strip icons + 4 rows), multi-touch (4 pointers), commit on release, finger sliding
@@ -19,8 +19,19 @@ Status: v0.1 done, v0.2 in progress (Avro engine ported, not wired to the UI yet
   `finishComposingText` first, so editor text always equals what is shown. Backspace edits the Latin buffer while composing.
   `onUpdateSelection` clears the buffer if the cursor leaves the word (ignores echoes within 250 ms of our own edit).
   Strip order: globe, language pill (`Codes.LANG`, text pill, 1.25 cells wide), emoji, clipboard ... mic. `KeyboardView.setLanguage` pushes labels in.
+- Suggestion engine (T8b, `lang/avro/`, MPL-2.0, pure Kotlin, no Android classes, NOT thread-safe: use one instance per worker thread):
+  `AvroSuggester(words: AvroWordSource, suffixes)`.`suggest(english, plainBangla, limit=12)`: `AvroRegexBuilder.convert(english)` makes a regex of
+  every Bangla spelling the typed word could have; `AvroBucketMap.forLetter` picks the dictionary buckets for the first letter; each bucket's
+  words are full-matched against the regex; then suffix forms (stem + suffix, with Avro's vowel/khandatta/anushar joining rules); results are
+  sorted by Levenshtein distance to the plain conversion. `AvroWordSource.load(bucket)` is the only I/O: the IME implements it on top of
+  `assets/avro/dict/<bucket>.txt` (T8b.3, LRU of ~6 buckets). Typed words longer than `MAX_ENGLISH_LENGTH` (50) give no suggestions.
+  `AvroRegexRules`/`AvroRegexConstants` are GENERATED (`tools/gen_avro_regex.py`); `assets/avro/dict/*` and `suffixes.tsv` come from
+  `tools/gen_avro_dict_assets.py` (source: `third_party/avro-reference/data/`). Dictionary words use precomposed য় (U+09DF); the converter does too.
+  JVM timing with the real dictionary: 4-50 ms per word (cold bucket loads included); on a phone run it on a background thread only.
+- `tools/`: one-off generators (python3 -I tools/<name>.py from the repo root). Generated Kotlin files name their generator in the header.
 - Tests: `app/src/test/kotlin/.../lang/avro/AvroPhoneticConverterTest.kt` + `app/src/test/resources/avro/golden.tsv`
-  (1,200 golden cases from an independent Python translation of the Pascal; 40k random inputs matched the port exactly).
+  (1,200 golden cases from an independent Python translation of the Pascal; 40k random inputs matched the port exactly);
+  `AvroSuggesterTest.kt` (uses the real assets, `src/main/assets/avro`, relative to the `app/` directory); `PhoneticComposerTest.kt`.
 Strip icons for emoji, clipboard and mic are drawn but do nothing yet. Everything else below is planned; replace "planned" with real paths as you build.
 
 ## Build and CI

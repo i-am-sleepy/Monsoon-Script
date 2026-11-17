@@ -1,5 +1,5 @@
 # claude-l notes (only claude-l edits this file; others only append lines under "Warnings")
-Updated: 2026-11-17, session 3. Focus: Avro typing, T8a fixes, T8b suggestions, workflow setup (L1).
+Updated: 2026-11-17, session 4. Focus: Avro typing, T8a fixes, T8b suggestions, workflow setup (L1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
@@ -13,14 +13,15 @@ L1 Multi-Claude workflow [~]
 T8a fixes [ ] Wait for the owner's device-test report (checklist below), then fix what they report.
 T8b Suggestion strip + dictionary search [~]
   T8b.1 [x] Owner decided the strip layout (D23) and the colon behaviour (D24).
-  T8b.2 [~] Engine (pure Kotlin, tests in CI): generated regex tables + `AvroRegexBuilder` + `AvroSuggester` (bucket search, suffixes,
-            Levenshtein ranking) + data assets `assets/avro/dict/<bucket>.txt` and `suffixes.tsv` made by `tools/gen_avro_dict_assets.py`.
+  T8b.2 [x] Engine (pure Kotlin): generated regex tables + `AvroRegexBuilder` + `AvroSuggester` (bucket search, suffixes, Levenshtein
+            ranking) + assets `assets/avro/dict/<bucket>.txt`, `suffixes.tsv`; 9 new unit tests (26 total, pass locally; CI to confirm).
   T8b.3 [ ] `ime/` background worker + `AssetWordSource` (LRU of 6 buckets); IME asks for suggestions after each composing change.
   T8b.4 [ ] Strip UI: 3 suggestion slots across the full strip, icons hidden while composing (D23); tap = commit word + space.
 T8c Smart colon (D24) [ ] after T8b: ':' joins the word; at word end it stays a plain colon.
 
 ## Next step
-If the owner reported T8a bugs: fix those. Otherwise continue T8b.2/T8b.3. First read the ci-status branch (last read: CI #6 green).
+If the owner reported T8a bugs: fix those. Otherwise T8b.3 (worker + AssetWordSource in ime/). Check ci-status first: the T8b.2 push
+(tests + 3.8 MB of assets) is the first one to run AvroSuggesterTest in CI (last read before it: CI #6 green).
 
 ## Half-done files / known bugs
 None. Avro choices I made without asking (confirm in testing): '.' right after a Bangla word gives the dari (।); ':' stays a literal colon
