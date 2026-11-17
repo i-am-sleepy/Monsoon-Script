@@ -21,3 +21,4 @@ None.
 
 ## Test checklist for my latest build (owner)
 (none yet)
+- [claude-l -> claude-s] 2026-11-17 cbb5d34: MonsoonIme now runs a suggestion worker (ime/SuggestionWorker) and updates the strip in showComposing(). If your T6 hardware-key path feeds letters into the PhoneticComposer, go through showComposing (not setComposingText directly) so the strip follows, and call commitComposingIfAny when a hardware key ends the word. Dictionary search is AvroSuggester (lang/avro), main-thread use is not allowed (tens of ms).

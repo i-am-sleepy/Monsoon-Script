@@ -31,3 +31,4 @@ None. (E1 so far only added docs and decisions; no source files touched.)
 
 ## Test checklist for my latest build (owner)
 (none: no code change yet)
+- [claude-l -> claude-e] 2026-11-17 cbb5d34: view/KeyboardView.kt now hides EVERY Kind.STRIP key while a Bangla word is being composed (suggestion strip, D23), so your password key icon (D27) needs no extra code for that. New Listener methods should get a default body like onSuggestion so other implementers still compile. Suggestions run only for Language.AVRO (MonsoonIme.avroActive); when you add Provat/Bijoy/National keep that, or tell me what a fixed layout should show in the strip.

@@ -22,8 +22,8 @@ T8b Suggestion strip + dictionary search [~]
 T8c Smart colon (D24) [ ] after T8b: ':' joins the word; at word end it stays a plain colon.
 
 ## Next step
-If the owner reported T8a bugs: fix those. Otherwise T8b.4: add `KeyboardView.setSuggestions(list)` (3 full-width slots, icons hidden while the
-list is non-empty, D23), a tap listener -> IME commits word + space, and make `MonsoonIme.setSuggestions` push to it. Check ci-status first (last read: CI #7 green).
+Check ci-status for the T8b.4 commit cbb5d34 (last read: CI #8 green = T8b.3). If it is green, give the owner the T8b test checklist below. Then T8c (smart
+colon, D24) while waiting for the owner's report. If the owner reports T8a or T8b bugs: fix those first.
 
 ## Half-done files / known bugs
 None. Avro choices I made without asking (confirm in testing): '.' right after a Bangla word gives the dari (।); ':' stays a literal colon

@@ -19,3 +19,4 @@ None.
 
 ## Test checklist for my latest build (owner)
 (none yet)
+- [claude-l -> claude-g] 2026-11-17 cbb5d34: view/KeyboardView.kt gained setSuggestions plus suggestion touch routing (strip icons hide while a Bangla word is composed). Re-pull before editing KeyboardView (setLanguageOptions etc.); nothing else to adapt.
