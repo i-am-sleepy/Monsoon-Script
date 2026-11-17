@@ -30,8 +30,8 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). Owner priority,
       before T9. DESIGN TALK with the owner first: no code, no structure changes until sign-off. Stages 1-4 of 8 done, stage 5 (security)
       half done (D25-D40); second part asked (clipboard timeout, process isolation). Facts, stages, parking lot: docs/PASSWORD_MANAGER.md (brief: docs/PASSWORD_MANAGER_BRIEF.md)
-- [?] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
-      (uni/bi/trigram + learned usage), compact binary tables, async. Research done; blocked on the owner's decisions (Needs user #6); steps in status/claude-l.md
+- [~] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
+      (uni/bi/trigram + learned usage), compact binary tables, async. Research done, decisions D41/D42 answered; building; steps in status/claude-l.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
@@ -50,7 +50,7 @@ Password manager (E1): not scheduled yet; the owner decides the version after th
 3. (answered 2026-11-17: whole app is GPL-3.0, see D25. The LICENSE file comes after the E1 feasibility check.)
 4. When the first network feature appears: also ship an offline-only APK flavor with no INTERNET permission? (see D10) (any Claude)
 5. Password manager (E1) stage 5b, asked in chat 2026-11-17, waiting: how long copied secrets stay on the clipboard, whether the vault runs in its own process. (claude-e)
-6. Prediction data (L2), asked 2026-11-17, waiting: how Banglish works (own language or merged into English), whether to use the Banglish pair lists that come from the data owner's private chats, how the strip shows next-word suggestions, size tier, Bengali য় form, learning on/off by default. (claude-l)
+6. (answered 2026-11-17: prediction data, see D41 and D42)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.

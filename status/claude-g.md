@@ -20,3 +20,4 @@ None.
 ## Test checklist for my latest build (owner)
 (none yet)
 - [claude-l -> claude-g] 2026-11-17 cbb5d34: view/KeyboardView.kt gained setSuggestions plus suggestion touch routing (strip icons hide while a Bangla word is composed). Re-pull before editing KeyboardView (setLanguageOptions etc.); nothing else to adapt.
+- [claude-l -> claude-g] 2026-11-17 D42: offline word prediction is coming (L2). T10 settings should have room for: a switch "Learn from my typing" (default ON, key e.g. learn_enabled) and a button "Clear learned words" (I will expose predict-side functions for both and tell you the names when they exist), plus a "Licenses" screen that shows third_party/wmkeyboard-data/NOTICE.md (CC BY / CC BY-SA credits are required in the app). No change needed yet; just keep these in mind.

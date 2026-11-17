@@ -23,11 +23,14 @@ T8c Smart colon (D24) [x] owner-tested OK (2026-11-17), CI #10 (1edcadc) green
   T8c.2 [x] `MonsoonIme.showComposing`: no dictionary request while the word ends with a plain colon (only the word is shown).
   T8c.3 [x] Owner device test passed.
 
-L2 Offline prediction from WM Keyboard Data [?] blocked on owner decisions (Needs user #6)
+L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, building
   L2.1 [x] Research: license/attribution, file formats, sizes, quality (clone in /home/claude/wasi-master/wmkeyboard-data, not in the repo).
-  L2.2 [ ] Owner decisions (STATUS Needs user #6), record them in DECISIONS.md.
-  L2.3 [ ] `tools/pack_wm_data.py` + third_party/wmkeyboard-data/ (NOTICE, source hashes) -> binary assets; pure-Kotlin reader + scorer + tests.
-  L2.4 [ ] Learned words/pairs store (small SQLite), caches, `ime/` worker, strip wiring, then owner test checklist.
+  L2.2 [x] Owner decisions recorded (D41, D42).
+  L2.3 [ ] `tools/pack_wm_data.py` + third_party/wmkeyboard-data/ (NOTICE, source hashes) -> `assets/predict/{en,bn,rom}.mslm`; pure-Kotlin `predict/`
+           (reader, stupid-backoff scorer + user boost, WordTracker, TextNorm, UserStats) + JUnit tests. Packs are mmap'd (needs noCompress for .mslm).
+  L2.4 [ ] Android side: PredictionWorker (HandlerThread), SQLite user store, IME hooks (English word tracking, Bangla commit hook, learning), strip:
+           left arrow toggle + suggestions for next-word (KeyboardView). Then the owner's test checklist.
+  L2.5 [ ] claude-g: learning switch + clear button + Licenses screen (warning sent); credits text in `third_party/wmkeyboard-data/NOTICE.md`.
   Facts: use only v1 `en_bigrams/trigrams` and `bn_bigrams/trigrams` (Leipzig CC BY 4.0, Tatoeba); NOT `*_v2/_v3` pairs (OpenSubtitles non-commercial);
   `bn_rom*` was merged with the data owner's private Facebook chat counts (see scripts/import_facebook_chats.py), license unstated.
   Bengali files use decomposed য় (U+09AF U+09BC); Avro commits precomposed U+09DF.

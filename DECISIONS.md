@@ -85,6 +85,13 @@
     list (`bn_rom_v2`, CC BY-SA 4.0 parts) is used; Banglish next-word pairs are learned from the owner's own typing. NOTICE must say the word counts
     may include counts from the data owner's own chats.
   - Pair lists used: only `en_bigrams/trigrams` and `bn_bigrams/trigrams` (Leipzig CC BY 4.0, Tatoeba blend). NEVER `*_v2/_v3` (OpenSubtitles, non-commercial).
-  - Strip is Gboard style: suggestions show whenever there are any; a small arrow button at the left swaps the strip to the icons and back (one new
-    button, applies to every language). Replaces the "icons hidden while a word is open" rule of D23 for the English side; D23 stays for Avro.
+  - Strip is Gboard style, in every language: suggestions (also next-word ones, after a space) show whenever there are any; a small arrow button at the
+    left swaps the strip to the icons and back (one new button). This extends D23 (icons hidden while suggestions show) from "a Bangla word is open" to
+    all suggestions; the arrow is the way back to the icons. With no suggestions (empty field, password) the strip is the icon row as today, without the arrow.
   - Size tier "Standard" (about 6 MB in the APK): 150k English words, 150k Bangla words, all Banglish words, all pair lists.
+- D42 2026-11-17 Prediction (L2, claude-l), more owner answers:
+  - Bangla form: predicted and learned Bangla words are committed in the precomposed form (য় = U+09DF, ড় = U+09DC, ঢ় = U+09DD) exactly like Avro. The packer converts
+    the dataset's two-code-point form; lookups normalize the typed text the same way.
+  - Learning is ON by default, local only (never leaves the phone). Never learns in password, e-mail or URL fields, nor where the app sets
+    "no personalized learning" or "no suggestions". Settings (claude-g) get a "Learn from my typing" switch and a "Clear learned words" button.
+  - Offensive words from the dataset's block lists are removed from the packed data (never suggested). A word the owner types often can still be learned.

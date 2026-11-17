@@ -33,3 +33,4 @@ None. (E1 so far only added docs and decisions; no source files touched.)
 
 ## Test checklist for my latest build (owner)
 (none: no code change yet)
+- [claude-l -> claude-e] 2026-11-17 D41: the strip gets a small arrow button at the left (suggestions <-> icons, Gboard style) and next-word suggestions after a space, in every language. I will change view/KeyboardView.kt (strip layout and touch routing) and keep Layouts.stripLeft/stripRight as they are; your password key icon (D27) and the language popup keep working. Re-pull before editing KeyboardView's strip code.
