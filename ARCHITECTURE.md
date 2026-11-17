@@ -1,6 +1,6 @@
 # ARCHITECTURE (map for agents; update in the same commit as any structural change)
 
-Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion engine done, strip UI not wired yet). Exists:
+Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion strip built, awaiting the owner's device test). Exists:
 - `ime/MonsoonIme.kt`: commits text, backspace/enter/tab as key events, enter honors the editor's IME action, globe = next IME,
   auto-caps (asked only after space . ! ? and at start, because getCursorCapsMode blocks on the app), no fullscreen extract UI.
 - `view/KeyboardView.kt`: one Canvas view (strip icons + 4 rows), multi-touch (4 pointers), commit on release, finger sliding
@@ -31,6 +31,10 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion eng
 - `ime/SuggestionWorker`: one HandlerThread ("monsoon-suggest") owning the `AvroSuggester` (created lazily on its first request, so keyboard open
   stays fast). `request(raw, plain)` keeps only the newest pending request (AtomicReference) and answers on the main thread; `MonsoonIme.onSuggestionResult`
   drops answers whose raw word is no longer the one being composed. `MonsoonIme.suggestions` = [word as shown, plain conversion if different, dictionary words].
+- Suggestion strip (D23): `KeyboardView.setSuggestions(list)` shows the first 3 as equal columns across the whole strip (first one bold) and HIDES every
+  `Kind.STRIP` key (globe, language pill, emoji, clipboard, mic, any future strip icon) until the list is empty again. Touches in the strip while it shows
+  suggestions go to the suggestion under the finger (`ptrInSug`/`ptrSug`, never to a hidden icon); release on it calls `Listener.onSuggestion(word)`
+  (default no-op), `MonsoonIme.onSuggestion` commits `word + " "` in one `commitText`. Space/Enter/punctuation still commit the underlined word.
 - `tools/`: one-off generators (python3 -I tools/<name>.py from the repo root). Generated Kotlin files name their generator in the header.
 - Tests: `app/src/test/kotlin/.../lang/avro/AvroPhoneticConverterTest.kt` + `app/src/test/resources/avro/golden.tsv`
   (1,200 golden cases from an independent Python translation of the Pascal; 40k random inputs matched the port exactly);

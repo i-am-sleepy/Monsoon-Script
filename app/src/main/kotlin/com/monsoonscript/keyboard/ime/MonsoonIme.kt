@@ -182,7 +182,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         requestSuggestions(comp.rawText(), shown)
     }
 
-    // ---- suggestions (T8b; the strip that displays them is T8b.4)
+    // ---- suggestions (T8b): worker answers become the strip candidates, see KeyboardView.setSuggestions
 
     /** Update the first candidate at once (it is the live word), then ask the worker for dictionary words. */
     private fun requestSuggestions(raw: String, shown: String) {
@@ -213,6 +213,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     private fun setSuggestions(list: List<String>) {
         suggestions = list
+        keyboard?.setSuggestions(list)
     }
 
     /** What is shown is already the final Bangla text, so finishing just makes it normal (not underlined) text. */
@@ -254,6 +255,17 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         ic.commitText(text, 1)
         // getCursorCapsMode is a blocking call into the app: only ask when the text could start a new sentence/word.
         if (text == " " || text == "." || text == "!" || text == "?") refreshAutoCaps()
+    }
+
+    /** A strip suggestion was tapped (D23): it replaces the underlined word and a space follows. */
+    override fun onSuggestion(word: String) {
+        val ic = currentInputConnection ?: return
+        val comp = composer ?: return
+        if (!comp.isComposing) return // the word ended while the finger was down
+        ic.commitText("$word ", 1) // one call: replaces the composing region, then the space
+        comp.clear()
+        dropSuggestions()
+        lastEditAt = SystemClock.uptimeMillis()
     }
 
     override fun onBackspace() {

@@ -15,9 +15,10 @@ T8b Suggestion strip + dictionary search [~]
   T8b.1 [x] Owner decided the strip layout (D23) and the colon behaviour (D24).
   T8b.2 [x] Engine (pure Kotlin): generated regex tables + `AvroRegexBuilder` + `AvroSuggester` (bucket search, suffixes, Levenshtein
             ranking) + assets `assets/avro/dict/<bucket>.txt`, `suffixes.tsv`; 9 new unit tests (26 total). CI #7 (bae17eb) green incl. tests.
-  T8b.3 [~] `ime/SuggestionWorker` (HandlerThread, coalescing) + `ime/AssetWordSource` (LRU 12 buckets; letter 'a' needs 7); `MonsoonIme` asks
-            after each composing change, keeps `suggestions` (not shown yet). Pushed, waiting for CI to compile it.
-  T8b.4 [ ] Strip UI: 3 suggestion slots across the full strip, icons hidden while composing (D23); tap = commit word + space.
+  T8b.3 [x] `ime/SuggestionWorker` (HandlerThread, coalescing) + `ime/AssetWordSource` (LRU 12 buckets; letter 'a' needs 7); `MonsoonIme` asks
+            after each composing change. CI #8 (3fbce27) green.
+  T8b.4 [~] Strip UI written (KeyboardView.setSuggestions / drawSuggestions / touch routing, MonsoonIme.onSuggestion); pushed, waiting for CI and the
+            owner's device test (checklist below).
 T8c Smart colon (D24) [ ] after T8b: ':' joins the word; at word end it stays a plain colon.
 
 ## Next step
@@ -37,3 +38,12 @@ None. Avro choices I made without asking (confirm in testing): '.' right after a
 6. Mid-word, tap somewhere else in the text and keep typing: a fresh word must start (the old word must not reappear).
 7. Password / URL / e-mail fields: letters come out as typed (no Bangla), even in Bangla mode.
 8. English mode must feel exactly as before. Report lag, wrong conversions (compare with Ridmik/Avro), anything ugly or crashing.
+
+## Test checklist for the T8b build (suggestion strip) (owner)
+1. Install the APK from the `latest` link over the old one, switch to Bangla (বাং pill).
+2. Type "ami": the strip's icons disappear and three columns appear: আমি (bold) first, then other words (e.g. আমী). The word is underlined in the text too.
+3. Type "bangla", "kothay", "bhalobasha", "amader", "sonar": the right word should be among the 3 columns (e.g. কোথায়, ভালোবাসা, সোনার). Say which ones were wrong or missing.
+4. Tap a suggestion: it replaces the underlined word and a space follows; the icons come back.
+5. Space and Enter still commit the first (underlined) word as before. Backspace shortens the word and the columns update.
+6. Type fast ("amar sonar bangla ..."): no lag, no flicker of wrong words, no crash. Report how long a suggestion takes to appear after the first word (once, cold).
+7. English mode: the strip keeps its icons and nothing changes. Password/URL fields: no suggestions.

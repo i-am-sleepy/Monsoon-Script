@@ -36,6 +36,9 @@ class KeyboardView(context: Context) : View(context) {
 
         /** Language key tap, or a swipe across the space bar: switch English <-> the last Bangla layout. */
         fun onLanguageToggle()
+
+        /** A suggestion in the strip was tapped (D23): commit that word, plus a space. */
+        fun onSuggestion(word: String) {}
     }
 
     var listener: Listener? = null
@@ -85,6 +88,12 @@ class KeyboardView(context: Context) : View(context) {
     private val longPressRunnable = Array(MAX_PTR) { slot -> Runnable { onLongPress(slot) } }
     private val repeatRunnable = Array(MAX_PTR) { slot -> Runnable { onRepeat(slot) } }
 
+    // Suggestion strip (D23): while a Bangla word is being typed, the first SUG_SLOTS candidates replace the strip icons.
+    private val sug = arrayOfNulls<String>(SUG_SLOTS)
+    private var sugCount = 0
+    private val ptrInSug = BooleanArray(MAX_PTR) // this finger went down in the suggestion strip
+    private val ptrSug = IntArray(MAX_PTR) { -1 } // slot under that finger, -1 for none
+
     // ---- paint
     private val tmp = RectF()
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -93,6 +102,11 @@ class KeyboardView(context: Context) : View(context) {
     private val hintPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.RIGHT }
     private val bubblePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
     private val stripTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        textAlign = Paint.Align.CENTER
+        typeface = Typeface.DEFAULT_BOLD
+    }
+    private val sugPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
+    private val sugBoldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
     }
@@ -105,6 +119,7 @@ class KeyboardView(context: Context) : View(context) {
     private var labelBase = 0f
     private var bubbleBase = 0f
     private var stripBase = 0f
+    private var sugBase = 0f
     private var hintTop = 0f
     private var pal = DARK
 
@@ -165,6 +180,25 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
+    /**
+     * Candidates for the word being typed (D23). The first [SUG_SLOTS] are shown across the whole strip and the icons
+     * hide; an empty list brings the icons back. Cheap when nothing changed, so the IME may call it on every keystroke.
+     */
+    fun setSuggestions(list: List<String>) {
+        val n = if (list.size < SUG_SLOTS) list.size else SUG_SLOTS
+        var changed = n != sugCount
+        for (i in 0 until SUG_SLOTS) {
+            val w = if (i < n) list[i] else null
+            if (sug[i] != w) {
+                sug[i] = w
+                changed = true
+            }
+        }
+        if (!changed) return
+        sugCount = n
+        invalidate() // a finger already down on a slot keeps its press: the tap delivers whatever the slot shows on release
+    }
+
     fun cancelAll() {
         for (s in 0 until MAX_PTR) {
             cancelTimers(s)
@@ -172,6 +206,8 @@ class KeyboardView(context: Context) : View(context) {
             ptrKey[s] = -1
             ptrLong[s] = false
             swipeArmed[s] = false
+            ptrInSug[s] = false
+            ptrSug[s] = -1
         }
         invalidate()
     }
@@ -237,6 +273,9 @@ class KeyboardView(context: Context) : View(context) {
         hintPaint.textSize = rowH * 0.22f
         bubblePaint.textSize = rowH * 0.62f
         stripTextPaint.textSize = stripH * 0.36f
+        sugPaint.textSize = stripH * 0.40f
+        sugBoldPaint.textSize = stripH * 0.40f
+        sugBase = baseline(sugPaint)
         letterBase = baseline(letterPaint)
         labelBase = baseline(labelPaint)
         bubbleBase = baseline(bubblePaint)
@@ -274,7 +313,11 @@ class KeyboardView(context: Context) : View(context) {
         if (page >= keys.size) return
         val ks = keys[page]
         val rs = rects[page]
-        for (i in ks.indices) drawKey(canvas, ks[i], rs[i], isPressedIndex(i))
+        for (i in ks.indices) {
+            if (sugCount > 0 && ks[i].kind == Kind.STRIP) continue // the icons give way to the suggestions
+            drawKey(canvas, ks[i], rs[i], isPressedIndex(i))
+        }
+        if (sugCount > 0) drawSuggestions(canvas)
         for (s in 0 until MAX_PTR) {
             val i = ptrKey[s]
             if (i >= 0 && !ptrLong[s] && i < ks.size && ks[i].kind == Kind.CHAR) drawBubble(canvas, ks[i], rs[i])
@@ -399,6 +442,53 @@ class KeyboardView(context: Context) : View(context) {
         c.drawText(langLabel, tmp.centerX(), tmp.centerY() + stripBase, stripTextPaint)
     }
 
+    /** [SUG_SLOTS] equal columns across the strip; the first one (the word as it is in the editor) is bold. */
+    private fun drawSuggestions(c: Canvas) {
+        val slotW = (width - 2 * padX) / SUG_SLOTS
+        for (i in 0 until SUG_SLOTS) {
+            val word = sug[i] ?: continue
+            val x0 = padX + slotW * i
+            if (isSugPressed(i)) {
+                tmp.set(x0 + dp(2f), stripH * 0.12f, x0 + slotW - dp(2f), stripH * 0.88f)
+                fillPaint.color = pal.special
+                c.drawRoundRect(tmp, radius, radius, fillPaint)
+            }
+            if (i > 0 && sug[i - 1] != null) { // thin divider between neighbours
+                tmp.set(x0 - dp(0.5f), stripH * 0.28f, x0 + dp(0.5f), stripH * 0.72f)
+                fillPaint.color = (pal.textMuted and 0x00FFFFFF) or 0x55000000
+                c.drawRect(tmp, fillPaint)
+            }
+            val p = if (i == 0) sugBoldPaint else sugPaint
+            p.color = pal.text
+            drawFitted(c, word, p, x0 + slotW / 2, stripH / 2, slotW - dp(12f))
+        }
+    }
+
+    /** Draw [text] centered at ([cx], [cy]); long words shrink (down to 72%) and are then cut, so nothing spills into the next slot. */
+    private fun drawFitted(c: Canvas, text: String, p: Paint, cx: Float, cy: Float, maxW: Float) {
+        val base = p.textSize
+        val w = p.measureText(text)
+        var n = text.length
+        if (w > maxW) {
+            p.textSize = (base * maxW / w).coerceAtLeast(base * 0.72f)
+            if (p.measureText(text) > maxW) n = p.breakText(text, true, maxW, null)
+        }
+        c.drawText(text, 0, n, cx, cy + sugBase * (p.textSize / base), p)
+        p.textSize = base
+    }
+
+    private fun isSugPressed(i: Int): Boolean {
+        for (s in 0 until MAX_PTR) if (ptrInSug[s] && ptrSug[s] == i) return true
+        return false
+    }
+
+    /** The suggestion slot under x (edges snap to the nearest slot), or -1 when that slot is empty. */
+    private fun sugIndexAt(x: Float): Int {
+        val slotW = (width - 2 * padX) / SUG_SLOTS
+        val i = ((x.coerceIn(padX, width - padX - 0.01f) - padX) / slotW).toInt()
+        return if (i in 0 until SUG_SLOTS && sug[i] != null) i else -1
+    }
+
     private fun drawBubble(c: Canvas, k: Key, r: RectF) {
         val bw = r.width() * 1.25f
         val bh = rowH * 1.05f
@@ -454,12 +544,22 @@ class KeyboardView(context: Context) : View(context) {
         var slot = -1
         for (s in 0 until MAX_PTR) if (ptrId[s] == -1) { slot = s; break }
         if (slot < 0) return
-        val idx = findKey(x, y)
+        val inSug = sugCount > 0 && y < stripH // the strip shows suggestions: a touch there picks one, never a hidden icon
+        val idx = if (inSug) -1 else findKey(x, y)
         ptrId[slot] = id
         ptrKey[slot] = idx
         ptrLong[slot] = false
         repeatCount[slot] = 0
         swipeArmed[slot] = false
+        ptrInSug[slot] = inSug
+        ptrSug[slot] = if (inSug) sugIndexAt(x) else -1
+        if (inSug) {
+            if (ptrSug[slot] >= 0) {
+                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                invalidate()
+            }
+            return
+        }
         if (idx < 0) return
         val k = keys[page][idx]
         downX[slot] = x
@@ -477,6 +577,14 @@ class KeyboardView(context: Context) : View(context) {
     private fun move(id: Int, x: Float, y: Float) {
         val slot = slotOf(id)
         if (slot < 0 || ptrLong[slot]) return
+        if (ptrInSug[slot]) { // sliding off a suggestion cancels the pick
+            val i = if (y >= 0f && y < stripH) sugIndexAt(x) else -1
+            if (i != ptrSug[slot]) {
+                ptrSug[slot] = i
+                invalidate()
+            }
+            return
+        }
         if (swipeArmed[slot] && abs(x - downX[slot]) > dp(SWIPE_DP)) {
             // Swipe across the space bar: switch language, and do not type a space on release.
             swipeArmed[slot] = false
@@ -505,11 +613,21 @@ class KeyboardView(context: Context) : View(context) {
         cancelTimers(slot)
         val idx = ptrKey[slot]
         val wasLong = ptrLong[slot]
+        val wasSug = ptrInSug[slot]
+        val sugIdx = ptrSug[slot]
         ptrId[slot] = -1
         ptrKey[slot] = -1
         ptrLong[slot] = false
+        ptrInSug[slot] = false
+        ptrSug[slot] = -1
         invalidate()
+        if (wasSug) {
+            // Whatever the slot shows now (null if the word ended meanwhile, then nothing happens).
+            if (sugIdx >= 0) sug[sugIdx]?.let { listener?.onSuggestion(it) }
+            return
+        }
         if (idx < 0 || wasLong || page >= keys.size) return
+        if (sugCount > 0 && keys[page][idx].kind == Kind.STRIP) return // finger went down on an icon before it was hidden
         perform(keys[page][idx])
     }
 
@@ -610,6 +728,7 @@ class KeyboardView(context: Context) : View(context) {
         const val REPEAT_FAST_MS = 30L
         const val DOUBLE_TAP_MS = 350L
         const val SWIPE_DP = 64f
+        const val SUG_SLOTS = 3
 
         // Placeholder colors (owner has not picked a palette yet); custom themes come in v0.5.
         val DARK = Palette(
