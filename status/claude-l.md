@@ -23,9 +23,18 @@ T8c Smart colon (D24) [x] owner-tested OK (2026-11-17), CI #10 (1edcadc) green
   T8c.2 [x] `MonsoonIme.showComposing`: no dictionary request while the word ends with a plain colon (only the word is shown).
   T8c.3 [x] Owner device test passed.
 
+L2 Offline prediction from WM Keyboard Data [?] blocked on owner decisions (Needs user #6)
+  L2.1 [x] Research: license/attribution, file formats, sizes, quality (clone in /home/claude/wasi-master/wmkeyboard-data, not in the repo).
+  L2.2 [ ] Owner decisions (STATUS Needs user #6), record them in DECISIONS.md.
+  L2.3 [ ] `tools/pack_wm_data.py` + third_party/wmkeyboard-data/ (NOTICE, source hashes) -> binary assets; pure-Kotlin reader + scorer + tests.
+  L2.4 [ ] Learned words/pairs store (small SQLite), caches, `ime/` worker, strip wiring, then owner test checklist.
+  Facts: use only v1 `en_bigrams/trigrams` and `bn_bigrams/trigrams` (Leipzig CC BY 4.0, Tatoeba); NOT `*_v2/_v3` pairs (OpenSubtitles non-commercial);
+  `bn_rom*` was merged with the data owner's private Facebook chat counts (see scripts/import_facebook_chats.py), license unstated.
+  Bengali files use decomposed য় (U+09AF U+09BC); Avro commits precomposed U+09DF.
+
 ## Next step
-T8a, T8b and T8c are all owner-tested OK (CI #10, 1edcadc, green). Nothing is open on my side except L1.4 (owner starting claude-e/g/s) and the Avro
-choices below. Ask the owner what to build next; do not start new features without their go-ahead.
+T8a, T8b and T8c are all owner-tested OK (CI #10, 1edcadc, green). Open: L1.4 (owner starting claude-e/g/s), L2 (waiting for the owner's answers) and the Avro
+choices below. L2: read the owner's answers in chat/DECISIONS.md, then do L2.3. Do not start other new features without the owner's go-ahead.
 
 ## Half-done files / known bugs
 None. Avro choices I made without asking (the owner tested T8a without objecting; revisit only if they complain): '.' right after a Bangla word gives
