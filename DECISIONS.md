@@ -72,3 +72,10 @@
   No manual Save button (owner chose).
 - D37 2026-11-17 Unlocking from the keyboard (E1): a locked panel shows an Unlock button that opens a brief see-through unlock screen over the current
   app (fingerprint or master password), then returns to the picker. The master password is not typed in the keyboard panel (owner chose).
+- D38 2026-11-17 Auto-lock (E1): the vault locks when the screen turns off and after 5 minutes without use. A Lock button is always available. It does
+  NOT lock just because the keyboard closed. The timeout becomes a setting later (owner chose).
+- D39 2026-11-17 Fingerprint (E1): a convenience, never the root. The master password is needed for the first unlock and again after a phone restart, after
+  3 days, or when the phone's fingerprints change. Fingerprint opens a copy of the unlock secret wrapped by a hardware-backed Android Keystore key that needs a
+  fingerprint check. Each rule must be confirmed enforceable before we rely on it (owner chose).
+- D40 2026-11-17 Tapping an entry in the picker (E1): shows chips Username / Password / Code; tapping a chip types it; typing a password into a field that is
+  not a password field asks first. One-tap fill is not the default (maybe an optional setting later) (owner chose).

@@ -28,8 +28,8 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       `KeyboardView.setLanguageOptions`), persist the chosen language, later more settings
 - [ ] T11 (claude-e, after T9) Bangla digit hints on digit keys (English typed, Bangla long-press, D18)
 - [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). Owner priority,
-      before T9. DESIGN TALK with the owner first: no code, no structure changes until sign-off. Stages 1-4 of 8 done (D25-D37); stage 5
-      (security) in progress, first part asked. Facts, stages, parking lot: docs/PASSWORD_MANAGER.md (brief: docs/PASSWORD_MANAGER_BRIEF.md)
+      before T9. DESIGN TALK with the owner first: no code, no structure changes until sign-off. Stages 1-4 of 8 done, stage 5 (security)
+      half done (D25-D40); second part asked (clipboard timeout, process isolation). Facts, stages, parking lot: docs/PASSWORD_MANAGER.md (brief: docs/PASSWORD_MANAGER_BRIEF.md)
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
@@ -47,7 +47,7 @@ Password manager (E1): not scheduled yet; the owner decides the version after th
 2. When Bijoy Classic is built (T9): ask the owner to verify the key map. (claude-e)
 3. (answered 2026-11-17: whole app is GPL-3.0, see D25. The LICENSE file comes after the E1 feasibility check.)
 4. When the first network feature appears: also ship an offline-only APK flavor with no INTERNET permission? (see D10) (any Claude)
-5. Password manager (E1) stage 5a, asked in chat 2026-11-17, waiting: auto-lock default, fingerprint policy, what tapping an entry does. (claude-e)
+5. Password manager (E1) stage 5b, asked in chat 2026-11-17, waiting: how long copied secrets stay on the clipboard, whether the vault runs in its own process. (claude-e)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.
