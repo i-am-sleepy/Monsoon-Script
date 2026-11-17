@@ -14,14 +14,15 @@ T8a fixes [ ] Wait for the owner's device-test report (checklist below), then fi
 T8b Suggestion strip + dictionary search [~]
   T8b.1 [x] Owner decided the strip layout (D23) and the colon behaviour (D24).
   T8b.2 [x] Engine (pure Kotlin): generated regex tables + `AvroRegexBuilder` + `AvroSuggester` (bucket search, suffixes, Levenshtein
-            ranking) + assets `assets/avro/dict/<bucket>.txt`, `suffixes.tsv`; 9 new unit tests (26 total, pass locally; CI to confirm).
-  T8b.3 [ ] `ime/` background worker + `AssetWordSource` (LRU of 6 buckets); IME asks for suggestions after each composing change.
+            ranking) + assets `assets/avro/dict/<bucket>.txt`, `suffixes.tsv`; 9 new unit tests (26 total). CI #7 (bae17eb) green incl. tests.
+  T8b.3 [~] `ime/SuggestionWorker` (HandlerThread, coalescing) + `ime/AssetWordSource` (LRU 12 buckets; letter 'a' needs 7); `MonsoonIme` asks
+            after each composing change, keeps `suggestions` (not shown yet). Pushed, waiting for CI to compile it.
   T8b.4 [ ] Strip UI: 3 suggestion slots across the full strip, icons hidden while composing (D23); tap = commit word + space.
 T8c Smart colon (D24) [ ] after T8b: ':' joins the word; at word end it stays a plain colon.
 
 ## Next step
-If the owner reported T8a bugs: fix those. Otherwise T8b.3 (worker + AssetWordSource in ime/). Check ci-status first: the T8b.2 push
-(tests + 3.8 MB of assets) is the first one to run AvroSuggesterTest in CI (last read before it: CI #6 green).
+If the owner reported T8a bugs: fix those. Otherwise T8b.4: add `KeyboardView.setSuggestions(list)` (3 full-width slots, icons hidden while the
+list is non-empty, D23), a tap listener -> IME commits word + space, and make `MonsoonIme.setSuggestions` push to it. Check ci-status first (last read: CI #7 green).
 
 ## Half-done files / known bugs
 None. Avro choices I made without asking (confirm in testing): '.' right after a Bangla word gives the dari (।); ':' stays a literal colon

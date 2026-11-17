@@ -24,10 +24,13 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion eng
   every Bangla spelling the typed word could have; `AvroBucketMap.forLetter` picks the dictionary buckets for the first letter; each bucket's
   words are full-matched against the regex; then suffix forms (stem + suffix, with Avro's vowel/khandatta/anushar joining rules); results are
   sorted by Levenshtein distance to the plain conversion. `AvroWordSource.load(bucket)` is the only I/O: the IME implements it on top of
-  `assets/avro/dict/<bucket>.txt` (T8b.3, LRU of ~6 buckets). Typed words longer than `MAX_ENGLISH_LENGTH` (50) give no suggestions.
+  `assets/avro/dict/<bucket>.txt` (`ime/AssetWordSource`, LRU of 12 buckets: one letter needs up to 7). Typed words longer than `MAX_ENGLISH_LENGTH` (50) give no suggestions.
   `AvroRegexRules`/`AvroRegexConstants` are GENERATED (`tools/gen_avro_regex.py`); `assets/avro/dict/*` and `suffixes.tsv` come from
   `tools/gen_avro_dict_assets.py` (source: `third_party/avro-reference/data/`). Dictionary words use precomposed য় (U+09DF); the converter does too.
   JVM timing with the real dictionary: 4-50 ms per word (cold bucket loads included); on a phone run it on a background thread only.
+- `ime/SuggestionWorker`: one HandlerThread ("monsoon-suggest") owning the `AvroSuggester` (created lazily on its first request, so keyboard open
+  stays fast). `request(raw, plain)` keeps only the newest pending request (AtomicReference) and answers on the main thread; `MonsoonIme.onSuggestionResult`
+  drops answers whose raw word is no longer the one being composed. `MonsoonIme.suggestions` = [word as shown, plain conversion if different, dictionary words].
 - `tools/`: one-off generators (python3 -I tools/<name>.py from the repo root). Generated Kotlin files name their generator in the header.
 - Tests: `app/src/test/kotlin/.../lang/avro/AvroPhoneticConverterTest.kt` + `app/src/test/resources/avro/golden.tsv`
   (1,200 golden cases from an independent Python translation of the Pascal; 40k random inputs matched the port exactly);

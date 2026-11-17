@@ -43,6 +43,15 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Created on first use of Avro (loads the autocorrect dictionary from assets, a few ms). */
     private var composer: PhoneticComposer? = null
 
+    /** Direct conversion without autocorrect: the reference the suggestion search ranks against. Created with [composer]. */
+    private var plainConverter: AvroPhoneticConverter? = null
+
+    /** Background dictionary search, started on the first Bangla word. */
+    private var worker: SuggestionWorker? = null
+
+    /** Strip candidates for the word being typed: the word as shown, the plain conversion, then dictionary words (D23). */
+    private var suggestions: List<String> = emptyList()
+
     /** Password, URL and e-mail fields get the typed letters as they are, even in a Bangla mode. */
     private var composingAllowed = true
     private var lastEditAt = 0L
@@ -70,6 +79,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         composer?.clear()
+        dropSuggestions()
         val inputType = info?.inputType ?: 0
         val cls = inputType and InputType.TYPE_MASK_CLASS
         composingAllowed = info != null && cls == InputType.TYPE_CLASS_TEXT && !isRawTextVariation(inputType)
@@ -85,7 +95,14 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         super.onFinishInputView(finishingInput)
         currentInputConnection?.finishComposingText()
         composer?.clear()
+        dropSuggestions()
         keyboard?.cancelAll()
+    }
+
+    override fun onDestroy() {
+        worker?.stop()
+        worker = null
+        super.onDestroy()
     }
 
     /** The user moved the cursor or the app dropped the composing region: forget the word we were building. */
@@ -98,6 +115,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val sinceEdit = SystemClock.uptimeMillis() - lastEditAt
         if (PhoneticComposer.externalMove(newSelStart, newSelEnd, candidatesStart, candidatesEnd, sinceEdit)) {
             comp.clear()
+            dropSuggestions()
             currentInputConnection?.finishComposingText() // leave the old word as plain text
         }
     }
@@ -153,12 +171,48 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
         val c = PhoneticComposer(AvroPhoneticConverter(dict))
         composer = c
+        plainConverter = AvroPhoneticConverter().also { it.autoCorrectEnabled = false }
         return c
     }
 
     private fun showComposing(ic: InputConnection, comp: PhoneticComposer) {
-        ic.setComposingText(comp.text(), 1)
+        val shown = comp.text()
+        ic.setComposingText(shown, 1)
         lastEditAt = SystemClock.uptimeMillis()
+        requestSuggestions(comp.rawText(), shown)
+    }
+
+    // ---- suggestions (T8b; the strip that displays them is T8b.4)
+
+    /** Update the first candidate at once (it is the live word), then ask the worker for dictionary words. */
+    private fun requestSuggestions(raw: String, shown: String) {
+        val head = if (suggestions.isEmpty()) arrayListOf(shown) else ArrayList(suggestions).also { it[0] = shown }
+        setSuggestions(head) // later entries stay until the answer arrives, so the strip does not blink
+        val plain = plainConverter?.convert(raw) ?: shown
+        val w = worker ?: SuggestionWorker(assets, ::onSuggestionResult).also { worker = it }
+        w.request(raw, plain)
+    }
+
+    private fun onSuggestionResult(r: SuggestionWorker.Result) {
+        val comp = composer ?: return
+        if (!comp.isComposing || comp.rawText() != r.english) return // the word has moved on since the request
+        val shown = comp.text()
+        val plain = plainConverter?.convert(r.english)
+        val out = ArrayList<String>(r.words.size + 2)
+        out.add(shown)
+        if (plain != null && plain != shown) out.add(plain)
+        for (w in r.words) if (w != shown && w != plain) out.add(w)
+        setSuggestions(out)
+    }
+
+    /** The word ended (or was abandoned): no candidates and no pending search. */
+    private fun dropSuggestions() {
+        worker?.cancel()
+        if (suggestions.isNotEmpty()) setSuggestions(emptyList())
+    }
+
+    private fun setSuggestions(list: List<String>) {
+        suggestions = list
     }
 
     /** What is shown is already the final Bangla text, so finishing just makes it normal (not underlined) text. */
@@ -167,6 +221,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         if (!comp.isComposing) return
         currentInputConnection?.finishComposingText()
         comp.clear()
+        dropSuggestions()
         lastEditAt = SystemClock.uptimeMillis()
     }
 
@@ -206,7 +261,12 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val ic = currentInputConnection
         if (avroActive && comp != null && comp.isComposing && ic != null) {
             comp.deleteLast()
-            if (comp.isComposing) showComposing(ic, comp) else ic.commitText("", 1)
+            if (comp.isComposing) {
+                showComposing(ic, comp)
+            } else {
+                ic.commitText("", 1)
+                dropSuggestions()
+            }
             lastEditAt = SystemClock.uptimeMillis()
             return
         }
