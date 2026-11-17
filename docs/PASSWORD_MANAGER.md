@@ -24,18 +24,21 @@ Android autofill and keyboards (developer.android.com "Integrate autofill with I
 Avro license check: only `AvroPhoneticConverter.kt` was read: standard MPL-2.0 notice, no "Incompatible With Secondary Licenses" marker. Check every Avro file
 when the LICENSE file is added.
 
-## Design proposals (stage 3; NOT decided until a D-line exists)
-- The picker is a panel that replaces the key rows at the same height; the top strip stays, with the key icon highlighted and a way back to the keys.
-  Panel header: lock state, search, add (+), expand (open the full vault screen at the same entry, group or search).
-- Typing inside the panel (search, quick add): while the panel is in typing mode the keyboard's own keys feed the panel's field and nothing reaches the app.
-- The keyboard never records what the owner types into other apps to build entries. Saving a new login comes from the Autofill save prompt (later, D28)
-  or from the add form.
-- "Expand": opens the app's vault screen on the same entry/group/search; back returns to the app that was being typed in. The full screens use the keyboard's
-  look (colors, shapes, teal accent, light/dark) so the two feel like one product.
+## Design (stage 3). Items with a D-line are decided; the rest are proposals.
+- DECIDED D29: the picker is a panel that replaces the key rows at the same height; top strip stays, key icon highlighted, a way back to the keys.
+  Panel header: lock state, search, add (+), expand. While the panel is in typing mode the keyboard's own keys feed the panel's field; nothing reaches the app.
+- DECIDED D30: full vault screens are our own, in the keyboard's visual style. "Expand" opens the app's vault screen on the same entry/group/search;
+  back returns to the app that was being typed in.
+- PROPOSAL (open): adding an entry. Option A: mini form in the panel (title, username, password with generator, Save; "More fields" opens the app's add screen
+  with the typed values carried over). Option B: "+" always opens the app's add screen. Trade-off: A = nicer flow (stay in the sign-up page), a second small
+  form to maintain, reuses the typing mode needed for search anyway; B = less keyboard code, but leaving the page (a low-RAM phone may close the app in
+  the background). Typing in the app's own fields also goes through our keyboard, so neither is safer for the typed text itself. Recommended: A, with B as the
+  first stopgap while the panel typing mode is built.
+- PRINCIPLE: the keyboard never records what the owner types into other apps to build entries. New logins from websites come from the Autofill save prompt (later, D28).
 
 ## Stages (brief section 6). Each: explain, recommend, ask, wait for the answer, record a D-line in DECISIONS.md.
 1 [x] Integration approaches (D25, D26)   2 [x] How it meets the keyboard (D27, D28)
-3a [~] UI: asked where the panel appears, how adding works, look of the full screens (STATUS Needs user #5)
+3a [~] UI: panel placement (D29) and look of full screens (D30) decided; add-entry flow explained, waiting (STATUS Needs user #5)
 3b [ ] UI: what the picker shows first, search, navigation inside the app, how the vault is reached
 4 [ ] Database create/open/unlock/save/lock   5 [ ] Security options and trade-offs   6 [ ] Reuse vs own code
 7 [ ] Integration and update strategy   8 [ ] User journey (switch apps, lock phone, close keyboard) + phasing

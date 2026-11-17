@@ -51,3 +51,7 @@
   is being composed, D23). Exact slot in the strip is decided when it is built (owner chose).
 - D28 2026-11-17 Build order (E1): the vault engine + keyboard picker first; the Android Autofill service with the "save this login?" prompt and the
   inline suggestions in the strip come afterwards (owner chose).
+- D29 2026-11-17 Picker panel (E1) replaces the key rows at the same height; the top strip stays, with the key icon highlighted and a way back to the
+  keys. Search and other typing inside the panel use the keyboard's own keys; what is typed there never reaches the app (owner chose).
+- D30 2026-11-17 Full vault screens (E1) are our own screens in the keyboard's visual style (colors, shapes, accent, light/dark), so the keyboard
+  panel and the app feel like one product. Not KeePassDX's screens, not the stock Material look (owner chose).
