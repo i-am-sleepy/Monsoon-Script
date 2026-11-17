@@ -56,6 +56,11 @@ class AvroSuggesterTest {
         assertTrue(suggest("bhalobasha").contains("ভালোবাসা"))
     }
 
+    @Test fun colonInsideAWordFindsVisargaWords() {
+        // "du:kho" -> দুঃখ (দ + উ-কার + visarga + খ); the smart colon (D24) relies on the search understanding a colon between letters.
+        assertTrue("got ${suggest("du:kho")}", suggest("du:kho").contains("দুঃখ"))
+    }
+
     @Test fun suffixFormsAreBuiltFromTheStem() {
         // "bhalobashar" = ভালোবাসা + র; the stem "bhalobasha" is searched and the suffix table adds the ending.
         val r = suggest("bhalobashar")

@@ -17,13 +17,16 @@ T8b Suggestion strip + dictionary search [~]
             ranking) + assets `assets/avro/dict/<bucket>.txt`, `suffixes.tsv`; 9 new unit tests (26 total). CI #7 (bae17eb) green incl. tests.
   T8b.3 [x] `ime/SuggestionWorker` (HandlerThread, coalescing) + `ime/AssetWordSource` (LRU 12 buckets; letter 'a' needs 7); `MonsoonIme` asks
             after each composing change. CI #8 (3fbce27) green.
-  T8b.4 [~] Strip UI written (KeyboardView.setSuggestions / drawSuggestions / touch routing, MonsoonIme.onSuggestion); pushed, waiting for CI and the
+  T8b.4 [~] Strip UI (KeyboardView.setSuggestions / drawSuggestions / touch routing, MonsoonIme.onSuggestion). CI #9 (cbb5d34) green; waiting for the
             owner's device test (checklist below).
-T8c Smart colon (D24) [ ] after T8b: ':' joins the word; at word end it stays a plain colon.
+T8c Smart colon (D24) [~]
+  T8c.1 [x] `PhoneticComposer`: ':' joins the word after a letter; a trailing ':' is shown plain, a letter after it makes it visarga; 5 tests + 1 search test.
+  T8c.2 [x] `MonsoonIme.showComposing`: no dictionary request while the word ends with a plain colon (only the word is shown).
+  T8c.3 [ ] Owner device test (checklist below), then fix what they report.
 
 ## Next step
-Check ci-status for the T8b.4 commit cbb5d34 (last read: CI #8 green = T8b.3). If it is green, give the owner the T8b test checklist below. Then T8c (smart
-colon, D24) while waiting for the owner's report. If the owner reports T8a or T8b bugs: fix those first.
+CI #9 (cbb5d34, T8b.4) is green. Check ci-status for the T8c commit, then wait for the owner's report on the T8b + T8c checklists below and fix what
+they report (T8a bugs first). Nothing else is open on my side; do not start new features without the owner's go-ahead.
 
 ## Half-done files / known bugs
 None. Avro choices I made without asking (confirm in testing): '.' right after a Bangla word gives the dari (।); ':' stays a literal colon
@@ -47,3 +50,5 @@ None. Avro choices I made without asking (confirm in testing): '.' right after a
 5. Space and Enter still commit the first (underlined) word as before. Backspace shortens the word and the columns update.
 6. Type fast ("amar sonar bangla ..."): no lag, no flicker of wrong words, no crash. Report how long a suggestion takes to appear after the first word (once, cold).
 7. English mode: the strip keeps its icons and nothing changes. Password/URL fields: no suggestions.
+Smart colon (T8c, D24), same build: 8. Type "du" then the symbols page ":" then back to letters "kho": it must become দুঃখ (visarga). 9. Type "ami" then ":" and
+stop: the text shows আমি: with a normal colon (and a space or Enter keeps it). 10. "ami" ":" "5" (like a time) keeps the plain colon.

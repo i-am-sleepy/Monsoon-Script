@@ -21,7 +21,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
   - [x] T8a (claude-l) `Language` enum (EN, AVRO), `PhoneticComposer`, live underlined Bangla via composing text, language pill in the
         strip + space-bar swipe (D15/D19), no auto-caps in Bangla, raw letters in password/URL/e-mail fields. Awaiting the owner's device test.
   - [~] T8b (claude-l) Suggestion strip while composing (D23) + dictionary index/search from `avro-dictionary.tsv`; steps in status/claude-l.md
-  - [ ] T8c (claude-l) Smart colon in Avro (D24): visarga inside a word, plain colon at the end
+  - [~] T8c (claude-l) Smart colon in Avro (D24): visarga inside a word, plain colon at the end (built, owner test pending)
 - [ ] T9 (claude-e) Fixed layouts as data: Provat and National from `third_party/avro-reference/layouts` (key maps, images stripped); Bijoy
       Classic from the standard chart (owner must verify); language-key long-press popup (D19). Bornona, Munir Optima, Avro Easy later (D17)
 - [ ] T10 (claude-g) Settings activity + SharedPreferences: switches for the language key and space-bar swipe (both default ON, D15,

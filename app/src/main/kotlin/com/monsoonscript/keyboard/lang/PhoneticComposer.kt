@@ -13,11 +13,11 @@ class PhoneticComposer(private val converter: AvroPhoneticConverter) {
     val isComposing: Boolean get() = raw.isNotEmpty()
 
     /**
-     * True for characters that belong to the word: letters, plus the backtick (separator) and `^` (chandrabindu)
-     * once a word has started. Everything else (space, digits, punctuation) ends the word.
+     * True for characters that belong to the word: letters, plus the backtick (separator), `^` (chandrabindu) and
+     * `:` (visarga, see [text]) once a word has started. Everything else (space, digits, punctuation) ends the word.
      */
     fun accepts(ch: Char): Boolean =
-        ch in 'a'..'z' || ch in 'A'..'Z' || ((ch == '`' || ch == '^') && raw.isNotEmpty())
+        ch in 'a'..'z' || ch in 'A'..'Z' || ((ch == '`' || ch == '^' || ch == ':') && raw.isNotEmpty())
 
     fun append(ch: Char) {
         raw.append(ch)
@@ -34,8 +34,22 @@ class PhoneticComposer(private val converter: AvroPhoneticConverter) {
     /** The Latin letters typed so far. */
     fun rawText(): String = raw.toString()
 
-    /** The word as Bangla (with Avro autocorrect), or "" when nothing is typed. */
-    fun text(): String = if (raw.isEmpty()) "" else converter.convert(raw.toString())
+    /**
+     * The word as Bangla (with Avro autocorrect), or "" when nothing is typed.
+     *
+     * Smart colon (D24): the engine makes every `:` a visarga (ঃ), like Avro on Windows. Here a colon that is still the
+     * last character stays a plain `:` (a colon after a word, or a time like "ami:"), and becomes a visarga as soon as a
+     * letter follows it ("du:" shows দু: and "du:kho" shows দুঃখ). A backtick after the colon also keeps it plain.
+     */
+    fun text(): String {
+        val n = raw.length
+        if (n == 0) return ""
+        if (raw[n - 1] == ':') return converter.convert(raw.substring(0, n - 1)) + ":"
+        return converter.convert(raw.toString())
+    }
+
+    /** True when the word ends with a colon that is still a plain `:` (nothing for the dictionary to look up). */
+    val endsWithColon: Boolean get() = raw.isNotEmpty() && raw[raw.length - 1] == ':'
 
     companion object {
         /** An editor update older than this (relative to our last edit) may still be an echo of an earlier state. */

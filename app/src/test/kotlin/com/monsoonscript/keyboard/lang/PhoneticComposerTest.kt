@@ -59,6 +59,46 @@ class PhoneticComposerTest {
         assertFalse(c.accepts('1'))
     }
 
+    @Test fun colonIsOnlyPartOfAWordAfterALetter() {
+        val c = composer()
+        assertFalse(c.accepts(':')) // a colon on its own is just a colon
+        c.append('a')
+        assertTrue(c.accepts(':'))
+    }
+
+    @Test fun smartColonStaysPlainAtTheEndOfTheWord() {
+        val c = composer()
+        c.type("ami:")
+        assertEquals("আমি:", c.text()) // আমি: with an ASCII colon, not visarga
+        assertTrue(c.endsWithColon)
+    }
+
+    @Test fun smartColonBecomesVisargaWhenALetterFollows() {
+        val c = composer()
+        c.type("du:")
+        assertEquals("দু:", c.text()) // দু: still plain
+        c.append('k')
+        assertEquals("দুঃক", c.text()) // দুঃক: the colon turned into visarga
+        c.append('h')
+        c.append('o')
+        assertEquals("দুঃখ", c.text().take(4)) // দুঃখ...
+        assertFalse(c.endsWithColon)
+    }
+
+    @Test fun backspaceOverTheLetterAfterAColonBringsThePlainColonBack() {
+        val c = composer()
+        c.type("du:k")
+        c.deleteLast()
+        assertEquals("দু:", c.text())
+    }
+
+    @Test fun backtickAfterColonKeepsItPlainEvenBeforeALetter() {
+        val c = composer()
+        c.type("ami:`")
+        assertEquals("আমি:", c.text())
+        assertFalse(c.endsWithColon)
+    }
+
     @Test fun capitalsKeepTheirPhoneticMeaning() {
         val c = composer()
         c.type("Dhaka")

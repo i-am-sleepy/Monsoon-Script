@@ -179,7 +179,13 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val shown = comp.text()
         ic.setComposingText(shown, 1)
         lastEditAt = SystemClock.uptimeMillis()
-        requestSuggestions(comp.rawText(), shown)
+        if (comp.endsWithColon) {
+            // D24: a colon at the end stays a plain ':'; looking up words would drop it, so show only the word itself.
+            worker?.cancel()
+            setSuggestions(listOf(shown))
+        } else {
+            requestSuggestions(comp.rawText(), shown)
+        }
     }
 
     // ---- suggestions (T8b): worker answers become the strip candidates, see KeyboardView.setSuggestions

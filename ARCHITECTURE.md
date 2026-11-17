@@ -15,6 +15,7 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   idea (parse `if Cnv('pat', expr) = True then`) or edit the Kotlin by hand and drop the GENERATED note.
 - `lang/Language.kt` (EN, AVRO; labels for the strip pill and space bar) and `lang/PhoneticComposer.kt` (the raw Latin word being typed,
   `text()` = live Bangla, `accepts(ch)`, `externalMove(...)` = decide from onUpdateSelection whether the user moved the cursor). Pure Kotlin.
+  Smart colon (D24): ':' joins a word after a letter; `text()` shows a trailing ':' as a plain colon and the engine's visarga once a letter follows.
 - `MonsoonIme`: in Avro it shows the word with `setComposingText`; space, digits, punctuation, Enter, Tab, globe and language switch call
   `finishComposingText` first, so editor text always equals what is shown. Backspace edits the Latin buffer while composing.
   `onUpdateSelection` clears the buffer if the cursor leaves the word (ignores echoes within 250 ms of our own edit).
