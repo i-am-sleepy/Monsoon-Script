@@ -37,3 +37,7 @@
   and leaves a Warning in the other Claude's notes file for anything it changed in their area (owner chose).
 - D22 2026-11-17 The only work a Claude takes over from another is a broken build (fix it first, whoever caused it). Unfinished tasks are never
   taken over; they wait for their owner (owner chose).
+- D23 2026-11-17 Suggestion strip while typing a Bangla word: suggestions fill the whole strip and the icons (globe, language, emoji, clipboard,
+  mic) hide until the word ends, then come back (owner chose). Space commits the underlined word; tapping a suggestion commits it plus a space.
+- D24 2026-11-17 Colon in Avro: ':' typed right after letters is visarga (ঃ) when a letter follows ("du:kho" -> দুঃখ); a colon that ends the
+  word (before space/punctuation/end) stays a plain ':' (owner chose "smart").

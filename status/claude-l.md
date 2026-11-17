@@ -1,5 +1,5 @@
 # claude-l notes (only claude-l edits this file; others only append lines under "Warnings")
-Updated: 2026-11-17, session 2. Focus: Avro typing, T8a fixes, T8b suggestions, workflow setup (L1).
+Updated: 2026-11-17, session 3. Focus: Avro typing, T8a fixes, T8b suggestions, workflow setup (L1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
@@ -11,15 +11,16 @@ L1 Multi-Claude workflow [~]
   L1.3 [x] Pushed to main.
   L1.4 [ ] Owner opens chats for claude-e/g/s with the new command; fix the rules if anything is unclear.
 T8a fixes [ ] Wait for the owner's device-test report (checklist below), then fix what they report.
-T8b Suggestion strip + dictionary index [ ]
-  T8b.1 [ ] Ask the owner the strip-layout question (STATUS Needs user #5) with the question tool; record in DECISIONS.md.
-  T8b.2 [ ] Compact app-side index from `third_party/avro-reference/data/avro-dictionary.tsv`: bucketed by first phoneme, loaded lazily off the
-            main thread, not raw SQLite.
-  T8b.3 [ ] Suggestions = dictionary words whose phonetic match the typed word; space accepts the first (D16).
-  T8b.4 [ ] Strip UI for suggestions while composing; tap picks another.
+T8b Suggestion strip + dictionary search [~]
+  T8b.1 [x] Owner decided the strip layout (D23) and the colon behaviour (D24).
+  T8b.2 [~] Engine (pure Kotlin, tests in CI): generated regex tables + `AvroRegexBuilder` + `AvroSuggester` (bucket search, suffixes,
+            Levenshtein ranking) + data assets `assets/avro/dict/<bucket>.txt` and `suffixes.tsv` made by `tools/gen_avro_dict_assets.py`.
+  T8b.3 [ ] `ime/` background worker + `AssetWordSource` (LRU of 6 buckets); IME asks for suggestions after each composing change.
+  T8b.4 [ ] Strip UI: 3 suggestion slots across the full strip, icons hidden while composing (D23); tap = commit word + space.
+T8c Smart colon (D24) [ ] after T8b: ':' joins the word; at word end it stays a plain colon.
 
 ## Next step
-If the owner reported T8a bugs: fix those. Otherwise T8b.1. First read the ci-status branch.
+If the owner reported T8a bugs: fix those. Otherwise continue T8b.2/T8b.3. First read the ci-status branch (last read: CI #6 green).
 
 ## Half-done files / known bugs
 None. Avro choices I made without asking (confirm in testing): '.' right after a Bangla word gives the dari (।); ':' stays a literal colon

@@ -20,7 +20,8 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [~] T8 Language model in the IME
   - [x] T8a (claude-l) `Language` enum (EN, AVRO), `PhoneticComposer`, live underlined Bangla via composing text, language pill in the
         strip + space-bar swipe (D15/D19), no auto-caps in Bangla, raw letters in password/URL/e-mail fields. Awaiting the owner's device test.
-  - [ ] T8b (claude-l) Suggestion strip while composing + compact dictionary index from `avro-dictionary.tsv` (needs the owner's layout decision first)
+  - [~] T8b (claude-l) Suggestion strip while composing (D23) + dictionary index/search from `avro-dictionary.tsv`; steps in status/claude-l.md
+  - [ ] T8c (claude-l) Smart colon in Avro (D24): visarga inside a word, plain colon at the end
 - [ ] T9 (claude-e) Fixed layouts as data: Provat and National from `third_party/avro-reference/layouts` (key maps, images stripped); Bijoy
       Classic from the standard chart (owner must verify); language-key long-press popup (D19). Bornona, Munir Optima, Avro Easy later (D17)
 - [ ] T10 (claude-g) Settings activity + SharedPreferences: switches for the language key and space-bar swipe (both default ON, D15,
@@ -42,7 +43,6 @@ v0.5 Themes, resizing, one-handed, split, number row. v0.6 Edit/cursor panel, nu
 2. When Bijoy Classic is built (T9): ask the owner to verify the key map. (claude-e)
 3. License for the non-Avro parts of the app (MIT / Apache-2.0 / GPL-3.0 / none). (any Claude)
 4. When the first network feature appears: also ship an offline-only APK flavor with no INTERNET permission? (see D10) (any Claude)
-5. T8b: while composing, does the strip show suggestions across the full width and hide the icons, like Gboard? (claude-l, asks at the start of T8b)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.
