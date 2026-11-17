@@ -90,8 +90,16 @@
     all suggestions; the arrow is the way back to the icons. With no suggestions (empty field, password) the strip is the icon row as today, without the arrow.
   - Size tier "Standard" (about 6 MB in the APK): 150k English words, 150k Bangla words, all Banglish words, all pair lists.
 - D42 2026-11-17 Prediction (L2, claude-l), more owner answers:
-  - Bangla form: predicted and learned Bangla words are committed in the precomposed form (য় = U+09DF, ড় = U+09DC, ঢ় = U+09DD) exactly like Avro. The packer converts
+  - Bangla form: predicted and learned Bangla words are committed in the precomposed form (য় = U+09DF, ড় = U+09DC, ঢ় = U+09DD) exactly like Avro. The packer converts
     the dataset's two-code-point form; lookups normalize the typed text the same way.
   - Learning is ON by default, local only (never leaves the phone). Never learns in password, e-mail or URL fields, nor where the app sets
     "no personalized learning" or "no suggestions". Settings (claude-g) get a "Learn from my typing" switch and a "Clear learned words" button.
   - Offensive words from the dataset's block lists are removed from the packed data (never suggested). A word the owner types often can still be learned.
+- D43 2026-11-17 Clipboard and exposure rules (E1): copied secrets are cleared from the clipboard after 30 seconds, only if the clipboard still holds our copy
+  (timeout becomes a setting). A copied secret is never saved in the keyboard's own clipboard history. Copies are marked sensitive where Android supports it
+  (Android 13+, to verify). Vault and unlock screens block screenshots and the recents preview. Passwords are shown masked, revealed only on tap, and never
+  shown in the picker. The vault code makes no network calls and has no telemetry (a CI check; D10's Offline mode stays independent). The owner agreed to
+  these recommendations and may revisit them.
+- D44 2026-11-17 Vault process (E1): the vault engine runs in its own Android process; the keyboard talks to it through a bound service. Reason: the typing
+  process stays light and the opened database and keys live outside it. Revisit after the feasibility check shows real memory/size numbers. The owner agreed
+  to the recommendation and may revisit it.
