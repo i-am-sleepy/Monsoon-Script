@@ -41,3 +41,9 @@
   mic) hide until the word ends, then come back (owner chose). Space commits the underlined word; tapping a suggestion commits it plus a space.
 - D24 2026-11-17 Colon in Avro: ':' typed right after letters is visarga (ঃ) when a letter follows ("du:kho" -> দুঃখ); a colon that ends the
   word (before space/punctuation/end) stays a plain ':' (owner chose "smart").
+- D25 2026-11-17 License (E1): the whole app is GPL-3.0 because the password manager reuses KeePassDX code (owner chose). The MPL-2.0 Avro files
+  keep their own header. Settles STATUS Needs user #3. The LICENSE file and headers are added only after the E1 feasibility check passes; if E1
+  drops KeePassDX, a new D-line decides the license again.
+- D26 2026-11-17 Password manager engine (E1): build on KeePassDX's `:database` + `:crypto` modules behind a thin interface of our own (open, search,
+  read/write entry, save, lock), AFTER a feasibility check: they build in our CI, open a test .kdbx and work without KeePassDX's `:app`. Fallback if
+  the check fails: KeePassJava2 (Apache-2.0). "Companion only" (rely on the separate KeePassDX app) was not chosen. (owner chose)
