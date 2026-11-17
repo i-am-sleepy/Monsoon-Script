@@ -27,6 +27,8 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [ ] T10 (claude-g) Settings activity + SharedPreferences: switches for the language key and space-bar swipe (both default ON, D15,
       `KeyboardView.setLanguageOptions`), persist the chosen language, later more settings
 - [ ] T11 (claude-e, after T9) Bangla digit hints on digit keys (English typed, Bangla long-press, D18)
+- [~] E1 (claude-e) Password manager in the keyboard (KeePassDX-based vault, picker in the keyboard, full vault screens in the app). Owner priority,
+      before T9. DESIGN TALK with the owner first: no code, no structure changes until sign-off. Brief + verified facts: docs/PASSWORD_MANAGER.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
@@ -37,12 +39,15 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 ## Roadmap (details in docs/REQUIREMENTS.md)
 v0.2 Bangla (T6-T11). v0.3 Emoji (full set, search, recents) and clipboard one-tap. v0.4 Suggestions/autocorrect/next-word.
 v0.5 Themes, resizing, one-handed, split, number row. v0.6 Edit/cursor panel, number pad, space-bar cursor drag. v0.7 Polish, perf, settings.
+Password manager (E1): not scheduled yet; the owner decides the version after the design talk.
 
 ## Needs user (ask with the question tool; record answers in DECISIONS.md; tag with your name)
 1. Placeholders picked without asking: teal accent (Enter key), system haptic on every key, no key sound. Confirm or change. (any Claude)
 2. When Bijoy Classic is built (T9): ask the owner to verify the key map. (claude-e)
-3. License for the non-Avro parts of the app (MIT / Apache-2.0 / GPL-3.0 / none). (any Claude)
+3. License for the non-Avro parts of the app (MIT / Apache-2.0 / GPL-3.0 / none). (any Claude) Linked to #5: KeePassDX code would require GPL-3.0.
 4. When the first network feature appears: also ship an offline-only APK flavor with no INTERNET permission? (see D10) (any Claude)
+5. Password manager (E1), asked in chat 2026-11-17, waiting: (a) accept GPL-3.0 for the whole app if KeePassDX code is used; (b) which vault engine to
+   build on (KeePassDX modules, KeePassJava2, or decide after a feasibility check). Later stages bring more questions. (claude-e)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.
