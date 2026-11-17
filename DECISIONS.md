@@ -47,3 +47,7 @@
 - D26 2026-11-17 Password manager engine (E1): build on KeePassDX's `:database` + `:crypto` modules behind a thin interface of our own (open, search,
   read/write entry, save, lock), AFTER a feasibility check: they build in our CI, open a test .kdbx and work without KeePassDX's `:app`. Fallback if
   the check fails: KeePassJava2 (Apache-2.0). "Companion only" (rely on the separate KeePassDX app) was not chosen. (owner chose)
+- D27 2026-11-17 Password picker (E1) is opened from a key icon in the top strip, always visible like the other strip icons (hidden while a Bangla word
+  is being composed, D23). Exact slot in the strip is decided when it is built (owner chose).
+- D28 2026-11-17 Build order (E1): the vault engine + keyboard picker first; the Android Autofill service with the "save this login?" prompt and the
+  inline suggestions in the strip come afterwards (owner chose).
