@@ -58,3 +58,9 @@
 - D31 2026-11-17 Adding an entry (E1): finished design = a mini form in the keyboard panel (title, username, password with generator, Save; "More fields"
   opens the app's add screen with the typed values carried over). The first version may use the app's add screen alone as a stopgap while the panel's
   typing mode is built (owner chose).
+- D32 2026-11-17 Picker first view (E1): "Matches for this app" (entries that store this app's id), then "Recent"; folders one tap away. In browsers the
+  website is not visible to the keyboard, so there it shows Recent + search (owner chose).
+- D33 2026-11-17 Vault screens in the app (E1): one list screen (search on top, folders as rows, "+" button, a menu for settings and the generator);
+  no bottom tabs, no side drawer (owner chose).
+- D34 2026-11-17 Reaching the vault (E1): a "Vault" card on the app's main screen plus a long-press shortcut on the launcher icon; no second
+  home-screen icon. The keyboard's expand button opens it too (owner chose).
