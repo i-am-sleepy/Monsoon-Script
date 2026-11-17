@@ -79,3 +79,12 @@
   fingerprint check. Each rule must be confirmed enforceable before we rely on it (owner chose).
 - D40 2026-11-17 Tapping an entry in the picker (E1): shows chips Username / Password / Code; tapping a chip types it; typing a password into a field that is
   not a password field asks first. One-tap fill is not the default (maybe an optional setting later) (owner chose).
+- D41 2026-11-17 Prediction data (L2, claude-l): source is WM Keyboard Data (wasi-master/wmkeyboard-data), offline only, no neural models (owner chose):
+  - Banglish is MERGED into English mode: English mode suggests English and Banglish words together (no separate Banglish language entry).
+  - Banglish pair lists (`bn_rom_bigrams/trigrams`) are NOT used: they come from the data owner's private chats and have no license. Only the Banglish word
+    list (`bn_rom_v2`, CC BY-SA 4.0 parts) is used; Banglish next-word pairs are learned from the owner's own typing. NOTICE must say the word counts
+    may include counts from the data owner's own chats.
+  - Pair lists used: only `en_bigrams/trigrams` and `bn_bigrams/trigrams` (Leipzig CC BY 4.0, Tatoeba blend). NEVER `*_v2/_v3` (OpenSubtitles, non-commercial).
+  - Strip is Gboard style: suggestions show whenever there are any; a small arrow button at the left swaps the strip to the icons and back (one new
+    button, applies to every language). Replaces the "icons hidden while a word is open" rule of D23 for the English side; D23 stays for Avro.
+  - Size tier "Standard" (about 6 MB in the APK): 150k English words, 150k Bangla words, all Banglish words, all pair lists.
