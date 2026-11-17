@@ -29,17 +29,19 @@ when the LICENSE file is added.
   Panel header: lock state, search, add (+), expand. While the panel is in typing mode the keyboard's own keys feed the panel's field; nothing reaches the app.
 - DECIDED D30: full vault screens are our own, in the keyboard's visual style. "Expand" opens the app's vault screen on the same entry/group/search;
   back returns to the app that was being typed in.
-- PROPOSAL (open): adding an entry. Option A: mini form in the panel (title, username, password with generator, Save; "More fields" opens the app's add screen
-  with the typed values carried over). Option B: "+" always opens the app's add screen. Trade-off: A = nicer flow (stay in the sign-up page), a second small
-  form to maintain, reuses the typing mode needed for search anyway; B = less keyboard code, but leaving the page (a low-RAM phone may close the app in
-  the background). Typing in the app's own fields also goes through our keyboard, so neither is safer for the typed text itself. Recommended: A, with B as the
-  first stopgap while the panel typing mode is built.
+- DECIDED D31: adding an entry = mini form in the panel (title, username, password with generator, Save; "More fields" opens the app's add screen with the
+  values carried over). First version may use the app's add screen alone as a stopgap.
 - PRINCIPLE: the keyboard never records what the owner types into other apps to build entries. New logins from websites come from the Autofill save prompt (later, D28).
+- PROPOSAL (asked, stage 3b): first view when the picker opens = "Matches for this app" (if any), then "Recent", folders one tap away. The keyboard is told which app
+  it is typing in (EditorInfo package name), so entries that store an app id can be matched; entries added from the keyboard store it, the title is pre-filled
+  from the app. In a browser the website is not visible to the keyboard, so there it shows Recent + search. Matching convention of existing KeePassDX databases: verify in source.
+- PROPOSAL (asked, stage 3b): app navigation = one list screen (search on top, folders as rows, "+" button, menu for settings/generator); alternatives: bottom tabs,
+  side drawer.
+- PROPOSAL (asked, stage 3b): reaching the vault = a "Vault" card on the app's main screen plus a long-press shortcut on the launcher icon; alternative: its own launcher icon.
 
 ## Stages (brief section 6). Each: explain, recommend, ask, wait for the answer, record a D-line in DECISIONS.md.
-1 [x] Integration approaches (D25, D26)   2 [x] How it meets the keyboard (D27, D28)
-3a [~] UI: panel placement (D29) and look of full screens (D30) decided; add-entry flow explained, waiting (STATUS Needs user #5)
-3b [ ] UI: what the picker shows first, search, navigation inside the app, how the vault is reached
+1 [x] Integration approaches (D25, D26)   2 [x] How it meets the keyboard (D27, D28)   3a [x] Panel placement, add flow, look of full screens (D29-D31)
+3b [~] UI: what the picker shows first, app navigation, how the vault is reached (asked; STATUS Needs user #5)
 4 [ ] Database create/open/unlock/save/lock   5 [ ] Security options and trade-offs   6 [ ] Reuse vs own code
 7 [ ] Integration and update strategy   8 [ ] User journey (switch apps, lock phone, close keyboard) + phasing
 Then: owner signs off -> inspect our project and the upstream source -> feasibility spike -> build.

@@ -55,3 +55,6 @@
   keys. Search and other typing inside the panel use the keyboard's own keys; what is typed there never reaches the app (owner chose).
 - D30 2026-11-17 Full vault screens (E1) are our own screens in the keyboard's visual style (colors, shapes, accent, light/dark), so the keyboard
   panel and the app feel like one product. Not KeePassDX's screens, not the stock Material look (owner chose).
+- D31 2026-11-17 Adding an entry (E1): finished design = a mini form in the keyboard panel (title, username, password with generator, Save; "More fields"
+  opens the app's add screen with the typed values carried over). The first version may use the app's add screen alone as a stopgap while the panel's
+  typing mode is built (owner chose).
