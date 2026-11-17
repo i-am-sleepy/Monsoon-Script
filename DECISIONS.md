@@ -64,3 +64,11 @@
   no bottom tabs, no side drawer (owner chose).
 - D34 2026-11-17 Reaching the vault (E1): a "Vault" card on the app's main screen plus a long-press shortcut on the launcher icon; no second
   home-screen icon. The keyboard's expand button opens it too (owner chose).
+- D35 2026-11-17 Vault file location (E1): the owner picks it with Android's file picker, both when creating a vault and when opening one (existing .kdbx
+  from KeePassDX/KeePassXC open in place, no migration). Cloud sync = any synced folder (Drive, Nextcloud, Syncthing), no network code in the app.
+  Private app storage is not offered for now (owner chose).
+- D36 2026-11-17 Saving (E1): automatic after every change, written safely (temporary file, then swap), with the last few versions kept as backups.
+  A file that changed elsewhere (synced from another device) is never overwritten silently: detect, then merge or ask (design in stage 7/8).
+  No manual Save button (owner chose).
+- D37 2026-11-17 Unlocking from the keyboard (E1): a locked panel shows an Unlock button that opens a brief see-through unlock screen over the current
+  app (fingerprint or master password), then returns to the picker. The master password is not typed in the keyboard panel (owner chose).
