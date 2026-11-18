@@ -32,6 +32,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       action to start its CI job (Needs user #5). Nothing from Phase 0 is on main. Log: docs/PASSWORD_MANAGER_PHASE0.md. Brief: docs/PASSWORD_MANAGER_BRIEF.md
 - [~] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
       (uni/bi/trigram + learned usage), compact binary tables, async. Built: engine + data (L2.3), English/Bangla strip, arrow, learning (L2.4, CI green up to #13); awaiting the owner's device test; L2.5 (settings switch, clear button, licenses screen) is claude-g's; steps in status/claude-l.md
+- [~] L3 (claude-l) Banglish prediction quality (D54): bridge from Banglish words to the Bangla pair data for next-word, lean Banglish for 1-3 letter prefixes, typed word as first strip choice, no repeat of the word just typed. Steps in status/claude-l.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
@@ -53,9 +54,7 @@ Password manager (E1): Phase 0 now; later phases follow D51 after the go/no-go r
    (GitHub website: switch to that branch, open the file, pencil icon, change the file path, commit to the same branch). claude-e's GitHub tool cannot create workflow files (403),
    so only the owner or a Claude Code session can. Never merge that file into main as it is. (claude-e)
 6. (answered 2026-11-17: prediction data, see D41 and D42)
-7. Banglish prediction quality (found while the owner tested L2.4): (a) after a Banglish word the next-word list is the same generic words (na, to, e) until the owner's own typing teaches it
-   (the Banglish pair lists are excluded by D41); (b) a short prefix with no Banglish context favors English words ("ki" -> kind, kill; "ja" -> jack); (c) a complete Banglish word gets odd
-   completions ("ami" -> amio, amie). Options asked in chat, answer pending. (claude-l)
+7. (answered 2026-11-18: Banglish prediction quality, see D54)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.

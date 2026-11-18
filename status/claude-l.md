@@ -39,6 +39,12 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
   `bn_rom*` was merged with the data owner's private Facebook chat counts (see scripts/import_facebook_chats.py), license unstated.
   Bengali files use decomposed য় (U+09AF U+09BC); Avro commits precomposed U+09DF.
 
+## L3 steps (D54, owner answered 2026-11-18)
+  L3.1 [ ] bridge: `Bridge` (predict/), `assets/predict/rom2bn.bin` built by a test-source tool + sync test, Predictor uses it in Banglish context, worker loads it lazily
+  L3.2 [ ] short-prefix lean Banglish (tune with probe) + never repeat w1 after a space
+  L3.3 [ ] typed word as first strip choice while a word is typed (PredictionWorker), then checklist to the owner
+  Reminder: pure-Kotlin parts are tested locally (kc.sh); Android parts only by CI.
+
 ## Next step
 L2.4c is pushed (451d34c). Once its CI run is green, send the owner the checklist below with the APK link, then wait for their report. Open: L2.5 (claude-g wires the learning
 switch, Clear button and Licenses screen using `ime/LearnSettings` and `assets/licenses/prediction-data.txt`; warning sent), L1.4 (owner starting claude-e/g/s) and the Avro

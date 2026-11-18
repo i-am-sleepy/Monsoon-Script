@@ -132,3 +132,8 @@
 - D52 2026-11-17 One vault (E1): the first version supports one vault at a time; the chosen file is remembered. Switching between several vaults comes later (owner chose).
 - D53 2026-11-18 Sign-off (E1): the owner APPROVED the agreed design (summary in docs/PASSWORD_MANAGER.md, D25-D52) and told claude-e to start the feasibility check
   (Phase 0) right away, before T9. Phase 0 runs on the side branch `e1-feasibility` (D49); its log is docs/PASSWORD_MANAGER_PHASE0.md.
+- D54 2026-11-18 Banglish prediction quality (L3, claude-l): after the owner's device test (English/Bangla suggestions work) the owner chose: (1) BUILD THE BRIDGE: Banglish next-word
+  suggestions borrow the Bangla pair data (Leipzig, CC BY): each Banglish word is matched to a Bangla word with the plain Avro conversion (precomputed into `assets/predict/rom2bn.bin`,
+  about half of everyday Banglish usage matches), the Bangla successors are shown back in their most common Banglish spelling; words that do not match still depend on learning from the
+  owner's typing (the private-chat pair lists stay excluded, D41); (2) BOTH TWEAKS: 1-3 letter prefixes lean more towards Banglish when no Banglish word came before, and the strip shows the
+  word as typed as its first (bold) choice while a word is being typed (like Gboard; tapping it adds the space); also never suggest the word just typed again after a space.
