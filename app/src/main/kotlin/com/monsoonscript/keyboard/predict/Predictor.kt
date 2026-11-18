@@ -1,7 +1,10 @@
 package com.monsoonscript.keyboard.predict
 
-/** A pack and how much its words count in a merged list (English mode merges English and Banglish, D41). */
-class WeightedPack(val pack: LangPack, val prior: Float = 1f)
+/**
+ * A pack and how much its words count in a merged list (English mode merges English and Banglish, D41). With a [bridge] the pack is the Banglish one and
+ * its word-pair data comes from the Bangla pack through the bridge (D54): context words are looked up there, and successors are shown as Banglish spellings.
+ */
+class WeightedPack(val pack: LangPack, val prior: Float = 1f, val bridge: Bridge? = null)
 
 /**
  * Autocomplete and next-word prediction from packed n-gram data plus what the owner typed. Pure Kotlin, no allocation
@@ -21,7 +24,8 @@ class WeightedPack(val pack: LangPack, val prior: Float = 1f)
  */
 class Predictor(private val user: UserStats? = null) {
 
-    private class Ctx(val wp: WeightedPack, val w1: Int, val w2: Int, val tri3Total: Float, val bi2Total: Float) {
+    /** Context of one pack: [b1]/[b2] are the two previous words as ids in [pairs] (the pack itself, or the Bangla pack behind a bridge), -1 when unknown. */
+    private class Ctx(val wp: WeightedPack, val pairs: LangPack, val b1: Int, val b2: Int, val tri3Total: Float, val bi2Total: Float) {
         val pack: LangPack get() = wp.pack
     }
 
@@ -61,6 +65,9 @@ class Predictor(private val user: UserStats? = null) {
                 if (st > 0.0 || u.wordWeight(w) >= MIN_UNKNOWN_USES) scores[w] = st
             }
         }
+
+        // Right after a word, that same word again is almost never what comes next (unless the owner does type it twice).
+        if (prefix.isEmpty() && w1 != null && (u == null || u.pairWeight(w1, w1) <= 0.0)) scores.remove(w1)
 
         val combined = ArrayList<Pair<String, Double>>(scores.size)
         for ((w, s) in scores) {
@@ -107,43 +114,53 @@ class Predictor(private val user: UserStats? = null) {
         }
     }
 
+    /** Words (ids of the context's own pack) that followed the two previous words, with their count level. Behind a bridge: Banglish spellings of the Bangla successors. */
     private fun forEachTrigramSuccessor(c: Ctx, f: (id: Int, level: Int) -> Unit) {
-        if (c.w1 < 0 || c.w2 < 0) return
-        val p = c.pack
-        var i = p.trigramLowerBound(c.w2, c.w1, 0)
-        while (i < p.trigramCount && p.trigramW1(i) == c.w2 && p.trigramW2(i) == c.w1) {
-            f(p.trigramW3(i), p.trigramLevelAt(i))
+        if (c.b1 < 0 || c.b2 < 0) return
+        val q = c.pairs
+        var i = q.trigramLowerBound(c.b2, c.b1, 0)
+        while (i < q.trigramCount && q.trigramW1(i) == c.b2 && q.trigramW2(i) == c.b1) {
+            val id = ownId(c, q.trigramW3(i))
+            if (id >= 0) f(id, q.trigramLevelAt(i))
             i++
         }
     }
 
     private fun forEachBigramSuccessor(c: Ctx, f: (id: Int, level: Int) -> Unit) {
-        if (c.w1 < 0) return
-        val p = c.pack
-        var i = p.bigramLowerBound(c.w1, 0)
-        while (i < p.bigramCount && p.bigramW1(i) == c.w1) {
-            f(p.bigramW2(i), p.bigramLevelAt(i))
+        if (c.b1 < 0) return
+        val q = c.pairs
+        var i = q.bigramLowerBound(c.b1, 0)
+        while (i < q.bigramCount && q.bigramW1(i) == c.b1) {
+            val id = ownId(c, q.bigramW2(i))
+            if (id >= 0) f(id, q.bigramLevelAt(i))
             i++
         }
     }
+
+    /** A word id of the pair pack as an id of the context's own pack (the same one, or the best Banglish spelling behind a bridge); -1 when there is none. */
+    private fun ownId(c: Ctx, pairId: Int): Int = c.wp.bridge?.romOf(pairId) ?: pairId
 
     // ---- scoring
 
     private fun context(wp: WeightedPack, w1: String?, w2: String?): Ctx {
         val p = wp.pack
+        val bridge = wp.bridge
+        val pairs = bridge?.bn ?: p
         val i1 = if (w1 != null) p.indexOf(w1) else -1
         val i2 = if (w2 != null && i1 >= 0) p.indexOf(w2) else -1
+        val b1 = if (bridge == null) i1 else bridge.bnOf(i1)
+        val b2 = if (bridge == null || i2 < 0) i2 else bridge.bnOf(i2)
         var tri = 0f // total count of everything seen after (w2, w1): the denominator of a trigram share
         var bi = 0f // total count of everything seen after w1
-        if (i1 >= 0 && i2 >= 0) {
-            var k = p.trigramLowerBound(i2, i1, 0)
-            while (k < p.trigramCount && p.trigramW1(k) == i2 && p.trigramW2(k) == i1) { tri += p.trigramCountAt(k); k++ }
+        if (b1 >= 0 && b2 >= 0) {
+            var k = pairs.trigramLowerBound(b2, b1, 0)
+            while (k < pairs.trigramCount && pairs.trigramW1(k) == b2 && pairs.trigramW2(k) == b1) { tri += pairs.trigramCountAt(k); k++ }
         }
-        if (i1 >= 0) {
-            var k = p.bigramLowerBound(i1, 0)
-            while (k < p.bigramCount && p.bigramW1(k) == i1) { bi += p.bigramCountAt(k); k++ }
+        if (b1 >= 0) {
+            var k = pairs.bigramLowerBound(b1, 0)
+            while (k < pairs.bigramCount && pairs.bigramW1(k) == b1) { bi += pairs.bigramCountAt(k); k++ }
         }
-        return Ctx(wp, i1, i2, tri, bi)
+        return Ctx(wp, pairs, b1, b2, tri, bi)
     }
 
     private fun scoreId(c: Ctx, id: Int): Double {
@@ -152,14 +169,18 @@ class Predictor(private val user: UserStats? = null) {
         val prior = c.wp.prior.toDouble()
         // No context, or this pack has no pair data for it (the Banglish pack has none at all): the word's own frequency, unpenalized,
         // so a pack is not punished for lacking data that another pack does not have either.
-        if (c.w1 < 0 || (c.bi2Total <= 0f && c.tri3Total <= 0f)) return unigram * prior
-        if (c.w2 >= 0 && c.tri3Total > 0) {
-            val c3 = p.trigramCount(c.w2, c.w1, id)
-            if (c3 > 0f) return c3 / c.tri3Total.toDouble() * prior
-        }
-        if (c.bi2Total > 0) {
-            val c2 = p.bigramCount(c.w1, id)
-            if (c2 > 0f) return ALPHA * c2 / c.bi2Total.toDouble() * prior
+        if (c.b1 < 0 || (c.bi2Total <= 0f && c.tri3Total <= 0f)) return unigram * prior
+        val q = c.pairs
+        val pid = c.wp.bridge?.bnOf(id) ?: id // the word as an id of the pair pack; -1 = not known there (backoff to its own frequency)
+        if (pid >= 0) {
+            if (c.b2 >= 0 && c.tri3Total > 0) {
+                val c3 = q.trigramCount(c.b2, c.b1, pid)
+                if (c3 > 0f) return c3 / c.tri3Total.toDouble() * prior
+            }
+            if (c.bi2Total > 0) {
+                val c2 = q.bigramCount(c.b1, pid)
+                if (c2 > 0f) return ALPHA * c2 / c.bi2Total.toDouble() * prior
+            }
         }
         return ALPHA * ALPHA * unigram * prior
     }
@@ -186,15 +207,25 @@ class Predictor(private val user: UserStats? = null) {
          * (they would otherwise win on their sharper frequencies) unless one of the two previous words is Banglish-only,
          * which means the owner is writing Banglish right now.
          */
-        fun englishMix(english: LangPack, banglish: LangPack, w1: String?, w2: String?): List<WeightedPack> {
+        fun englishMix(
+            english: LangPack, banglish: LangPack, w1: String?, w2: String?,
+            prefixLength: Int = 0, bridge: (() -> Bridge?)? = null,
+        ): List<WeightedPack> {
             var banglishContext = false
             for (w in arrayOf(w1, w2)) if (w != null && leansBanglish(english, banglish, w)) banglishContext = true
             return if (banglishContext) {
-                listOf(WeightedPack(english, 0.1f), WeightedPack(banglish, 1f))
+                // The Bangla pair data (through the bridge) answers "what follows this Banglish word"; the bridge is only loaded when needed.
+                listOf(WeightedPack(english, 0.1f), WeightedPack(banglish, 1f, bridge?.invoke()))
             } else {
-                listOf(WeightedPack(english, 1f), WeightedPack(banglish, 0.05f))
+                // A very short prefix with no Banglish word before it: Banglish words get a better chance (D54), English still wins on common words.
+                val rom = if (prefixLength in 1..SHORT_PREFIX) SHORT_PREFIX_PRIOR else 0.05f
+                listOf(WeightedPack(english, 1f), WeightedPack(banglish, rom))
             }
         }
+
+        /** True when one of the two previous words is a Banglish word (see [leansBanglish]). */
+        fun banglishContext(english: LangPack, banglish: LangPack, w1: String?, w2: String?): Boolean =
+            (w1 != null && leansBanglish(english, banglish, w1)) || (w2 != null && leansBanglish(english, banglish, w2))
 
         /**
          * A word the Banglish list knows and that is at least [BANGLISH_RATIO] times more frequent there than in English. The English
@@ -209,5 +240,7 @@ class Predictor(private val user: UserStats? = null) {
         }
 
         private const val BANGLISH_RATIO = 20f
+        private const val SHORT_PREFIX = 3
+        private const val SHORT_PREFIX_PRIOR = 0.4f
     }
 }

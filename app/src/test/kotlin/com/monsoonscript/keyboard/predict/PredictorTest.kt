@@ -83,6 +83,24 @@ class PredictorTest {
         assertEquals("tomake", en("", "ami", p = p).first())
     }
 
+    @Test fun neverSuggestsTheWordJustTypedAfterASpace() {
+        val r = en("", "ami")
+        assertFalse("got $r", r.contains("ami"))
+        assertFalse(en("", "na").contains("na"))
+        // unless the owner really types it twice in a row
+        val stats = UserStats()
+        val p = Predictor(stats)
+        repeat(3) { stats.learn("na", "na") }
+        assertTrue(p.predict(Packs.english("na"), "", "na", null, 40).contains("na"))
+    }
+
+    @Test fun shortPrefixesFavourBanglishMoreThanLongOnes() {
+        val short = predictor.predict(Predictor.englishMix(Packs.en, Packs.rom, null, null, 2), "ja", null, null, 3)
+        assertTrue("got $short", short.any { it in listOf("jay", "jai", "jani") })
+        // common English words keep winning
+        assertEquals("the", predictor.predict(Predictor.englishMix(Packs.en, Packs.rom, null, null, 2), "th", null, null, 3).first())
+    }
+
     @Test fun aSingleTypoIsNotLearnedAsAWord() {
         val stats = UserStats()
         val p = Predictor(stats)

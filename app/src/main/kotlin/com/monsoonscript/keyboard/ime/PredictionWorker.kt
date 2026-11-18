@@ -4,11 +4,14 @@ import android.content.Context
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
+import com.monsoonscript.keyboard.predict.Bridge
 import com.monsoonscript.keyboard.predict.LangPack
 import com.monsoonscript.keyboard.predict.Predictor
 import com.monsoonscript.keyboard.predict.TextNorm
 import com.monsoonscript.keyboard.predict.UserStats
 import com.monsoonscript.keyboard.predict.WeightedPack
+import java.io.IOException
+import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -47,6 +50,8 @@ class PredictionWorker(
     private var en: LangPack? = null
     private var bn: LangPack? = null
     private var rom: LangPack? = null
+    private var bridge: Bridge? = null
+    private var bridgeTried = false
     private val stats = UserStats()
     private val predictor = Predictor(stats)
     private var store: UserStore? = null
@@ -153,7 +158,7 @@ class PredictionWorker(
                 val e = en ?: PackLoader.load(assets, "en")?.also { en = it }
                 val ro = rom ?: PackLoader.load(assets, "rom")?.also { rom = it }
                 when {
-                    e != null && ro != null -> Predictor.englishMix(e, ro, r.w1, r.w2)
+                    e != null && ro != null -> Predictor.englishMix(e, ro, r.w1, r.w2, r.prefix.length) { bridge() }
                     e != null -> listOf(WeightedPack(e))
                     else -> emptyList()
                 }
@@ -164,8 +169,27 @@ class PredictionWorker(
             }
         }
         if (packs.isEmpty()) return emptyList()
-        val keys = predictor.predict(packs, r.prefix, r.w1, r.w2, RESULTS)
-        return keys.map { TextNorm.matchCase(r.typed, it, r.capitalizeStart) }
+        val typing = r.prefix.isNotEmpty()
+        val keys = predictor.predict(packs, r.prefix, r.w1, r.w2, if (typing) RESULTS - 1 else RESULTS)
+        val words = keys.map { TextNorm.matchCase(r.typed, it, r.capitalizeStart) }
+        // While a word is typed its first choice is the word as typed (D54, like Gboard): tapping it just adds the space. Nothing to offer = no strip.
+        return if (typing && words.isNotEmpty()) listOf(r.typed) + words else words
+    }
+
+    /** Banglish -> Bangla links for Banglish next-word suggestions (D54), loaded on the first Banglish context. Worker thread. */
+    private fun bridge(): Bridge? {
+        bridge?.let { return it }
+        if (bridgeTried) return null
+        bridgeTried = true
+        val ro = rom ?: return null
+        val b = bn ?: PackLoader.load(assets, "bn")?.also { bn = it } ?: return null
+        return try {
+            Bridge(ro, b, ByteBuffer.wrap(assets.open("predict/rom2bn.bin").use { it.readBytes() })).also { bridge = it }
+        } catch (e: IOException) {
+            null // no bridge: Banglish next words come from learning only
+        } catch (e: IllegalArgumentException) {
+            null
+        }
     }
 
     private companion object {
