@@ -13,10 +13,11 @@ E1 Password manager design with the owner [~] (facts + stages: docs/PASSWORD_MAN
   E1.5 [x] Stage 4 database lifecycle: file picker location (D35), automatic safe saving with backups (D36), see-through unlock screen (D37).
   E1.6 [x] Stage 5 security: auto-lock (D38), fingerprint policy (D39), entry tap behavior (D40), clipboard and exposure rules (D43), vault in its own process (D44).
   E1.7 [x] Stage 6 reuse vs own code: D1 exception for the vault (D45), judgment rule for KeePassDX code (D46).
-  E1.8 [~] Stage 7 integration and update strategy: asked how KeePassDX is built in (submodule / copy / fork), how updates are checked, side branch for the first integration (STATUS Needs user #5). Waiting.
-  E1.9 [ ] Stage 8 user journey (switch apps, lock phone, close keyboard) + phasing + merge behavior.
-  E1.10 [ ] Owner signs off -> inspect our project and the upstream source, feasibility spike, then LICENSE file (D25), then build.
-  After every owner answer: add a D-line to DECISIONS.md (next free id: D47; re-read the file first, claude-l also adds lines) and update docs/PASSWORD_MANAGER.md.
+  E1.8 [x] Stage 7 integration and update strategy: git submodule pinned to a release (D47), weekly release check + test branch (D48), side branch for the first integration (D49).
+  E1.9 [~] Stage 8 user journeys + build order + merge behavior + one vault or several: asked (STATUS Needs user #5). Waiting.
+  E1.10 [ ] Sign-off: write a one-page summary of everything agreed (docs/PASSWORD_MANAGER.md) and ask the owner to approve it.
+  E1.11 [ ] After sign-off: inspect our project and the upstream source, feasibility spike on a side branch (D49), then LICENSE file (D25), then build in phases.
+  After every owner answer: add a D-line to DECISIONS.md (next free id: D50; re-read the file first, claude-l also adds lines) and update docs/PASSWORD_MANAGER.md.
 T9 Fixed layouts as data + language-key popup [ ] waits behind E1 (owner priority)
   T9.1 [ ] Layout data format (key maps as data, not code) and loader; Provat and National from `third_party/avro-reference/layouts` (images stripped).
   T9.2 [ ] Add enum values to `Language` (Provat, National, Bijoy); typing through the layout engine; check English and Avro still behave exactly as before.
@@ -25,8 +26,9 @@ T9 Fixed layouts as data + language-key popup [ ] waits behind E1 (owner priorit
 T11 Bangla digit hints [ ] (after T9) English digits typed, Bangla digits as hints and on long-press (D18).
 
 ## Next step
-Read the owner's answers to the stage-7 questions, write them as D47+ in DECISIONS.md, then stage 8 (user journey + phasing), then ask for sign-off. Check ci-status first (last read: CI #8 green).
-After E1 is paused or done: T9.1. Switch languages only through `MonsoonIme.setLanguage` (see STATUS "Hand-offs"). Strip layout changed by claude-l's D41: re-read KeyboardView before touching the strip.
+Read the owner's answers to the stage-8 questions, write them as D50+ in DECISIONS.md, then the sign-off summary. Check ci-status first (last read: CI #8 green).
+After E1 design is signed off: ask the owner whether the feasibility spike (E1 phase 0) starts now or T9 goes first. Switch languages only through `MonsoonIme.setLanguage` (see STATUS "Hand-offs").
+Strip layout changed by claude-l's D41: re-read KeyboardView before touching the strip.
 
 ## Half-done files / known bugs
 None. (E1 so far only added docs and decisions; no source files touched.)

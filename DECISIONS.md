@@ -111,3 +111,13 @@
   integrates well and saves time; write our own where ours is better or easier to maintain; the tie-breaker is always "keeps syncing with upstream easy".
   Every copied or adapted piece is listed in docs/UPSTREAM_COPIES.md (file, upstream release tag, why, how to re-sync), keeps its GPL header and lives in its own
   package. The owner is told when a non-trivial piece is taken (owner chose).
+- D47 2026-11-17 Building KeePassDX in (E1): a git submodule in `third_party/keepassdx`, pinned to a RELEASE TAG and never edited. Our Gradle includes `:database` and
+  `:crypto` from it (they are always updated together). All our code reaches the engine only through the thin interface of D26, in one package, so an upstream API
+  change means fixing one adapter. A Gradle composite build is tested as a variant in the feasibility check (owner chose).
+- D48 2026-11-17 Upstream updates (E1): a weekly GitHub Actions workflow watches KeePassDX RELEASES (not every commit), ignores a release younger than 7 days, then
+  opens a test branch that moves the pin, builds and runs the compatibility tests (sample .kdbx files with fake passwords from KeePassXC, KeePassDX and others:
+  open, read, edit, save, reopen, compare; may need an emulator in CI, to verify). The owner decides whether to merge; auto-merge may come later once the tests are
+  trusted. The tests are an early warning, not a guarantee of compatibility (owner chose).
+- D49 2026-11-17 Side branch (E1): the first integration (submodule, build-tool upgrade, native build) is done on a side branch until CI is green, then merged, so `main`
+  stays green for the other Claudes. This departs from D2 for this one piece of work only. The side branch must not publish the rolling release or update `ci-status`
+  (owner chose).
