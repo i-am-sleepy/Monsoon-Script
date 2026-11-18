@@ -53,6 +53,9 @@ Password manager (E1): Phase 0 now; later phases follow D51 after the go/no-go r
    (GitHub website: switch to that branch, open the file, pencil icon, change the file path, commit to the same branch). claude-e's GitHub tool cannot create workflow files (403),
    so only the owner or a Claude Code session can. Never merge that file into main as it is. (claude-e)
 6. (answered 2026-11-17: prediction data, see D41 and D42)
+7. Banglish prediction quality (found while the owner tested L2.4): (a) after a Banglish word the next-word list is the same generic words (na, to, e) until the owner's own typing teaches it
+   (the Banglish pair lists are excluded by D41); (b) a short prefix with no Banglish context favors English words ("ki" -> kind, kill; "ja" -> jack); (c) a complete Banglish word gets odd
+   completions ("ami" -> amio, amie). Options asked in chat, answer pending. (claude-l)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.
