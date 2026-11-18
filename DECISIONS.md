@@ -103,3 +103,11 @@
 - D44 2026-11-17 Vault process (E1): the vault engine runs in its own Android process; the keyboard talks to it through a bound service. Reason: the typing
   process stays light and the opened database and keys live outside it. Revisit after the feasibility check shows real memory/size numbers. The owner agreed
   to the recommendation and may revisit it.
+- D45 2026-11-17 Library exception (E1): D1 keeps applying to the keyboard/typing process. The vault process and the vault screens may use the libraries they
+  need (KeePassDX `:database` + `:crypto`, BouncyCastle, Joda-Time, commons-io, AndroidX biometric + fragment). The APK size cost is measured in the feasibility
+  check and reported to the owner before we commit (owner chose).
+- D46 2026-11-17 Reuse rule for KeePassDX code (E1): judgment per case, in the owner's words "whatever works best and helps syncing with the upstream KeePassDX
+  engine easier". The engine modules (`:database`, `:crypto`) are used unchanged and never edited. For other KeePassDX code (`:app`): reuse or adapt it where it
+  integrates well and saves time; write our own where ours is better or easier to maintain; the tie-breaker is always "keeps syncing with upstream easy".
+  Every copied or adapted piece is listed in docs/UPSTREAM_COPIES.md (file, upstream release tag, why, how to re-sync), keeps its GPL header and lives in its own
+  package. The owner is told when a non-trivial piece is taken (owner chose).
