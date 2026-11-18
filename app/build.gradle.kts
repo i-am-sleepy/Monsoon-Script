@@ -72,3 +72,36 @@ dependencies {
     // E1 Phase 0 (side branch): the vault engine adapter module, which brings in the KeePassDX engine (D26, D47).
     implementation(project(":vault"))
 }
+
+// E1 Phase 0 (side branch only, never for main): after assembleRelease print what is inside the APK, grouped, so the
+// engine's real size cost is exact. The lines start with APKPARTS so they are easy to find in the CI log.
+val reportApkParts by tasks.registering {
+    doLast {
+        val apk = layout.buildDirectory.file("outputs/apk/release/app-release.apk").get().asFile
+        if (!apk.exists()) {
+            println("APKPARTS no apk at $apk")
+            return@doLast
+        }
+        val raw = java.util.TreeMap<String, Long>()
+        val stored = java.util.TreeMap<String, Long>()
+        java.util.zip.ZipFile(apk).use { zip ->
+            for (e in zip.entries()) {
+                val n = e.name
+                val key = when {
+                    n.endsWith(".dex") -> "dex"
+                    n.startsWith("lib/") -> n.substringBeforeLast('/')
+                    n.startsWith("assets/") -> "assets"
+                    n.startsWith("res/") -> "res"
+                    n.startsWith("META-INF/") -> "META-INF"
+                    else -> n.substringBefore('/')
+                }
+                raw.merge(key, e.size) { x, y -> x + y }
+                stored.merge(key, e.compressedSize) { x, y -> x + y }
+            }
+        }
+        println("APKPARTS part: bytes stored in the apk / bytes uncompressed")
+        for (k in raw.keys) println("APKPARTS %-24s %12d / %12d".format(k, stored[k], raw[k]))
+        println("APKPARTS total apk bytes: ${apk.length()}")
+    }
+}
+tasks.matching { it.name == "assembleRelease" }.configureEach { finalizedBy(reportApkParts) }
