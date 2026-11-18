@@ -28,8 +28,8 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       `KeyboardView.setLanguageOptions`), persist the chosen language, later more settings
 - [ ] T11 (claude-e, after T9) Bangla digit hints on digit keys (English typed, Bangla long-press, D18)
 - [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). Owner priority,
-      before T9. DESIGN TALK done (D25-D52, all 8 stages answered); waiting for the owner's SIGN-OFF of the summary in docs/PASSWORD_MANAGER.md. No code, no
-      structure changes before sign-off. Then Phase 0 = feasibility check on a side branch (D49). Brief: docs/PASSWORD_MANAGER_BRIEF.md
+      before T9. Design SIGNED OFF (D53, 2026-11-18). Phase 0 (feasibility check) is running on the side branch `e1-feasibility` (D49); it needs ONE owner
+      action to start its CI job (Needs user #5). Nothing from Phase 0 is on main. Log: docs/PASSWORD_MANAGER_PHASE0.md. Brief: docs/PASSWORD_MANAGER_BRIEF.md
 - [~] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
       (uni/bi/trigram + learned usage), compact binary tables, async. Built: engine + data (L2.3), English/Bangla strip, arrow, learning (L2.4, CI green up to #13); awaiting the owner's device test; L2.5 (settings switch, clear button, licenses screen) is claude-g's; steps in status/claude-l.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
@@ -42,14 +42,16 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 ## Roadmap (details in docs/REQUIREMENTS.md)
 v0.2 Bangla (T6-T11). v0.3 Emoji (full set, search, recents) and clipboard one-tap. v0.4 Suggestions/autocorrect/next-word.
 v0.5 Themes, resizing, one-handed, split, number row. v0.6 Edit/cursor panel, number pad, space-bar cursor drag. v0.7 Polish, perf, settings.
-Password manager (E1): not scheduled yet; the owner decides the version after the design talk.
+Password manager (E1): Phase 0 now; later phases follow D51 after the go/no-go report.
 
 ## Needs user (ask with the question tool; record answers in DECISIONS.md; tag with your name)
 1. Placeholders picked without asking: teal accent (Enter key), system haptic on every key, no key sound. Confirm or change. (any Claude)
 2. When Bijoy Classic is built (T9): ask the owner to verify the key map. (claude-e)
 3. (answered 2026-11-17: whole app is GPL-3.0, see D25. The LICENSE file comes after the E1 feasibility check.)
 4. When the first network feature appears: also ship an offline-only APK flavor with no INTERNET permission? (see D10) (any Claude)
-5. Password manager (E1), asked in chat 2026-11-17, waiting: SIGN-OFF of the agreed design (summary in docs/PASSWORD_MANAGER.md), and whether the feasibility check starts now or T9 goes first. (claude-e)
+5. Password manager (E1) Phase 0, waiting: on the BRANCH `e1-feasibility` (not main) move the file `tools/e1-feasibility.workflow.yml` to `.github/workflows/e1-feasibility.yml`
+   (GitHub website: switch to that branch, open the file, pencil icon, change the file path, commit to the same branch). claude-e's GitHub tool cannot create workflow files (403),
+   so only the owner or a Claude Code session can. Never merge that file into main as it is. (claude-e)
 6. (answered 2026-11-17: prediction data, see D41 and D42)
 
 ## Known notes

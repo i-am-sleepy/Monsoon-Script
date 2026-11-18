@@ -130,3 +130,5 @@
   unlock, 2 backup and restore screens, 3 attachments, 4 one-time codes (the Code chip arrives with them); Phase 4 Autofill service + save prompt + inline suggestions (D28)
   (owner chose the order of Phase 3).
 - D52 2026-11-17 One vault (E1): the first version supports one vault at a time; the chosen file is remembered. Switching between several vaults comes later (owner chose).
+- D53 2026-11-18 Sign-off (E1): the owner APPROVED the agreed design (summary in docs/PASSWORD_MANAGER.md, D25-D52) and told claude-e to start the feasibility check
+  (Phase 0) right away, before T9. Phase 0 runs on the side branch `e1-feasibility` (D49); its log is docs/PASSWORD_MANAGER_PHASE0.md.
