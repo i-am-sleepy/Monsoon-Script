@@ -80,6 +80,12 @@ class SuggestionWorker(
         } catch (e: IOException) {
             HashMap<String, String>() // no suffix forms, stems still work
         }
-        return AvroSuggester(AssetWordSource(assets), suffixes)
+        // Among equally close spellings the more common word comes first (frequency from the Bangla prediction pack, its own mapping for this thread).
+        val bn = PackLoader.load(assets, "bn")
+        val rank: ((String) -> Int)? = if (bn == null) null else { w ->
+            val i = bn.indexOf(w)
+            if (i < 0) 0 else bn.countLevel(i) + 1
+        }
+        return AvroSuggester(AssetWordSource(assets), suffixes, rank)
     }
 }

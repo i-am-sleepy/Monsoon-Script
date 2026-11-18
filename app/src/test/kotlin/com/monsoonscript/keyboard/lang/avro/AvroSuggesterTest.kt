@@ -28,6 +28,29 @@ class AvroSuggesterTest {
 
     private fun suggest(english: String) = suggester.suggest(english, plainConverter.convert(english))
 
+    private fun suggesterWithRank(rank: (String) -> Int): AvroSuggester {
+        val suffixes = AvroSuffixes.load(File(assets, "suffixes.tsv").inputStream())
+        return AvroSuggester({ b -> loaded.getOrPut(b) { File(assets, "dict/$b.txt").readLines(Charsets.UTF_8).toTypedArray() } }, suffixes, rank)
+    }
+
+    @Test fun rankOnlyOrdersWordsThatAreEquallyClose() {
+        val plain = plainConverter.convert("kam")
+        val base = suggester.suggest("kam", plain, 200)
+        val up = suggesterWithRank { w -> w.hashCode() and 0xFFFF }.suggest("kam", plain, 200)
+        assertEquals(base.toSet(), up.toSet()) // same words, only the order may change
+        var last = -1
+        for (w in up) { // still sorted by distance to the plain conversion
+            val d = AvroSuggester.distance(plain, w)
+            assertTrue("$w distance $d after $last", d >= last)
+            last = d
+        }
+        // among words at the best distance the higher rank comes first
+        val bestD = AvroSuggester.distance(plain, up.first())
+        val tied = up.takeWhile { AvroSuggester.distance(plain, it) == bestD }
+        val ranks = tied.map { it.hashCode() and 0xFFFF }
+        assertEquals(ranks.sortedDescending(), ranks)
+    }
+
     @Test fun everyBucketFileExists() {
         for (b in AvroBucketMap.ALL) assertTrue("missing dict/$b.txt", File(assets, "dict/$b.txt").isFile)
     }

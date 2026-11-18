@@ -32,7 +32,8 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
     L2.4a [x] English autocomplete + next-word in the strip: PackLoader (mmap, noCompress), PredictionWorker, WordTracker hooks in MonsoonIme, strip arrow in KeyboardView. CI #12 (5e51504) green.
     L2.4b [~] Learning: `ime/UserStore` (SQLite), `ime/LearnSettings` (prefs contract for claude-g), `WordTracker.onWord` -> `PredictionWorker.learn`, gating (password/e-mail/URL,
               NO_PERSONALIZED_LEARNING, NO_SUGGESTIONS, `learn_enabled` default ON), flush on idle/close. Fixed a UserStats bug on the way (word rows were not restored). Pushed, waiting for CI.
-    L2.4c [ ] Bangla: tracker fed from Avro commits, next-word after a Bangla word (bn.mslm), Banglish pairs learned, bn frequency tie-break for Avro suggestions.
+    L2.4c [~] Bangla: tracker fed from Avro commits, next-word after a Bangla word (bn.mslm), Banglish pairs learned (English mode), bn frequency tie-break for Avro suggestions
+              (`AvroSuggester` rank param + test). Pushed, waiting for CI. Then: owner checklist.
   L2.5 [ ] claude-g: learning switch + clear button + Licenses screen (warning sent); in-app credits text is `assets/licenses/prediction-data.txt`.
   Facts: use only v1 `en_bigrams/trigrams` and `bn_bigrams/trigrams` (Leipzig CC BY 4.0, Tatoeba); NOT `*_v2/_v3` pairs (OpenSubtitles non-commercial);
   `bn_rom*` was merged with the data owner's private Facebook chat counts (see scripts/import_facebook_chats.py), license unstated.

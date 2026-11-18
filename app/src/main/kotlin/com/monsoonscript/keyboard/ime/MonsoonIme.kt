@@ -65,7 +65,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Not in password/URL/e-mail/number fields, and not when the editor asks for no suggestions. */
     private var predictionAllowed = false
 
-    /** Follows the word being typed and the two before it in the editor (English layout; the editor stays the source of truth). */
+    /**
+     * Follows the word being typed and the two before it in the editor (the editor stays the source of truth). In Avro it is fed what is
+     * committed (the word being composed joins it when it is committed), so while a word is composed the strip shows the Avro dictionary
+     * words and only after it the next-word predictions from the Bangla pack.
+     */
     private val tracker = WordTracker()
 
     /** Background predictions, started on the first request. */
@@ -77,7 +81,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** The editor has a selection: Backspace then deletes more than one character and the tracker must be rebuilt. */
     private var hasSelection = false
 
-    private val englishPredicting: Boolean get() = predictionAllowed && language == Language.ENGLISH
+    private val predicting: Boolean get() = predictionAllowed
 
     /**
      * Finished words are remembered (on the phone only, D42) when the owner left "Learn from my typing" on and the field allows it:
@@ -136,7 +140,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         applySystemBars()
         refreshAutoCaps()
         // Read what is already in the field once the keyboard is on screen (a blocking call into the app, so not before the first frame).
-        if (englishPredicting) v.post { resyncAndPredict() }
+        if (predicting) v.post { resyncAndPredict() }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -165,7 +169,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
         hasSelection = newSelStart != newSelEnd
         // A change that is not an echo of our own edit (cursor moved, text replaced by the app, a physical keyboard): read the editor again.
-        if (englishPredicting && SystemClock.uptimeMillis() - lastEditAt > PhoneticComposer.STALE_MS) resyncAndPredict()
+        if (predicting && SystemClock.uptimeMillis() - lastEditAt > PhoneticComposer.STALE_MS) resyncAndPredict()
         val comp = composer ?: return
         if (!comp.isComposing) return
         val sinceEdit = SystemClock.uptimeMillis() - lastEditAt
@@ -173,6 +177,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             comp.clear()
             dropSuggestions()
             currentInputConnection?.finishComposingText() // leave the old word as plain text
+            resyncAndPredict()
         }
     }
 
@@ -283,14 +288,15 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun resyncAndPredict() {
-        if (!englishPredicting) return
+        if (!predicting || composer?.isComposing == true) return
         resyncTracker()
         requestPrediction()
     }
 
     /** Ask the worker for completions of the word in progress, or for the next word when none is started. */
     private fun requestPrediction() {
-        if (!englishPredicting) return
+        if (!predicting) return
+        if (composer?.isComposing == true) return // the Avro dictionary words own the strip while a word is composed
         val prefix = tracker.prefix
         val w1 = tracker.w1
         if (prefix.isEmpty() && w1 == null) { // nothing to go on (start of a field or sentence): the icon row stays
@@ -299,7 +305,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
         val seq = ++predSeq
         val w = predWorker ?: PredictionWorker(this, ::onPredictionResult).also { predWorker = it }
-        w.request(seq, PredictionWorker.Mode.ENGLISH, tracker.typed, prefix, w1, tracker.w2, tracker.atSentenceStart)
+        val mode = if (language.isBangla) PredictionWorker.Mode.BANGLA else PredictionWorker.Mode.ENGLISH
+        w.request(seq, mode, tracker.typed, prefix, w1, tracker.w2, tracker.atSentenceStart)
     }
 
     private fun learnWord(prev: String?, word: String) {
@@ -310,7 +317,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun onPredictionResult(r: PredictionWorker.Result) {
-        if (r.seq != predSeq || !englishPredicting) return
+        if (r.seq != predSeq || !predicting) return
         setSuggestions(r.words)
     }
 
@@ -345,10 +352,12 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun commitComposingIfAny() {
         val comp = composer ?: return
         if (!comp.isComposing) return
+        val shown = comp.text()
         currentInputConnection?.finishComposingText()
         comp.clear()
         dropSuggestions()
         lastEditAt = SystemClock.uptimeMillis()
+        if (predicting) tracker.appendAll(shown) // plain text now: the word in progress for the tracker, finished by whatever comes next
     }
 
     private fun setLanguage(l: Language) {
@@ -373,12 +382,17 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
                 commitComposingIfAny()
                 if (text == ".") { // a full stop right after a Bangla word is the dari
                     ic.commitText(DARI, 1)
+                    lastEditAt = SystemClock.uptimeMillis()
+                    if (predicting) {
+                        tracker.appendAll(DARI)
+                        requestPrediction()
+                    }
                     return
                 }
             }
         }
         ic.commitText(text, 1)
-        if (englishPredicting) {
+        if (predicting) {
             lastEditAt = SystemClock.uptimeMillis()
             tracker.appendAll(text)
             requestPrediction()
@@ -392,13 +406,17 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val ic = currentInputConnection ?: return
         val comp = composer
         if (comp == null || !comp.isComposing) {
-            if (englishPredicting) acceptPrediction(ic, word) // else: the word ended while the finger was down
+            if (predicting) acceptPrediction(ic, word) // else: the word ended while the finger was down
             return
         }
         ic.commitText("$word ", 1) // one call: replaces the composing region, then the space
         comp.clear()
         dropSuggestions()
         lastEditAt = SystemClock.uptimeMillis()
+        if (predicting) {
+            tracker.appendAll("$word ") // finished: learned, and the context for the next-word predictions
+            requestPrediction()
+        }
     }
 
     override fun onBackspace() {
@@ -417,7 +435,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
         val selected = hasSelection
         sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
-        if (englishPredicting) {
+        if (predicting) {
             lastEditAt = SystemClock.uptimeMillis()
             tracker.backspace()
             if (selected || tracker.needsResync) resyncTracker() // more than one character went, or the cursor is in an earlier word now
@@ -435,7 +453,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         } else {
             sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
         }
-        if (englishPredicting) {
+        if (predicting) {
             lastEditAt = SystemClock.uptimeMillis()
             tracker.append('\n')
             requestPrediction()
@@ -446,7 +464,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     override fun onTab() {
         commitComposingIfAny()
         sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
-        if (englishPredicting) {
+        if (predicting) {
             tracker.append('\t')
             requestPrediction()
         }

@@ -49,7 +49,7 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   - `UserStats`: learned words and pairs with a 30-day half-life, prune at 30k words / 60k pairs, `takeChanges()` / `restore()` for the SQLite store (Android side).
   - `WordTracker`: follows the word in progress and the two before it from committed characters; sentence end forgets context; `reset(textBeforeCursor)` resyncs.
   Tests: `app/src/test/kotlin/.../predict/*Test.kt` (44; `Packs.kt` maps the real files from `src/main/assets/predict`, run from `app/`).
-- Prediction in the IME (L2.4a, English layout): `ime/PackLoader` memory-maps `assets/predict/<name>.mslm` straight from the APK (`androidResources.noCompress += "mslm"` in
+- Prediction in the IME (L2.4, English and Bangla): `ime/PackLoader` memory-maps `assets/predict/<name>.mslm` straight from the APK (`androidResources.noCompress += "mslm"` in
   app/build.gradle.kts; compressed assets would be read into the heap instead); `ime/PredictionWorker` (HandlerThread "monsoon-predict", coalescing like SuggestionWorker, owns the
   packs and the `Predictor`, loads packs lazily, answers on the main thread with the request's sequence number and ready-capitalized words via `TextNorm.matchCase`).
   `MonsoonIme` keeps a `WordTracker` fed by every committed character (onText, Backspace, Enter, Tab, a tapped suggestion); `resyncTracker()` rebuilds it from
@@ -57,8 +57,11 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   `onUpdateSelection` when the update is older than `PhoneticComposer.STALE_MS` after our last edit (cursor moved, app changed the text, physical keyboard). `requestPrediction()`
   asks for completions of the word in progress, or the next word after a space; nothing is asked at the start of a field or sentence (the icon row stays). `predSeq` drops stale answers
   (`dropSuggestions()` bumps it). Tapping a prediction (`acceptPrediction`) checks that the text before the cursor equals the tracked word, then in one batch edit deletes it and commits
-  `word + " "`. Only fields that allow composing and do not set `TYPE_TEXT_FLAG_NO_SUGGESTIONS` get predictions (`predictionAllowed`). Bangla (Avro) keeps the dictionary strip while composing; Bangla
-  next-word and learning come with L2.4b/c.
+  `word + " "`. Only fields that allow composing and do not set `TYPE_TEXT_FLAG_NO_SUGGESTIONS` get predictions (`predictionAllowed`). In Bangla (Avro) the tracker is fed what is committed (the composed word joins it in
+  `commitComposingIfAny` / `onSuggestion`, the dari and plain characters go through `onText`); while a word is composed the strip shows the Avro dictionary words (`requestPrediction`
+  is skipped), right after it the next-word predictions come from `bn.mslm` (`PredictionWorker.Mode.BANGLA`, same worker, same learned stats). Avro suggestions that are equally
+  close to the plain conversion are ordered by word frequency: `AvroSuggester(words, suffixes, rank)`, `rank` = `bn.mslm` count level (looked up for words within 2 edits of the best;
+  `SuggestionWorker` maps its own `LangPack` because packs are single-thread objects).
 - Learning (L2.4b, D42): `WordTracker.onWord(prev, word)` fires whenever a word ends (not while `reset` replays text); `MonsoonIme.learnWord` forwards it to
   `PredictionWorker.learn` when `learnAllowed` (field allows predictions, no `IME_FLAG_NO_PERSONALIZED_LEARNING`, and `LearnSettings.enabled`, default ON). The worker keeps a
   `UserStats` (faded counts, 30-day half-life, pruned at 30k words / 60k pairs; a word no dictionary knows needs 2 uses before it is suggested), loads it from `ime/UserStore`

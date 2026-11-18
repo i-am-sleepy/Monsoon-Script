@@ -47,6 +47,11 @@ object AvroSuffixes {
 class AvroSuggester(
     private val words: AvroWordSource,
     private val suffixes: Map<String, String>,
+    /**
+     * Optional tie-break: how common a dictionary word is (higher = more common, any scale). It only orders words whose distance to the
+     * plain conversion is equal (or within [RANK_SPAN] of the best one is looked at at all), so the phonetic match stays in charge.
+     */
+    private val rank: ((String) -> Int)? = null,
 ) {
     private val builder = AvroRegexBuilder()
 
@@ -67,15 +72,24 @@ class AvroSuggester(
         if (found.isEmpty()) return emptyList()
 
         val ranked = ArrayList<Scored>(found.size)
-        for (w in found) ranked.add(Scored(w, distance(plainBangla, w)))
-        ranked.sortWith(compareBy { it.distance }) // stable: ties stay alphabetical
+        var best = Int.MAX_VALUE
+        for (w in found) {
+            val d = distance(plainBangla, w)
+            ranked.add(Scored(w, d))
+            if (d < best) best = d
+        }
+        val r = rank
+        if (r != null) for (s in ranked) if (s.distance <= best + RANK_SPAN) s.rank = r(s.word) // far-off words are not worth a lookup
+        ranked.sortWith(compareBy<Scored> { it.distance }.thenByDescending { it.rank }) // stable: remaining ties stay alphabetical
         val n = if (ranked.size < limit) ranked.size else limit
         val out = ArrayList<String>(n)
         for (i in 0 until n) out.add(ranked[i].word)
         return out
     }
 
-    private class Scored(val word: String, val distance: Int)
+    private class Scored(val word: String, val distance: Int) {
+        var rank = Int.MIN_VALUE
+    }
 
     /** Stem results + suffix, for every split of the typed word whose tail is a known suffix. */
     private fun addSuffixForms(english: String, into: MutableSet<String>) {
@@ -146,6 +160,7 @@ class AvroSuggester(
         const val DEFAULT_LIMIT = 12
         const val MAX_ENGLISH_LENGTH = 50
         private const val CACHE_SIZE = 24
+        private const val RANK_SPAN = 2
 
         /** Levenshtein distance between two strings (edit distance in UTF-16 units). */
         fun distance(s: String, t: String): Int {
