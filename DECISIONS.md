@@ -121,3 +121,12 @@
 - D49 2026-11-17 Side branch (E1): the first integration (submodule, build-tool upgrade, native build) is done on a side branch until CI is green, then merged, so `main`
   stays green for the other Claudes. This departs from D2 for this one piece of work only. The side branch must not publish the rolling release or update `ci-status`
   (owner chose).
+- D50 2026-11-17 File changed elsewhere (E1, completes D36): when the vault file changed since it was opened and a save is needed, the app ASKS the owner every
+  time (the owner chose this instead of the recommended automatic merge). It never overwrites silently. The choices and the wording are designed at build time
+  (for example merge, keep the file's version, keep mine as a separate copy). Pending changes must not be lost while the question is open.
+- D51 2026-11-17 Build order (E1): Phase 0 feasibility check on the side branch (D49); Phase 1 core vault in the app (create/open/unlock with the master password,
+  list/search/view/add/edit/delete entries and folders, custom fields, password generator, auto-lock, safe saving + backups); Phase 2 keyboard picker (key icon, panel,
+  matches/recent, chips, typing mode, see-through unlock, non-password-field warning, clipboard rules, mini add form); Phase 3 in the owner's order: 1 fingerprint
+  unlock, 2 backup and restore screens, 3 attachments, 4 one-time codes (the Code chip arrives with them); Phase 4 Autofill service + save prompt + inline suggestions (D28)
+  (owner chose the order of Phase 3).
+- D52 2026-11-17 One vault (E1): the first version supports one vault at a time; the chosen file is remembered. Switching between several vaults comes later (owner chose).
