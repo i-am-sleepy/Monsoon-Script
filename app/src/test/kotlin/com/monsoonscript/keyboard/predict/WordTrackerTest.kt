@@ -67,6 +67,17 @@ class WordTrackerTest {
         assertEquals(listOf<Pair<String?, String>>(null to "hello", "hello" to "big", "big" to "world", null to "new"), seen)
     }
 
+    @Test fun resetDoesNotReportTheTextItReplays() {
+        val seen = ArrayList<String>()
+        val t = WordTracker()
+        t.onWord = { _, w -> seen.add(w) }
+        t.reset("one two three ")
+        assertEquals("three", t.w1)
+        assertTrue(seen.isEmpty())
+        t.appendAll("four ")
+        assertEquals(listOf("four"), seen) // the callback is back after the replay
+    }
+
     @Test fun backspaceShortensTheWordAndFlagsAResyncPastItsStart() {
         val t = typed("ab")
         t.backspace()

@@ -44,6 +44,8 @@ class UserStatsTest {
         val other = UserStats { clock }
         for (r in rows) other.restore(r)
         assertEquals(1.0, other.pairWeight("a", "b"), 1e-9)
+        assertEquals(1.0, other.wordWeight("b"), 1e-9) // the word row must come back too
+        assertTrue(rows.any { it.w1 == "b" && it.w2.isEmpty() }) // a word row is (word, "")
         assertTrue(other.takeChanges().isEmpty())
     }
 

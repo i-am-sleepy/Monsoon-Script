@@ -59,6 +59,13 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   (`dropSuggestions()` bumps it). Tapping a prediction (`acceptPrediction`) checks that the text before the cursor equals the tracked word, then in one batch edit deletes it and commits
   `word + " "`. Only fields that allow composing and do not set `TYPE_TEXT_FLAG_NO_SUGGESTIONS` get predictions (`predictionAllowed`). Bangla (Avro) keeps the dictionary strip while composing; Bangla
   next-word and learning come with L2.4b/c.
+- Learning (L2.4b, D42): `WordTracker.onWord(prev, word)` fires whenever a word ends (not while `reset` replays text); `MonsoonIme.learnWord` forwards it to
+  `PredictionWorker.learn` when `learnAllowed` (field allows predictions, no `IME_FLAG_NO_PERSONALIZED_LEARNING`, and `LearnSettings.enabled`, default ON). The worker keeps a
+  `UserStats` (faded counts, 30-day half-life, pruned at 30k words / 60k pairs; a word no dictionary knows needs 2 uses before it is suggested), loads it from `ime/UserStore`
+  (SQLite `learned.db`, table `facts(w1, w2, n, last)`, word rows have w2 = "") on first use, and saves the changes 8 s after the last learn, at `flush()` (keyboard closes) and at `stop()`.
+  Settings contract for claude-g: `ime/LearnSettings` holds the pref names (`PREFS`, `KEY_ENABLED`, `KEY_CLEAR_EPOCH`); the switch writes `learn_enabled`
+  (`LearnSettings.setEnabled`), the button calls `LearnSettings.clearLearnedWords(context)` (empties the database and bumps an epoch that the running service hears via a
+  SharedPreferences listener to empty its memory). Change `LearnSettings.PREFS` if the settings code uses another prefs file.
 - Strip arrow (D41): while the strip has candidates, a chevron button sits at its left (`KeyboardView`, `arrowW`); tapping it swaps the candidates for the normal icon row (`iconsPinned`,
   chevron mirrored) until the candidates change; with no candidates the strip is the plain icon row without arrow. The left-hand strip icons are shifted right by the arrow width in place
   (`placeStrip`, `stripLeftCount`), so hit-testing needs no special case; touches on the arrow are tracked per pointer (`ptrArrow`, `ARROW_SLOT`).

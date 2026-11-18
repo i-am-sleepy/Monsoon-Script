@@ -85,7 +85,11 @@ class WordTracker {
             if (TextNorm.isSentenceEnd(textBeforeCursor[k])) { i = k + 1; break }
         }
         if (i > 0) atSentenceStart = true
+        // Replaying old text is not typing: words in it must not be reported (and learned) again.
+        val callback = onWord
+        onWord = null
         while (i < textBeforeCursor.length) append(textBeforeCursor[i++])
+        onWord = callback
     }
 
     /** The finished word the user is about to leave behind is [w1] after this call; returns it (null when nothing was typed). */

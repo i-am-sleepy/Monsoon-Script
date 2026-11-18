@@ -14,7 +14,7 @@ class UserStats(private val now: () -> Long = { System.currentTimeMillis() }) {
 
     private class Entry(var count: Double, var last: Long)
 
-    /** One saved fact: a word (w2 empty) or a pair (w1 followed by w2). */
+    /** One saved fact: a word (w1 = the word, w2 empty) or a pair (w1 followed by w2). A count of 0 means "forget this". */
     class Row(val w1: String, val w2: String, val count: Double, val last: Long)
 
     private val uni = TreeMap<String, Entry>()
@@ -32,7 +32,7 @@ class UserStats(private val now: () -> Long = { System.currentTimeMillis() }) {
         if (word.isEmpty()) return
         val t = now()
         bump(uni.getOrPut(word) { Entry(0.0, t) }, t)
-        changed[word] = row("", word, uni[word]!!)
+        changed[word] = row(word, "", uni[word]!!)
         if (prev != null && prev.isNotEmpty()) {
             val m = bi.getOrPut(prev) { HashMap() }
             val e = m.getOrPut(word) { pairCount++; Entry(0.0, t) }
@@ -139,7 +139,7 @@ class UserStats(private val now: () -> Long = { System.currentTimeMillis() }) {
             while (it.hasNext()) {
                 val e = it.next()
                 if (e.key !in keep) {
-                    changed[e.key] = Row("", e.key, 0.0, t)
+                    changed[e.key] = Row(e.key, "", 0.0, t)
                     it.remove()
                 }
             }

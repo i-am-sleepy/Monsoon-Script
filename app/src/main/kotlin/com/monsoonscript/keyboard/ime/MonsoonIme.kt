@@ -1,5 +1,6 @@
 package com.monsoonscript.keyboard.ime
 
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.drawable.ColorDrawable
 import android.inputmethodservice.InputMethodService
@@ -78,6 +79,26 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     private val englishPredicting: Boolean get() = predictionAllowed && language == Language.ENGLISH
 
+    /**
+     * Finished words are remembered (on the phone only, D42) when the owner left "Learn from my typing" on and the field allows it:
+     * not in password/e-mail/URL fields, and not when the app asks for no personalized learning (incognito tabs and the like).
+     */
+    private var learnAllowed = false
+
+    init {
+        tracker.onWord = { prev, word -> learnWord(prev, word) }
+    }
+
+    /** The settings screen's "Clear learned words" bumps an epoch counter; the service empties its in-memory copy when it hears it. */
+    private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == LearnSettings.KEY_CLEAR_EPOCH) predWorker?.clearLearned()
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        getSharedPreferences(LearnSettings.PREFS, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(prefsListener)
+    }
+
     override fun onCreateInputView(): View {
         val v = KeyboardView(this)
         v.listener = this
@@ -104,6 +125,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val cls = inputType and InputType.TYPE_MASK_CLASS
         composingAllowed = info != null && cls == InputType.TYPE_CLASS_TEXT && !isRawTextVariation(inputType)
         predictionAllowed = composingAllowed && (inputType and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) == 0
+        val noLearning = ((info?.imeOptions ?: 0) and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
+        learnAllowed = predictionAllowed && !noLearning && LearnSettings.enabled(this)
         tracker.reset(null)
         hasSelection = false
         val v = keyboard ?: return
@@ -122,10 +145,12 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         composer?.clear()
         tracker.reset(null)
         dropSuggestions()
+        predWorker?.flush() // save what was learned
         keyboard?.cancelAll()
     }
 
     override fun onDestroy() {
+        getSharedPreferences(LearnSettings.PREFS, MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(prefsListener)
         worker?.stop()
         worker = null
         predWorker?.stop()
@@ -273,8 +298,15 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             return
         }
         val seq = ++predSeq
-        val w = predWorker ?: PredictionWorker(assets, ::onPredictionResult).also { predWorker = it }
+        val w = predWorker ?: PredictionWorker(this, ::onPredictionResult).also { predWorker = it }
         w.request(seq, PredictionWorker.Mode.ENGLISH, tracker.typed, prefix, w1, tracker.w2, tracker.atSentenceStart)
+    }
+
+    private fun learnWord(prev: String?, word: String) {
+        if (!learnAllowed) return
+        if (word.length == 1 && word[0] < '\u0980') return // single Latin letters are not worth remembering
+        val w = predWorker ?: PredictionWorker(this, ::onPredictionResult).also { predWorker = it }
+        w.learn(prev, word)
     }
 
     private fun onPredictionResult(r: PredictionWorker.Result) {
