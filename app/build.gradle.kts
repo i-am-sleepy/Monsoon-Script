@@ -9,7 +9,7 @@ val releaseKeystore: String? = System.getenv("KEYSTORE_PATH")?.takeIf { it.isNot
 
 android {
     namespace = "com.monsoonscript.keyboard"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.monsoonscript.keyboard"
@@ -68,4 +68,7 @@ android {
 dependencies {
     // Pure-JVM unit tests for the language engines (run in CI, see .github/workflows/build.yml).
     testImplementation("junit:junit:4.13.2")
+
+    // E1 Phase 0 (side branch): the vault engine adapter module, which brings in the KeePassDX engine (D26, D47).
+    implementation(project(":vault"))
 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <!-- D44: the vault engine lives in its own Android process. Phase 0 spike service; no one starts it yet. -->
+        <service
+            android:name=".VaultSpikeService"
+            android:exported="false"
+            android:process=":vault" />
+    </application>
+</manifest>
