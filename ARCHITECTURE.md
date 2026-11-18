@@ -46,9 +46,15 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   - `Predictor(user).predict(packs, prefix, w1, w2, limit)`: candidates = prefix range (top 48 by count) + words seen after the context + the owner's own words; score =
     stupid backoff (trigram share, else 0.4 x bigram share, else 0.16 x unigram), summed over packs x pack prior, then mixed with `UserStats` (weights grow with
     how much the owner typed). `Predictor.englishMix(en, rom, w1, w2)` picks the priors (Banglish words down-weighted unless a previous word is Banglish).
+  - `Bridge` (D54): `assets/predict/rom2bn.bin` links every Banglish word to the Bangla word the plain Avro conversion makes of it (0 = no match, about half of everyday Banglish
+    usage matches); `Predictor.englishMix(..., bridge)` attaches it to the Banglish pack only when a previous word is Banglish, so context words are looked up in the Bangla pairs
+    and successors are shown as their most frequent Banglish spelling (`WeightedPack.bridge`, `Ctx.pairs/b1/b2`). The file is built by `BridgeBuilder` (test sources, run from `app/`
+    after the packs change; `BridgeTest` fails when the committed file is stale). Other D54 rules: 1-3 letter prefixes give Banglish words prior 0.4 instead of 0.05 when no Banglish
+    word came before; after a space the word just typed is never suggested again (unless the owner learned that pair). `PredictionWorker` loads the bridge lazily and, while a word is
+    typed, puts the word as typed first in the strip (tapping it just adds the space).
   - `UserStats`: learned words and pairs with a 30-day half-life, prune at 30k words / 60k pairs, `takeChanges()` / `restore()` for the SQLite store (Android side).
   - `WordTracker`: follows the word in progress and the two before it from committed characters; sentence end forgets context; `reset(textBeforeCursor)` resyncs.
-  Tests: `app/src/test/kotlin/.../predict/*Test.kt` (44; `Packs.kt` maps the real files from `src/main/assets/predict`, run from `app/`).
+  Tests: `app/src/test/kotlin/.../predict/*Test.kt` (53; `Packs.kt` maps the real files from `src/main/assets/predict`, run from `app/`).
 - Prediction in the IME (L2.4, English and Bangla): `ime/PackLoader` memory-maps `assets/predict/<name>.mslm` straight from the APK (`androidResources.noCompress += "mslm"` in
   app/build.gradle.kts; compressed assets would be read into the heap instead); `ime/PredictionWorker` (HandlerThread "monsoon-predict", coalescing like SuggestionWorker, owns the
   packs and the `Predictor`, loads packs lazily, answers on the main thread with the request's sequence number and ready-capitalized words via `TextNorm.matchCase`).

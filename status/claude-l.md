@@ -40,9 +40,9 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
   Bengali files use decomposed য় (U+09AF U+09BC); Avro commits precomposed U+09DF.
 
 ## L3 steps (D54, owner answered 2026-11-18)
-  L3.1 [ ] bridge: `Bridge` (predict/), `assets/predict/rom2bn.bin` built by a test-source tool + sync test, Predictor uses it in Banglish context, worker loads it lazily
-  L3.2 [ ] short-prefix lean Banglish (tune with probe) + never repeat w1 after a space
-  L3.3 [ ] typed word as first strip choice while a word is typed (PredictionWorker), then checklist to the owner
+  L3.1 [x] bridge: `Bridge` (predict/), `assets/predict/rom2bn.bin` built by `BridgeBuilder` (test sources) + sync test, Predictor uses it in Banglish context, worker loads it lazily
+  L3.2 [x] short-prefix lean Banglish (prior 0.4 for 1-3 letters, tuned with probes) + never repeat w1 after a space
+  L3.3 [~] typed word as first strip choice while a word is typed (PredictionWorker). Pushed (966928a), waiting for CI; then send the owner the expected results
   Reminder: pure-Kotlin parts are tested locally (kc.sh); Android parts only by CI.
 
 ## Next step

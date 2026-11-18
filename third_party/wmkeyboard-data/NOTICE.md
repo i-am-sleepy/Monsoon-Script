@@ -20,6 +20,9 @@ Whoever reuses the packed files must keep the credits below. This summary is the
 
 Offensive-word lists (`en_offensive`, `bn_offensive`) are used only to remove words from the packs.
 
+`app/src/main/assets/predict/rom2bn.bin` (D54) is a table of links made by this project from `rom.mslm` and `bn.mslm` (each Banglish word -> the Bangla word that the plain
+Avro phonetic conversion gives, if the Bangla list has it); it adds no new data, and Banglish next-word suggestions drawn through it come from the Bangla pair counts above (Leipzig, CC BY 4.0).
+
 ## Credits
 
 - **Leipzig Corpora Collection**, Universität Leipzig, https://wortschatz.uni-leipzig.de , CC BY 4.0. D. Goldhahn, T. Eckart and U. Quasthoff:
