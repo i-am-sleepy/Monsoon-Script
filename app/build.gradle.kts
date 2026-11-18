@@ -49,6 +49,11 @@ android {
         jvmTarget = "17"
     }
 
+    // The prediction packs are memory-mapped straight from the APK, so they must not be compressed (ime/PackLoader.kt).
+    androidResources {
+        noCompress += "mslm"
+    }
+
     // No signing-block metadata blob for Google; smaller APK.
     dependenciesInfo {
         includeInApk = false

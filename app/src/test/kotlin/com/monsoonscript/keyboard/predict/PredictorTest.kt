@@ -83,6 +83,15 @@ class PredictorTest {
         assertEquals("tomake", en("", "ami", p = p).first())
     }
 
+    @Test fun aSingleTypoIsNotLearnedAsAWord() {
+        val stats = UserStats()
+        val p = Predictor(stats)
+        stats.learn(null, "qwzxv")
+        assertTrue(en("qwz", p = p).isEmpty())
+        stats.learn(null, "qwzxv")
+        assertEquals(listOf("qwzxv"), en("qwz", p = p))
+    }
+
     @Test fun learnedUseFadesAway() {
         var clock = 1_000_000_000_000L
         val stats = UserStats { clock }

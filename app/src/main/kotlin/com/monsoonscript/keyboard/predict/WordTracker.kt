@@ -22,11 +22,14 @@ class WordTracker {
     var needsResync = false
         private set
 
-    /** What is typed of the current word as the user typed it (original capitals kept). */
+    /** What is typed of the current word exactly as it stands in the editor (capitals, apostrophes and a trailing ' kept). */
     val typed: String get() = word.toString()
 
-    /** The current word in lookup form. */
-    val prefix: String get() = TextNorm.key(word.toString())
+    /** The current word in lookup form (a trailing apostrophe is not part of the prefix yet: "don'" looks up "don"). */
+    val prefix: String get() = TextNorm.key(trimApostrophes(word))
+
+    /** Called with (the word before, the word that just ended) every time a word ends; the IME uses it for learning. */
+    var onWord: ((prev: String?, word: String) -> Unit)? = null
 
     val w1: String? get() = prev1
     val w2: String? get() = prev2
@@ -39,7 +42,7 @@ class WordTracker {
             return
         }
         if (TextNorm.isApostrophe(c) && word.isNotEmpty()) { // don't, dogs'
-            word.append('\'')
+            word.append(c)
             return
         }
         finishWord()
@@ -58,7 +61,6 @@ class WordTracker {
     fun backspace() {
         if (word.isNotEmpty()) {
             word.setLength(word.length - 1)
-            while (word.isNotEmpty() && word[word.length - 1] == '\'' ) word.setLength(word.length - 1)
         } else {
             needsResync = true // the character deleted was a space or punctuation: an earlier word may be open again
         }
@@ -89,13 +91,18 @@ class WordTracker {
     /** The finished word the user is about to leave behind is [w1] after this call; returns it (null when nothing was typed). */
     fun finishWord(): String? {
         if (word.isEmpty()) return null
-        var end = word.length
-        while (end > 0 && word[end - 1] == '\'') end--
-        val w = TextNorm.key(word.substring(0, end))
+        val w = TextNorm.key(trimApostrophes(word))
         word.setLength(0)
         if (w.isEmpty()) return null
+        onWord?.invoke(prev1, w)
         prev2 = prev1
         prev1 = w
         return w
+    }
+
+    private fun trimApostrophes(sb: CharSequence): String {
+        var end = sb.length
+        while (end > 0 && TextNorm.isApostrophe(sb[end - 1])) end--
+        return sb.substring(0, end)
     }
 }

@@ -18,6 +18,7 @@ import com.monsoonscript.keyboard.lang.PhoneticComposer
 import com.monsoonscript.keyboard.lang.avro.AvroAutoCorrect
 import com.monsoonscript.keyboard.lang.avro.AvroPhoneticConverter
 import com.monsoonscript.keyboard.layout.Layouts
+import com.monsoonscript.keyboard.predict.WordTracker
 import com.monsoonscript.keyboard.view.KeyboardView
 import java.io.IOException
 
@@ -58,6 +59,25 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     private val avroActive: Boolean get() = language == Language.AVRO && composingAllowed
 
+    // ---- word prediction (L2): autocomplete and next word in the strip, see predict/ and PredictionWorker
+
+    /** Not in password/URL/e-mail/number fields, and not when the editor asks for no suggestions. */
+    private var predictionAllowed = false
+
+    /** Follows the word being typed and the two before it in the editor (English layout; the editor stays the source of truth). */
+    private val tracker = WordTracker()
+
+    /** Background predictions, started on the first request. */
+    private var predWorker: PredictionWorker? = null
+
+    /** Newest prediction request; answers with another number are stale and dropped. */
+    private var predSeq = 0
+
+    /** The editor has a selection: Backspace then deletes more than one character and the tracker must be rebuilt. */
+    private var hasSelection = false
+
+    private val englishPredicting: Boolean get() = predictionAllowed && language == Language.ENGLISH
+
     override fun onCreateInputView(): View {
         val v = KeyboardView(this)
         v.listener = this
@@ -83,18 +103,24 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val inputType = info?.inputType ?: 0
         val cls = inputType and InputType.TYPE_MASK_CLASS
         composingAllowed = info != null && cls == InputType.TYPE_CLASS_TEXT && !isRawTextVariation(inputType)
+        predictionAllowed = composingAllowed && (inputType and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) == 0
+        tracker.reset(null)
+        hasSelection = false
         val v = keyboard ?: return
         val numeric = cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE || cls == InputType.TYPE_CLASS_DATETIME
         v.setPage(if (numeric) Layouts.PAGE_SYMBOLS else Layouts.PAGE_LETTERS)
         v.setLanguage(language.shortLabel, language.spaceLabel)
         applySystemBars()
         refreshAutoCaps()
+        // Read what is already in the field once the keyboard is on screen (a blocking call into the app, so not before the first frame).
+        if (englishPredicting) v.post { resyncAndPredict() }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
         currentInputConnection?.finishComposingText()
         composer?.clear()
+        tracker.reset(null)
         dropSuggestions()
         keyboard?.cancelAll()
     }
@@ -102,6 +128,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     override fun onDestroy() {
         worker?.stop()
         worker = null
+        predWorker?.stop()
+        predWorker = null
         super.onDestroy()
     }
 
@@ -110,6 +138,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         oldSelStart: Int, oldSelEnd: Int, newSelStart: Int, newSelEnd: Int, candidatesStart: Int, candidatesEnd: Int,
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        hasSelection = newSelStart != newSelEnd
+        // A change that is not an echo of our own edit (cursor moved, text replaced by the app, a physical keyboard): read the editor again.
+        if (englishPredicting && SystemClock.uptimeMillis() - lastEditAt > PhoneticComposer.STALE_MS) resyncAndPredict()
         val comp = composer ?: return
         if (!comp.isComposing) return
         val sinceEdit = SystemClock.uptimeMillis() - lastEditAt
@@ -214,7 +245,63 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** The word ended (or was abandoned): no candidates and no pending search. */
     private fun dropSuggestions() {
         worker?.cancel()
+        predWorker?.cancel()
+        predSeq++ // an answer still on its way is stale now
         if (suggestions.isNotEmpty()) setSuggestions(emptyList())
+    }
+
+    // ---- prediction (English layout)
+
+    /** Rebuild the tracker from the text before the cursor (the last few dozen characters are enough). */
+    private fun resyncTracker() {
+        tracker.reset(currentInputConnection?.getTextBeforeCursor(RESYNC_CHARS, 0))
+    }
+
+    private fun resyncAndPredict() {
+        if (!englishPredicting) return
+        resyncTracker()
+        requestPrediction()
+    }
+
+    /** Ask the worker for completions of the word in progress, or for the next word when none is started. */
+    private fun requestPrediction() {
+        if (!englishPredicting) return
+        val prefix = tracker.prefix
+        val w1 = tracker.w1
+        if (prefix.isEmpty() && w1 == null) { // nothing to go on (start of a field or sentence): the icon row stays
+            dropSuggestions()
+            return
+        }
+        val seq = ++predSeq
+        val w = predWorker ?: PredictionWorker(assets, ::onPredictionResult).also { predWorker = it }
+        w.request(seq, PredictionWorker.Mode.ENGLISH, tracker.typed, prefix, w1, tracker.w2, tracker.atSentenceStart)
+    }
+
+    private fun onPredictionResult(r: PredictionWorker.Result) {
+        if (r.seq != predSeq || !englishPredicting) return
+        setSuggestions(r.words)
+    }
+
+    /** A prediction was tapped: it replaces the word in progress (checked against the editor first) and a space follows. */
+    private fun acceptPrediction(ic: InputConnection, word: String) {
+        val typed = tracker.typed
+        if (typed.isNotEmpty()) {
+            val before = ic.getTextBeforeCursor(typed.length, 0)
+            if (before == null || before.toString() != typed) { // the editor is not what we thought: do not delete the wrong text
+                resyncTracker()
+                requestPrediction()
+                return
+            }
+        }
+        ic.beginBatchEdit()
+        if (typed.isNotEmpty()) ic.deleteSurroundingText(typed.length, 0)
+        ic.commitText("$word ", 1)
+        ic.endBatchEdit()
+        lastEditAt = SystemClock.uptimeMillis()
+        tracker.dropWord()
+        tracker.appendAll("$word ") // the word is finished: it is the new context
+        refreshAutoCaps()
+        requestPrediction()
     }
 
     private fun setSuggestions(list: List<String>) {
@@ -259,6 +346,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             }
         }
         ic.commitText(text, 1)
+        if (englishPredicting) {
+            lastEditAt = SystemClock.uptimeMillis()
+            tracker.appendAll(text)
+            requestPrediction()
+        }
         // getCursorCapsMode is a blocking call into the app: only ask when the text could start a new sentence/word.
         if (text == " " || text == "." || text == "!" || text == "?") refreshAutoCaps()
     }
@@ -266,8 +358,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** A strip suggestion was tapped (D23): it replaces the underlined word and a space follows. */
     override fun onSuggestion(word: String) {
         val ic = currentInputConnection ?: return
-        val comp = composer ?: return
-        if (!comp.isComposing) return // the word ended while the finger was down
+        val comp = composer
+        if (comp == null || !comp.isComposing) {
+            if (englishPredicting) acceptPrediction(ic, word) // else: the word ended while the finger was down
+            return
+        }
         ic.commitText("$word ", 1) // one call: replaces the composing region, then the space
         comp.clear()
         dropSuggestions()
@@ -288,7 +383,14 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             lastEditAt = SystemClock.uptimeMillis()
             return
         }
+        val selected = hasSelection
         sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
+        if (englishPredicting) {
+            lastEditAt = SystemClock.uptimeMillis()
+            tracker.backspace()
+            if (selected || tracker.needsResync) resyncTracker() // more than one character went, or the cursor is in an earlier word now
+            requestPrediction()
+        }
     }
 
     override fun onEnter() {
@@ -301,12 +403,21 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         } else {
             sendDownUpKeyEvents(KeyEvent.KEYCODE_ENTER)
         }
+        if (englishPredicting) {
+            lastEditAt = SystemClock.uptimeMillis()
+            tracker.append('\n')
+            requestPrediction()
+        }
         refreshAutoCaps()
     }
 
     override fun onTab() {
         commitComposingIfAny()
         sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
+        if (englishPredicting) {
+            tracker.append('\t')
+            requestPrediction()
+        }
     }
 
     /** Tap: jump to the next enabled keyboard (Gboard etc.). Falls back to the picker if Android refuses. */
@@ -332,6 +443,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     override fun onLanguageToggle() {
         commitComposingIfAny()
         setLanguage(if (language.isBangla) Language.ENGLISH else lastBangla)
+        dropSuggestions()
+        resyncAndPredict() // English: read what is in the field now (the Bangla text was not tracked)
     }
 
     private fun refreshAutoCaps() {
@@ -347,5 +460,6 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     private companion object {
         const val DARI = "।"
+        const val RESYNC_CHARS = 80
     }
 }

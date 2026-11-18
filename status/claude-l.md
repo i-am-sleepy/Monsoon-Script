@@ -28,8 +28,11 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
   L2.2 [x] Owner decisions recorded (D41, D42).
   L2.3 [x] `tools/pack_wm_data.py` -> `assets/predict/{en,bn,rom}.mslm` (11 MB) + SOURCES.md/NOTICE.md; pure-Kotlin `predict/` (LangPack, Predictor, UserStats,
            WordTracker, TextNorm); 41 JUnit tests on the real packs, passing locally (kc.sh + JUnitCore). Pushed with the next commit; CI result below.
-  L2.4 [ ] Android side: PredictionWorker (HandlerThread), SQLite user store, IME hooks (English word tracking, Bangla commit hook, learning), strip:
-           left arrow toggle + suggestions for next-word (KeyboardView). Then the owner's test checklist.
+  L2.4 [~] Android side, in three pushes (each CI green before the owner gets a checklist):
+    L2.4a [~] English autocomplete + next-word in the strip: PackLoader (mmap, noCompress), PredictionWorker, WordTracker hooks in MonsoonIme, strip arrow in KeyboardView. Pushed, waiting for CI.
+    L2.4b [ ] Learning: SQLite store (rows via UserStats.takeChanges/restore, flush on idle/onFinishInputView), `WordTracker.onWord` -> learn, gating (password/e-mail/URL, NO_PERSONALIZED_LEARNING,
+              NO_SUGGESTIONS, pref `learn_enabled` default ON), clear-learned entry point for claude-g's settings.
+    L2.4c [ ] Bangla: tracker fed from Avro commits, next-word after a Bangla word (bn.mslm), Banglish pairs learned, bn frequency tie-break for Avro suggestions.
   L2.5 [ ] claude-g: learning switch + clear button + Licenses screen (warning sent); in-app credits text is `assets/licenses/prediction-data.txt`.
   Facts: use only v1 `en_bigrams/trigrams` and `bn_bigrams/trigrams` (Leipzig CC BY 4.0, Tatoeba); NOT `*_v2/_v3` pairs (OpenSubtitles non-commercial);
   `bn_rom*` was merged with the data owner's private Facebook chat counts (see scripts/import_facebook_chats.py), license unstated.

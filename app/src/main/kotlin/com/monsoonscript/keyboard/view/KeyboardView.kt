@@ -93,6 +93,13 @@ class KeyboardView(context: Context) : View(context) {
     private var sugCount = 0
     private val ptrInSug = BooleanArray(MAX_PTR) // this finger went down in the suggestion strip
     private val ptrSug = IntArray(MAX_PTR) { -1 } // slot under that finger, -1 for none
+    // Gboard-style arrow at the left of the strip whenever suggestions exist: tap = swap suggestions <-> the icon row.
+    private val arrowW = dp(32f)
+    private var iconsPinned = false
+    private val ptrArrow = BooleanArray(MAX_PTR) // this finger went down on the arrow
+    private var stripLeftCount = 0 // the first entries of each page's key list are the left-hand strip icons
+    private var stripShift = 0f // how far those icons are moved right to make room for the arrow
+    private val showSug: Boolean get() = sugCount > 0 && !iconsPinned
 
     // ---- paint
     private val tmp = RectF()
@@ -133,6 +140,7 @@ class KeyboardView(context: Context) : View(context) {
     private val iconBackspaceX = Path().apply {
         moveTo(.52f, .38f); lineTo(.76f, .62f); moveTo(.76f, .38f); lineTo(.52f, .62f)
     }
+    private val iconChevron = Path().apply { moveTo(.62f, .16f); lineTo(.36f, .5f); lineTo(.62f, .84f) }
     private val iconEnter = Path().apply {
         moveTo(.86f, .20f); lineTo(.86f, .58f); lineTo(.22f, .58f)
         moveTo(.42f, .38f); lineTo(.22f, .58f); lineTo(.42f, .78f)
@@ -181,8 +189,9 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     /**
-     * Candidates for the word being typed (D23). The first [SUG_SLOTS] are shown across the whole strip and the icons
-     * hide; an empty list brings the icons back. Cheap when nothing changed, so the IME may call it on every keystroke.
+     * Candidates for the word being typed or the next word (D23, D41). The first [SUG_SLOTS] are shown in the strip next to a small
+     * arrow and the icons hide; the arrow swaps them for the icon row until the candidates change again. An empty list brings the plain
+     * icon row back (no arrow). Cheap when nothing changed, so the IME may call it on every keystroke.
      */
     fun setSuggestions(list: List<String>) {
         val n = if (list.size < SUG_SLOTS) list.size else SUG_SLOTS
@@ -195,7 +204,10 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
         if (!changed) return
+        val wasShown = sugCount > 0
         sugCount = n
+        iconsPinned = false // new candidates: show them, the icons were only a peek
+        if ((n > 0) != wasShown) placeStrip(if (n > 0) arrowW else 0f)
         invalidate() // a finger already down on a slot keeps its press: the tap delivers whatever the slot shows on release
     }
 
@@ -208,6 +220,7 @@ class KeyboardView(context: Context) : View(context) {
             swipeArmed[s] = false
             ptrInSug[s] = false
             ptrSug[s] = -1
+            ptrArrow[s] = false
         }
         invalidate()
     }
@@ -242,6 +255,7 @@ class KeyboardView(context: Context) : View(context) {
                 val cw = iconCell * k.weight
                 kl.add(k); rl.add(RectF(x, 0f, x + cw, stripH)); x += cw
             }
+            stripLeftCount = kl.size
             var rx = w - padX
             for (k in Layouts.stripRight.reversed()) {
                 rx -= iconCell
@@ -265,6 +279,16 @@ class KeyboardView(context: Context) : View(context) {
         }
         keys = outKeys.toTypedArray()
         rects = outRects.toTypedArray()
+        stripShift = 0f
+        placeStrip(if (sugCount > 0) arrowW else 0f)
+    }
+
+    /** Move the left-hand strip icons so that their offset from the edge is [shift]: room for the arrow while suggestions exist. */
+    private fun placeStrip(shift: Float) {
+        val d = shift - stripShift
+        if (d == 0f) return
+        stripShift = shift
+        for (p in rects.indices) for (i in 0 until stripLeftCount.coerceAtMost(rects[p].size)) rects[p][i].offset(d, 0f)
     }
 
     private fun updateTextSizes() {
@@ -314,10 +338,13 @@ class KeyboardView(context: Context) : View(context) {
         val ks = keys[page]
         val rs = rects[page]
         for (i in ks.indices) {
-            if (sugCount > 0 && ks[i].kind == Kind.STRIP) continue // the icons give way to the suggestions
+            if (showSug && ks[i].kind == Kind.STRIP) continue // the icons give way to the suggestions
             drawKey(canvas, ks[i], rs[i], isPressedIndex(i))
         }
-        if (sugCount > 0) drawSuggestions(canvas)
+        if (sugCount > 0) {
+            drawArrow(canvas)
+            if (showSug) drawSuggestions(canvas)
+        }
         for (s in 0 until MAX_PTR) {
             val i = ptrKey[s]
             if (i >= 0 && !ptrLong[s] && i < ks.size && ks[i].kind == Kind.CHAR) drawBubble(canvas, ks[i], rs[i])
@@ -442,12 +469,32 @@ class KeyboardView(context: Context) : View(context) {
         c.drawText(langLabel, tmp.centerX(), tmp.centerY() + stripBase, stripTextPaint)
     }
 
-    /** [SUG_SLOTS] equal columns across the strip; the first one (the word as it is in the editor) is bold. */
+    /** The small chevron at the left of the strip: points left while suggestions show (tap = icons), right while the icons show (tap = back). */
+    private fun drawArrow(c: Canvas) {
+        var pressed = false
+        for (s in 0 until MAX_PTR) if (ptrArrow[s] && ptrSug[s] == ARROW_SLOT) pressed = true
+        val cx = padX + arrowW / 2
+        if (pressed) {
+            fillPaint.color = pal.specialPressed
+            c.drawCircle(cx, stripH / 2, stripH * 0.38f, fillPaint)
+        }
+        val size = dp(20f)
+        iconPaint.color = pal.textMuted
+        iconPaint.style = Paint.Style.STROKE
+        c.save()
+        c.translate(cx - size / 2, stripH / 2 - size / 2)
+        c.scale(if (iconsPinned) -size else size, size) // a negative x scale mirrors the chevron
+        if (iconsPinned) c.translate(-1f, 0f)
+        c.drawPath(iconChevron, iconPaint)
+        c.restore()
+    }
+
+    /** [SUG_SLOTS] equal columns right of the arrow; the first one (the word as it is in the editor, or the best guess) is bold. */
     private fun drawSuggestions(c: Canvas) {
-        val slotW = (width - 2 * padX) / SUG_SLOTS
+        val slotW = (width - 2 * padX - arrowW) / SUG_SLOTS
         for (i in 0 until SUG_SLOTS) {
             val word = sug[i] ?: continue
-            val x0 = padX + slotW * i
+            val x0 = padX + arrowW + slotW * i
             if (isSugPressed(i)) {
                 tmp.set(x0 + dp(2f), stripH * 0.12f, x0 + slotW - dp(2f), stripH * 0.88f)
                 fillPaint.color = pal.special
@@ -484,8 +531,8 @@ class KeyboardView(context: Context) : View(context) {
 
     /** The suggestion slot under x (edges snap to the nearest slot), or -1 when that slot is empty. */
     private fun sugIndexAt(x: Float): Int {
-        val slotW = (width - 2 * padX) / SUG_SLOTS
-        val i = ((x.coerceIn(padX, width - padX - 0.01f) - padX) / slotW).toInt()
+        val slotW = (width - 2 * padX - arrowW) / SUG_SLOTS
+        val i = ((x.coerceIn(padX + arrowW, width - padX - 0.01f) - padX - arrowW) / slotW).toInt()
         return if (i in 0 until SUG_SLOTS && sug[i] != null) i else -1
     }
 
@@ -544,15 +591,23 @@ class KeyboardView(context: Context) : View(context) {
         var slot = -1
         for (s in 0 until MAX_PTR) if (ptrId[s] == -1) { slot = s; break }
         if (slot < 0) return
-        val inSug = sugCount > 0 && y < stripH // the strip shows suggestions: a touch there picks one, never a hidden icon
-        val idx = if (inSug) -1 else findKey(x, y)
+        val inStrip = sugCount > 0 && y < stripH
+        val inArrow = inStrip && x < padX + arrowW
+        val inSug = inStrip && showSug && !inArrow // the strip shows suggestions: a touch there picks one, never a hidden icon
+        val idx = if (inSug || inArrow) -1 else findKey(x, y)
         ptrId[slot] = id
         ptrKey[slot] = idx
         ptrLong[slot] = false
         repeatCount[slot] = 0
         swipeArmed[slot] = false
         ptrInSug[slot] = inSug
-        ptrSug[slot] = if (inSug) sugIndexAt(x) else -1
+        ptrArrow[slot] = inArrow
+        ptrSug[slot] = if (inSug) sugIndexAt(x) else if (inArrow) ARROW_SLOT else -1
+        if (inArrow) {
+            performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            invalidate()
+            return
+        }
         if (inSug) {
             if (ptrSug[slot] >= 0) {
                 performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
@@ -577,6 +632,14 @@ class KeyboardView(context: Context) : View(context) {
     private fun move(id: Int, x: Float, y: Float) {
         val slot = slotOf(id)
         if (slot < 0 || ptrLong[slot]) return
+        if (ptrArrow[slot]) { // sliding off the arrow cancels the toggle
+            val on = if (y >= 0f && y < stripH && x < padX + arrowW) ARROW_SLOT else -1
+            if (on != ptrSug[slot]) {
+                ptrSug[slot] = on
+                invalidate()
+            }
+            return
+        }
         if (ptrInSug[slot]) { // sliding off a suggestion cancels the pick
             val i = if (y >= 0f && y < stripH) sugIndexAt(x) else -1
             if (i != ptrSug[slot]) {
@@ -614,20 +677,26 @@ class KeyboardView(context: Context) : View(context) {
         val idx = ptrKey[slot]
         val wasLong = ptrLong[slot]
         val wasSug = ptrInSug[slot]
+        val wasArrow = ptrArrow[slot]
         val sugIdx = ptrSug[slot]
         ptrId[slot] = -1
         ptrKey[slot] = -1
         ptrLong[slot] = false
         ptrInSug[slot] = false
+        ptrArrow[slot] = false
         ptrSug[slot] = -1
         invalidate()
+        if (wasArrow) {
+            if (sugIdx == ARROW_SLOT && sugCount > 0) iconsPinned = !iconsPinned
+            return
+        }
         if (wasSug) {
             // Whatever the slot shows now (null if the word ended meanwhile, then nothing happens).
             if (sugIdx >= 0) sug[sugIdx]?.let { listener?.onSuggestion(it) }
             return
         }
         if (idx < 0 || wasLong || page >= keys.size) return
-        if (sugCount > 0 && keys[page][idx].kind == Kind.STRIP) return // finger went down on an icon before it was hidden
+        if (showSug && keys[page][idx].kind == Kind.STRIP) return // finger went down on an icon before it was hidden
         perform(keys[page][idx])
     }
 
@@ -729,6 +798,7 @@ class KeyboardView(context: Context) : View(context) {
         const val DOUBLE_TAP_MS = 350L
         const val SWIPE_DP = 64f
         const val SUG_SLOTS = 3
+        const val ARROW_SLOT = 100 // ptrSug value while a finger is on the strip arrow
 
         // Placeholder colors (owner has not picked a palette yet); custom themes come in v0.5.
         val DARK = Palette(

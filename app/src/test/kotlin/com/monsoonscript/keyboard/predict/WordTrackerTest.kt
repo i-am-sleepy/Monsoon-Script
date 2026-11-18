@@ -47,6 +47,26 @@ class WordTrackerTest {
         assertEquals("i", u.w2)
     }
 
+    @Test fun trailingApostropheStaysInTypedButNotInThePrefix() {
+        val t = typed("don'")
+        assertEquals("don'", t.typed) // the editor holds the apostrophe, a tapped suggestion must replace it too
+        assertEquals("don", t.prefix)
+        t.backspace()
+        assertEquals("don", t.typed)
+        val u = typed("it\u2019s")
+        assertEquals("it\u2019s", u.typed)
+        assertEquals("it's", u.prefix)
+    }
+
+    @Test fun reportsEveryFinishedWordWithItsPredecessor() {
+        val seen = ArrayList<Pair<String?, String>>()
+        val t = WordTracker()
+        t.onWord = { prev, w -> seen.add(prev to w) }
+        t.appendAll("Hello big world. New")
+        t.appendAll(" day")
+        assertEquals(listOf<Pair<String?, String>>(null to "hello", "hello" to "big", "big" to "world", null to "new"), seen)
+    }
+
     @Test fun backspaceShortensTheWordAndFlagsAResyncPastItsStart() {
         val t = typed("ab")
         t.backspace()

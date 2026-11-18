@@ -54,7 +54,12 @@ class Predictor(private val user: UserStats? = null) {
                 w1 != null -> u.followers(w1, 10)
                 else -> u.strongestWords(5)
             }
-            for (w in own) if (w != prefix && w !in scores) scores[w] = staticScore(ctxs, w)
+            // A word no dictionary knows must have been typed at least twice, so one typo does not become a suggestion.
+            for (w in own) {
+                if (w == prefix || w in scores) continue
+                val st = staticScore(ctxs, w)
+                if (st > 0.0 || u.wordWeight(w) >= MIN_UNKNOWN_USES) scores[w] = st
+            }
         }
 
         val combined = ArrayList<Pair<String, Double>>(scores.size)
@@ -174,6 +179,7 @@ class Predictor(private val user: UserStats? = null) {
         private const val MAX_PREFIX = 48
         private const val MAX_NEXT = 40
         private const val FILLER = 24
+        private const val MIN_UNKNOWN_USES = 1.9 // a little under 2: a use fades a bit before the second one
 
         /**
          * Pack weights for English mode, which merges English and Banglish words (D41). Banglish words are down-weighted

@@ -48,7 +48,20 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
     how much the owner typed). `Predictor.englishMix(en, rom, w1, w2)` picks the priors (Banglish words down-weighted unless a previous word is Banglish).
   - `UserStats`: learned words and pairs with a 30-day half-life, prune at 30k words / 60k pairs, `takeChanges()` / `restore()` for the SQLite store (Android side).
   - `WordTracker`: follows the word in progress and the two before it from committed characters; sentence end forgets context; `reset(textBeforeCursor)` resyncs.
-  Tests: `app/src/test/kotlin/.../predict/*Test.kt` (41; `Packs.kt` maps the real files from `src/main/assets/predict`, run from `app/`).
+  Tests: `app/src/test/kotlin/.../predict/*Test.kt` (44; `Packs.kt` maps the real files from `src/main/assets/predict`, run from `app/`).
+- Prediction in the IME (L2.4a, English layout): `ime/PackLoader` memory-maps `assets/predict/<name>.mslm` straight from the APK (`androidResources.noCompress += "mslm"` in
+  app/build.gradle.kts; compressed assets would be read into the heap instead); `ime/PredictionWorker` (HandlerThread "monsoon-predict", coalescing like SuggestionWorker, owns the
+  packs and the `Predictor`, loads packs lazily, answers on the main thread with the request's sequence number and ready-capitalized words via `TextNorm.matchCase`).
+  `MonsoonIme` keeps a `WordTracker` fed by every committed character (onText, Backspace, Enter, Tab, a tapped suggestion); `resyncTracker()` rebuilds it from
+  `getTextBeforeCursor(80)` at start of input (posted after the first frame), when Backspace crosses into an earlier word or deletes a selection, on a language switch and from
+  `onUpdateSelection` when the update is older than `PhoneticComposer.STALE_MS` after our last edit (cursor moved, app changed the text, physical keyboard). `requestPrediction()`
+  asks for completions of the word in progress, or the next word after a space; nothing is asked at the start of a field or sentence (the icon row stays). `predSeq` drops stale answers
+  (`dropSuggestions()` bumps it). Tapping a prediction (`acceptPrediction`) checks that the text before the cursor equals the tracked word, then in one batch edit deletes it and commits
+  `word + " "`. Only fields that allow composing and do not set `TYPE_TEXT_FLAG_NO_SUGGESTIONS` get predictions (`predictionAllowed`). Bangla (Avro) keeps the dictionary strip while composing; Bangla
+  next-word and learning come with L2.4b/c.
+- Strip arrow (D41): while the strip has candidates, a chevron button sits at its left (`KeyboardView`, `arrowW`); tapping it swaps the candidates for the normal icon row (`iconsPinned`,
+  chevron mirrored) until the candidates change; with no candidates the strip is the plain icon row without arrow. The left-hand strip icons are shifted right by the arrow width in place
+  (`placeStrip`, `stripLeftCount`), so hit-testing needs no special case; touches on the arrow are tracked per pointer (`ptrArrow`, `ARROW_SLOT`).
 - `tools/`: one-off generators (python3 -I tools/<name>.py from the repo root). Generated Kotlin files name their generator in the header.
 - Tests: `app/src/test/kotlin/.../lang/avro/AvroPhoneticConverterTest.kt` + `app/src/test/resources/avro/golden.tsv`
   (1,200 golden cases from an independent Python translation of the Pascal; 40k random inputs matched the port exactly);
