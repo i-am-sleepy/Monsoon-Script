@@ -36,6 +36,19 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   `Kind.STRIP` key (globe, language pill, emoji, clipboard, mic, any future strip icon) until the list is empty again. Touches in the strip while it shows
   suggestions go to the suggestion under the finger (`ptrInSug`/`ptrSug`, never to a hidden icon); release on it calls `Listener.onSuggestion(word)`
   (default no-op), `MonsoonIme.onSuggestion` commits `word + " "` in one `commitText`. Space/Enter/punctuation still commit the underlined word.
+- Prediction (L2, `predict/`, pure Kotlin, no Android classes, NOT thread-safe: one prediction worker owns the packs and the stats). Data: WM Keyboard Data
+  packed by `tools/pack_wm_data.py` into `assets/predict/{en,bn,rom}.mslm` (rom = Banglish words, English mode merges en + rom, D41); inputs, upstream commit and
+  hashes in `third_party/wmkeyboard-data/SOURCES.md`, credits/licenses in `third_party/wmkeyboard-data/NOTICE.md` (+ in-app text `assets/licenses/prediction-data.txt`).
+  Only the v1 pair lists are used (never `*_v2/_v3`); offensive words are removed at pack time. Format "MSLM" (layout in the packer's docstring): header, sorted word
+  list (UTF-8), 1-byte log counts (`q = round(10*log2 c)`), 7-byte bigram and 10-byte trigram records sorted by word ids; read with binary search straight from a
+  memory-mapped file (`LangPack(ByteBuffer)`), so only touched pages are loaded. Bangla words are stored with precomposed য় ড় ঢ় (same as Avro).
+  - `TextNorm`: `key()` = lookup form (lowercase Latin, ’ -> ', nukta precomposed), `isWordChar`, `isSentenceEnd`, `matchCase` (restores capitals for the shown word).
+  - `Predictor(user).predict(packs, prefix, w1, w2, limit)`: candidates = prefix range (top 48 by count) + words seen after the context + the owner's own words; score =
+    stupid backoff (trigram share, else 0.4 x bigram share, else 0.16 x unigram), summed over packs x pack prior, then mixed with `UserStats` (weights grow with
+    how much the owner typed). `Predictor.englishMix(en, rom, w1, w2)` picks the priors (Banglish words down-weighted unless a previous word is Banglish).
+  - `UserStats`: learned words and pairs with a 30-day half-life, prune at 30k words / 60k pairs, `takeChanges()` / `restore()` for the SQLite store (Android side).
+  - `WordTracker`: follows the word in progress and the two before it from committed characters; sentence end forgets context; `reset(textBeforeCursor)` resyncs.
+  Tests: `app/src/test/kotlin/.../predict/*Test.kt` (41; `Packs.kt` maps the real files from `src/main/assets/predict`, run from `app/`).
 - `tools/`: one-off generators (python3 -I tools/<name>.py from the repo root). Generated Kotlin files name their generator in the header.
 - Tests: `app/src/test/kotlin/.../lang/avro/AvroPhoneticConverterTest.kt` + `app/src/test/resources/avro/golden.tsv`
   (1,200 golden cases from an independent Python translation of the Pascal; 40k random inputs matched the port exactly);

@@ -1,0 +1,20 @@
+Word suggestions (English, Bangla, Banglish)
+
+Built from WM Keyboard Data, https://github.com/wasi-master/wmkeyboard-data (MIT License, Copyright (c) 2026 Wasi Master).
+Words and counts were filtered, shortened and repacked for this keyboard. The packed word files are shared under CC BY-SA 4.0.
+
+- Leipzig Corpora Collection, Universitaet Leipzig, https://wortschatz.uni-leipzig.de - CC BY 4.0
+  (D. Goldhahn, T. Eckart, U. Quasthoff, LREC 2012)
+- Tatoeba sentence corpus, https://tatoeba.org - CC BY 2.0 FR / CC0
+- hermitdave/FrequencyWords (OpenSubtitles 2018), https://github.com/hermitdave/FrequencyWords - CC BY-SA 4.0
+- Dakshina dataset, Google Research, https://github.com/google-research-datasets/dakshina - CC BY-SA 4.0
+  (Roark et al., LREC 2020)
+- istiaqfuad/bangla-english-banglish-pairs, https://huggingface.co/datasets/istiaqfuad/bangla-english-banglish-pairs - CC BY 4.0
+- tahmid02016/bangla-wordlist, https://github.com/tahmid02016/bangla-wordlist - public domain
+- AOSP LatinIME word lists, Copyright (C) The Android Open Source Project - Apache License 2.0
+
+Banglish word frequencies may include counts from the data owner's own chats (only words and counts, no text).
+
+CC BY 4.0: https://creativecommons.org/licenses/by/4.0/
+CC BY-SA 4.0: https://creativecommons.org/licenses/by-sa/4.0/
+Full details: third_party/wmkeyboard-data/NOTICE.md in the source code.

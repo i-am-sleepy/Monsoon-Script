@@ -1,5 +1,5 @@
 # claude-l notes (only claude-l edits this file; others only append lines under "Warnings")
-Updated: 2026-11-17, session 4. Focus: Avro typing + suggestions (T8a/b/c all done and owner-tested), workflow setup (L1).
+Updated: 2026-11-18, session 5. Focus: Avro typing + suggestions (T8a/b/c all done and owner-tested), workflow setup (L1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
@@ -26,11 +26,11 @@ T8c Smart colon (D24) [x] owner-tested OK (2026-11-17), CI #10 (1edcadc) green
 L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, building
   L2.1 [x] Research: license/attribution, file formats, sizes, quality (clone in /home/claude/wasi-master/wmkeyboard-data, not in the repo).
   L2.2 [x] Owner decisions recorded (D41, D42).
-  L2.3 [ ] `tools/pack_wm_data.py` + third_party/wmkeyboard-data/ (NOTICE, source hashes) -> `assets/predict/{en,bn,rom}.mslm`; pure-Kotlin `predict/`
-           (reader, stupid-backoff scorer + user boost, WordTracker, TextNorm, UserStats) + JUnit tests. Packs are mmap'd (needs noCompress for .mslm).
+  L2.3 [x] `tools/pack_wm_data.py` -> `assets/predict/{en,bn,rom}.mslm` (11 MB) + SOURCES.md/NOTICE.md; pure-Kotlin `predict/` (LangPack, Predictor, UserStats,
+           WordTracker, TextNorm); 41 JUnit tests on the real packs, passing locally (kc.sh + JUnitCore). Pushed with the next commit; CI result below.
   L2.4 [ ] Android side: PredictionWorker (HandlerThread), SQLite user store, IME hooks (English word tracking, Bangla commit hook, learning), strip:
            left arrow toggle + suggestions for next-word (KeyboardView). Then the owner's test checklist.
-  L2.5 [ ] claude-g: learning switch + clear button + Licenses screen (warning sent); credits text in `third_party/wmkeyboard-data/NOTICE.md`.
+  L2.5 [ ] claude-g: learning switch + clear button + Licenses screen (warning sent); in-app credits text is `assets/licenses/prediction-data.txt`.
   Facts: use only v1 `en_bigrams/trigrams` and `bn_bigrams/trigrams` (Leipzig CC BY 4.0, Tatoeba); NOT `*_v2/_v3` pairs (OpenSubtitles non-commercial);
   `bn_rom*` was merged with the data owner's private Facebook chat counts (see scripts/import_facebook_chats.py), license unstated.
   Bengali files use decomposed য় (U+09AF U+09BC); Avro commits precomposed U+09DF.
