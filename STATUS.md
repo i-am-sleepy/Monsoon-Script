@@ -31,7 +31,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       before T9. DESIGN TALK done (D25-D52, all 8 stages answered); waiting for the owner's SIGN-OFF of the summary in docs/PASSWORD_MANAGER.md. No code, no
       structure changes before sign-off. Then Phase 0 = feasibility check on a side branch (D49). Brief: docs/PASSWORD_MANAGER_BRIEF.md
 - [~] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
-      (uni/bi/trigram + learned usage), compact binary tables, async. Research done, decisions D41/D42 answered; building; steps in status/claude-l.md
+      (uni/bi/trigram + learned usage), compact binary tables, async. Built: engine + data (L2.3), English/Bangla strip, arrow, learning (L2.4, CI green up to #13); awaiting the owner's device test; L2.5 (settings switch, clear button, licenses screen) is claude-g's; steps in status/claude-l.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)

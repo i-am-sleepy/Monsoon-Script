@@ -40,9 +40,25 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
   Bengali files use decomposed য় (U+09AF U+09BC); Avro commits precomposed U+09DF.
 
 ## Next step
-T8a, T8b and T8c are all owner-tested OK (CI #10, 1edcadc, green). Open: L1.4 (owner starting claude-e/g/s), L2 (waiting for the owner's answers) and the Avro
-choices below. L2: read the owner's answers in chat/DECISIONS.md, then do L2.3. Do not start other new features without the owner's go-ahead.
+L2.4c is pushed (451d34c). Once its CI run is green, send the owner the checklist below with the APK link, then wait for their report. Open: L2.5 (claude-g wires the learning
+switch, Clear button and Licenses screen using `ime/LearnSettings` and `assets/licenses/prediction-data.txt`; warning sent), L1.4 (owner starting claude-e/g/s) and the Avro
+choices below. Do not start other new features without the owner's go-ahead.
 
 ## Half-done files / known bugs
-None. Avro choices I made without asking (the owner tested T8a without objecting; revisit only if they complain): '.' right after a Bangla word gives
-the dari (।); '^' after a word gives chandrabindu; capitals are never auto-applied in Bangla. ':' follows D24 (smart colon).
+None known. Not verified on a device yet: everything in L2.4 (Android code is only compiled by CI). Things to watch in the owner's report: strip arrow touch handling, English tap-to-complete
+replacing the right text in odd apps, backspace resync cost, cold start of the first prediction (packs map lazily), APK size (+~11 MB because the packs are stored uncompressed).
+Avro choices I made without asking (the owner tested T8a without objecting; revisit only if they complain): '.' right after a Bangla word gives the dari (।); '^' after a word gives
+chandrabindu; capitals are never auto-applied in Bangla. ':' follows D24 (smart colon).
+
+## Test checklist for my latest build (owner)
+Build = the newest APK after commit 451d34c (L2.4a + b + c together; the learning switch is not in Settings yet, learning is simply ON).
+1. English, any text field: type "hel" -> the strip shows completions (e.g. help, hello) next to a small arrow at the left; tap one -> the typed letters are replaced and a space follows.
+2. English: type "how " -> next words appear (e.g. to, much); tap one. Type "I " -> e.g. don't, think.
+3. Tap the small arrow at the left of the strip: the icons (globe, EN, emoji, clipboard, mic) show; tap it again (or type) -> suggestions return. With nothing to suggest (empty field) the strip is just the icons, no arrow.
+4. English: type "ami " then "tum" -> Banglish words (tumi ...) should appear; type a few of your own names/words twice; later they should show up for their first letters.
+5. Capitals: type "He" -> suggestions start with a capital; at the start of a sentence a suggested word is capitalized.
+6. বাংলা (Avro): type "ami" -> the usual Bangla words (common words first now); tap one -> after the space the strip shows likely next words (e.g. আমার, ...); tap one.
+7. Password / e-mail / URL / number fields: no suggestions, icons only.
+8. Backspace a word and retype; move the cursor into the middle of a word and type: suggestions should follow the word at the cursor, nothing should be deleted wrongly when you tap one.
+9. Speed: suggestions should show about as fast as the Bangla ones did; tell me if typing ever stutters.
+10. APK is about 11 MB bigger than before (the data is stored uncompressed so it is not copied). Tell me if you want it smaller.
