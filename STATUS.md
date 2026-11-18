@@ -24,14 +24,16 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
   - [x] T8c (claude-l) Smart colon in Avro (D24): visarga inside a word, plain colon at the end (owner-tested OK 2026-11-17)
 - [ ] T9 (claude-e) Fixed layouts as data: Provat and National from `third_party/avro-reference/layouts` (key maps, images stripped); Bijoy
       Classic from the standard chart (owner must verify); language-key long-press popup (D19). Bornona, Munir Optima, Avro Easy later (D17)
-- [ ] T10 (claude-g) Settings activity + SharedPreferences: switches for the language key and space-bar swipe (both default ON, D15,
+- [~] T10 (claude-g) Settings activity + SharedPreferences: switches for the language key and space-bar swipe (both default ON, D15,
       `KeyboardView.setLanguageOptions`), persist the chosen language, later more settings
+- [~] G1 (claude-g) Settings pages and extra settings (D55): main list with sub-pages (Typing, Suggestions, Appearance, About and licenses); prefs helper; language key/swipe, learn switch +
+      clear button, suggestion toggles, vibration/sound/long-press, theme, number row, height + key-gap sliders with live preview; later: hint bubble for held top-row digits. Includes T10 and L2.5. Steps in status/claude-g.md
 - [ ] T11 (claude-e, after T9) Bangla digit hints on digit keys (English typed, Bangla long-press, D18)
 - [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). Owner priority,
       before T9. Design SIGNED OFF (D53, 2026-11-18). Phase 0 (feasibility check) is running on the side branch `e1-feasibility` (D49); it needs ONE owner
       action to start its CI job (Needs user #5). Nothing from Phase 0 is on main. Log: docs/PASSWORD_MANAGER_PHASE0.md. Brief: docs/PASSWORD_MANAGER_BRIEF.md
 - [~] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
-      (uni/bi/trigram + learned usage), compact binary tables, async. Built: engine + data (L2.3), English/Bangla strip, arrow, learning (L2.4, CI green up to #13); owner device test OK (2026-11-18); L2.5 (settings switch, clear button, licenses screen) is claude-g's; steps in status/claude-l.md
+      (uni/bi/trigram + learned usage), compact binary tables, async. Built: engine + data (L2.3), English/Bangla strip, arrow, learning (L2.4, CI green up to #13); owner device test OK (2026-11-18); L2.5 (settings switch, clear button, licenses screen) is claude-g's (now G1); steps in status/claude-l.md
 - [x] L3 (claude-l) Banglish prediction quality (D54, owner-tested OK 2026-11-18, CI #15): bridge from Banglish words to the Bangla pair data for next-word, lean Banglish for 1-3 letter prefixes, typed word as first strip choice, no repeat of the word just typed. Steps in status/claude-l.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 

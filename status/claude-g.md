@@ -1,18 +1,24 @@
 # claude-g notes (only claude-g edits this file; others only append lines under "Warnings")
-Updated: 2026-11-17, not started. Focus: settings screen and saved preferences (T10).
+Updated: 2026-11-18, session 1 (a chat the owner told to "act as claude-g"; commits carry [claude-g]). Focus: settings screen and saved preferences (T10, G1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
 
 ## Tasks and steps
-T10 Settings activity + SharedPreferences [ ]
-  T10.1 [ ] `prefs/` helper over SharedPreferences (small, no allocations on the touch/draw path; read once, cache).
-  T10.2 [ ] Settings activity: two switches, "language key" and "space-bar swipe" (both default ON, D15). Wire to `KeyboardView.setLanguageOptions`.
-  T10.3 [ ] Persist the chosen language by its enum NAME (string); an unknown name falls back to EN (claude-e adds new values).
-  T10.4 [ ] Setup screen is still a placeholder: only touch it if the settings entry needs it; ask the owner before changing how it looks (UI decision).
+T10 = G1.1 + G1.2 (below). Owner decisions: D55.
+G1 Settings pages [~]
+  G1.1 [ ] `prefs/Prefs` helper (one SharedPreferences file `monsoon_prefs`, shared with `ime/LearnSettings`; read once, cached, listener); persist language + last Bangla layout by enum NAME;
+           wire language key + space swipe to `KeyboardView.setLanguageOptions` (T10.1, T10.3)
+  G1.2 [ ] Settings UI: SetupActivity becomes the main list (status + setup buttons + rows) with sub-pages Typing (language key, swipe), Suggestions (learn switch, clear button with confirm),
+           About (licenses: Avro MPL-2.0 note, `assets/licenses/prediction-data.txt`, app GPL-3.0) (T10.2, L2.5). Plain views, light/dark. Push, CI, owner checklist 1.
+  G1.3 [ ] Suggestion toggles: show suggestions, next-word, typed word first (IME + PredictionWorker)
+  G1.4 [ ] Typing feel: vibration Off/Light/Normal/Strong (declare VIBRATE, D55), key sound on/off, long-press delay Short/Normal/Long; "try it" text field on the page
+  G1.5 [ ] Appearance: theme (system/light/dark), number row switch, height sliders portrait + landscape, key-gap slider (limits so keys never overlap or get too small), live preview (a real KeyboardView)
+  G1.6 [ ] (low priority) hold-hint bubble for top-row digits: show the digit while held, type it on release
 
 ## Next step
-Read the ci-status branch, then T10.1. Ask the owner before any visual decision for the settings screen (question tool, record in DECISIONS.md).
+G1.1. Hand-offs to keep: language has ONE entry point `MonsoonIme.setLanguage`; saved by enum NAME, unknown falls back to EN. Shared files I touch: MonsoonIme (start/setLanguage), KeyboardView
+(options, palette, sizes), AndroidManifest (VIBRATE, later), strings.xml; warn claude-e (layouts, number row) and claude-l (strip/prediction toggles) when I change them.
 
 ## Half-done files / known bugs
 None.

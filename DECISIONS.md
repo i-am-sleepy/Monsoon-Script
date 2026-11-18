@@ -137,3 +137,10 @@
   about half of everyday Banglish usage matches), the Bangla successors are shown back in their most common Banglish spelling; words that do not match still depend on learning from the
   owner's typing (the private-chat pair lists stay excluded, D41); (2) BOTH TWEAKS: 1-3 letter prefixes lean more towards Banglish when no Banglish word came before, and the strip shows the
   word as typed as its first (bold) choice while a word is being typed (like Gboard; tapping it adds the space); also never suggest the word just typed again after a space.
+- D55 2026-11-18 Settings (G1, claude-g's task, started in a chat the owner told to act as claude-g): the owner chose (1) structure: a MAIN LIST with sub-pages (Typing, Suggestions,
+  Appearance, About and licenses), plain Android views, follows light/dark; (2) the settings to build: language key and space-bar swipe switches (D15), "Learn from my typing" switch +
+  "Clear learned words" button (D42), typing feel (vibration, key sound, long-press delay), suggestion toggles (show suggestions, next-word, typed word first), theme (follow system / light / dark),
+  number row switch, keyboard height sliders (separate for portrait and landscape) and a key-gap slider whose limits keep keys from overlapping or becoming too small, and a LIVE PREVIEW on the
+  settings pages where it is cheap (the Appearance page shows a real keyboard view that follows the sliders); (3) vibration strength Off/Light/Normal/Strong: the app DECLARES the normal
+  permission VIBRATE (first permission, no prompt); (4) later, lower priority: holding a top-row letter shows a hint bubble with its digit and the digit is typed when the finger is released
+  (today it is typed without a preview).
