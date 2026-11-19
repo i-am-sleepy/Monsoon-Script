@@ -13,8 +13,19 @@ class VaultSmokeReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val pending = goAsync()
         Thread {
-            val result = runCatching { "ok " + VaultSpike.runAll(context.cacheDir).joinToString() }
-                .getOrElse { "FAILED: $it" }
+            val result = try {
+                "ok " + VaultSpike.runAll(context.cacheDir).joinToString()
+            } catch (t: Throwable) {
+                var cause: Throwable? = t
+                val chain = StringBuilder()
+                while (cause != null) {
+                    chain.append(cause.javaClass.name).append(": ").append(cause.message)
+                    chain.append(" @ ").append(cause.stackTrace.take(5).joinToString(" <- ") { "${it.className}.${it.methodName}:${it.lineNumber}" })
+                    cause = cause.cause
+                    if (cause != null) chain.append(" || CAUSED BY ")
+                }
+                "FAILED: $chain"
+            }
             Log.i("VaultSmoke", "RESULT: $result")
             pending.finish()
         }.start()
