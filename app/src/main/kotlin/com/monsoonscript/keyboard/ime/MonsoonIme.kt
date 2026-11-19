@@ -9,11 +9,16 @@ import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethodManager
+import android.widget.LinearLayout
+import com.monsoonscript.keyboard.emoji.EmojiLoader
+import com.monsoonscript.keyboard.emoji.EmojiStore
+import com.monsoonscript.keyboard.emoji.PrefsTextStore
 import com.monsoonscript.keyboard.lang.Language
 import com.monsoonscript.keyboard.lang.PhoneticComposer
 import com.monsoonscript.keyboard.lang.avro.AvroAutoCorrect
@@ -21,6 +26,7 @@ import com.monsoonscript.keyboard.lang.avro.AvroPhoneticConverter
 import com.monsoonscript.keyboard.layout.Layouts
 import com.monsoonscript.keyboard.predict.WordTracker
 import com.monsoonscript.keyboard.prefs.Prefs
+import com.monsoonscript.keyboard.view.EmojiPanelView
 import com.monsoonscript.keyboard.view.KeyboardView
 import java.io.IOException
 
@@ -90,6 +96,21 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
      */
     private var learnAllowed = false
 
+    // ---- emoji panel (E2, D56): it replaces the keys; while searching it sits above the keys and typed text goes to the query, not the editor
+
+    private var root: LinearLayout? = null
+    private var emojiPanel: EmojiPanelView? = null
+    private var emojiLoader: EmojiLoader? = null
+    private var emojiStore: EmojiStore? = null
+    private var emojiPreloadScheduled = false
+
+    /** Typing into the emoji search bar: [searchBuf] holds the finished part of the query, the Avro composer the word in progress. */
+    private var emojiSearch = false
+    private val searchBuf = StringBuilder()
+
+    /** Recents are not kept in password fields or when the app asks for no personalized learning (incognito). */
+    private var emojiRecents = true
+
     init {
         tracker.onWord = { prev, word -> learnWord(prev, word) }
     }
@@ -116,9 +137,17 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         v.listener = this
         v.setLanguage(language.shortLabel, language.spaceLabel)
         keyboard = v
+        // The keys and (once the emoji key is used) the emoji panel share this column; only one of them is visible at a time, except while searching.
+        val r = LinearLayout(this)
+        r.orientation = LinearLayout.VERTICAL
+        r.addView(v, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        root = r
+        emojiPanel = null
+        emojiSearch = false
+        searchBuf.setLength(0)
         applyPrefs()
         applySystemBars()
-        return v
+        return r
     }
 
     /** No full-screen extract UI in landscape (Gboard does not either). */
@@ -128,11 +157,18 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         super.onConfigurationChanged(newConfig)
         keyboard?.refreshTheme()
         applySystemBars()
+        val kb = keyboard
+        val panel = emojiPanel
+        if (kb != null && panel != null) {
+            panel.setPalette(kb.palette)
+            if (panel.visibility == View.VISIBLE) setPanelHeight(if (emojiSearch) panel.compactHeight() else kb.desiredHeight())
+        }
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        composer?.clear()
+        if (!restarting) closeEmoji() // a new field starts on the letter keys (a restart of the same field keeps the panel)
+        if (emojiSearch) flushSearchComposing() else composer?.clear()
         dropSuggestions()
         val inputType = info?.inputType ?: 0
         val cls = inputType and InputType.TYPE_MASK_CLASS
@@ -140,10 +176,15 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         predictionAllowed = composingAllowed && (inputType and InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS) == 0
         val noLearning = ((info?.imeOptions ?: 0) and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
         learnAllowed = predictionAllowed && !noLearning && LearnSettings.enabled(this)
+        emojiRecents = !noLearning && !isPasswordField(inputType)
         tracker.reset(null)
         hasSelection = false
         val v = keyboard ?: return
         applyPrefs()
+        if (!emojiPreloadScheduled) { // read the emoji list and font in the background shortly after the first use, so the panel opens at once
+            emojiPreloadScheduled = true
+            v.postDelayed({ ensureEmojiLoader().start(null) }, EMOJI_PRELOAD_MS)
+        }
         val numeric = cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE || cls == InputType.TYPE_CLASS_DATETIME
         v.setPage(if (numeric) Layouts.PAGE_SYMBOLS else Layouts.PAGE_LETTERS)
         v.setLanguage(language.shortLabel, language.spaceLabel)
@@ -161,6 +202,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         dropSuggestions()
         predWorker?.flush() // save what was learned
         keyboard?.cancelAll()
+        closeEmoji()
     }
 
     override fun onDestroy() {
@@ -180,6 +222,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         hasSelection = newSelStart != newSelEnd
         // A change that is not an echo of our own edit (cursor moved, text replaced by the app, a physical keyboard): read the editor again.
         if (predicting && SystemClock.uptimeMillis() - lastEditAt > PhoneticComposer.STALE_MS) resyncAndPredict()
+        if (emojiSearch) return // the composer holds the search word, not text in the editor
         val comp = composer ?: return
         if (!comp.isComposing) return
         val sinceEdit = SystemClock.uptimeMillis() - lastEditAt
@@ -188,6 +231,17 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             dropSuggestions()
             currentInputConnection?.finishComposingText() // leave the old word as plain text
             resyncAndPredict()
+        }
+    }
+
+    private fun isPasswordField(inputType: Int): Boolean {
+        val variation = inputType and InputType.TYPE_MASK_VARIATION
+        return when (inputType and InputType.TYPE_MASK_CLASS) {
+            InputType.TYPE_CLASS_TEXT -> variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+                variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+                variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD
+            InputType.TYPE_CLASS_NUMBER -> variation == InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            else -> false
         }
     }
 
@@ -362,6 +416,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun commitComposingIfAny() {
         val comp = composer ?: return
         if (!comp.isComposing) return
+        if (emojiSearch) { // the word belongs to the search query, not to the editor
+            flushSearchComposing()
+            return
+        }
         val shown = comp.text()
         currentInputConnection?.finishComposingText()
         comp.clear()
@@ -381,6 +439,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     // ---- KeyboardView.Listener
 
     override fun onText(text: String) {
+        if (emojiSearch) {
+            searchText(text)
+            return
+        }
         val ic = currentInputConnection ?: return
         if (avroActive) {
             val comp = ensureComposer()
@@ -414,6 +476,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** A strip suggestion was tapped (D23): it replaces the underlined word and a space follows. */
     override fun onSuggestion(word: String) {
+        if (emojiSearch) return
         val ic = currentInputConnection ?: return
         val comp = composer
         if (comp == null || !comp.isComposing) {
@@ -431,6 +494,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onBackspace() {
+        if (emojiSearch) {
+            searchBackspace()
+            return
+        }
         val comp = composer
         val ic = currentInputConnection
         if (avroActive && comp != null && comp.isComposing && ic != null) {
@@ -455,6 +522,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onEnter() {
+        if (emojiSearch) { // Enter in the search bar shows the results in the grid
+            endSearchTyping(clear = false)
+            return
+        }
         commitComposingIfAny()
         val options = currentInputEditorInfo?.imeOptions ?: 0
         val action = options and EditorInfo.IME_MASK_ACTION
@@ -473,6 +544,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onTab() {
+        if (emojiSearch) return
         commitComposingIfAny()
         sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
         if (predicting) {
@@ -508,6 +580,191 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         resyncAndPredict() // English: read what is in the field now (the Bangla text was not tracked)
     }
 
+    // ---- emoji panel (E2, D56)
+
+    override fun onEmojiKey() {
+        commitComposingIfAny()
+        showEmoji()
+    }
+
+    private val panelListener = object : EmojiPanelView.Listener {
+        override fun onEmoji(text: String) = typeEmoji(text)
+
+        override fun onBackspace() = this@MonsoonIme.onBackspace() // the panel's own backspace edits the editor (search typing uses the keys)
+
+        override fun onClose() {
+            closeEmoji()
+            refreshAutoCaps()
+            resyncAndPredict()
+        }
+
+        override fun onSearchTap() = startSearchTyping()
+
+        override fun onSearchBack() = endSearchTyping(clear = true)
+
+        override fun onSearchClear() = clearSearch()
+    }
+
+    private fun ensureEmojiLoader(): EmojiLoader = emojiLoader ?: EmojiLoader(this).also { emojiLoader = it }
+
+    private fun ensureEmojiStore(): EmojiStore = emojiStore ?: EmojiStore(PrefsTextStore(this)).also { emojiStore = it }
+
+    private fun ensureEmojiPanel(): EmojiPanelView? {
+        emojiPanel?.let { return it }
+        val r = root ?: return null
+        val kb = keyboard ?: return null
+        val p = EmojiPanelView(this, kb.palette)
+        p.listener = panelListener
+        p.visibility = View.GONE
+        r.addView(p, 0, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, kb.desiredHeight()))
+        emojiPanel = p
+        return p
+    }
+
+    private fun setPanelHeight(h: Int) {
+        val p = emojiPanel ?: return
+        val lp = p.layoutParams ?: return
+        if (lp.height != h) {
+            lp.height = h
+            p.layoutParams = lp
+        }
+    }
+
+    /** The panel takes the place of the keys, at the same height so the window does not jump. */
+    private fun showEmoji() {
+        val kb = keyboard ?: return
+        val panel = ensureEmojiPanel() ?: return
+        kb.cancelAll()
+        emojiSearch = false
+        searchBuf.setLength(0)
+        composer?.clear()
+        dropSuggestions()
+        panel.setSearching(false)
+        panel.setQuery("")
+        panel.setPalette(kb.palette)
+        val loader = ensureEmojiLoader()
+        val ready = loader.result
+        if (ready != null) {
+            if (!panel.hasContent) panel.setContent(ready.data, ready.typeface, ensureEmojiStore())
+        } else {
+            loader.start(Runnable { applyEmojiContent() }) // the panel says "Loading emoji" until then
+        }
+        kb.setStripVisible(true)
+        kb.visibility = View.GONE
+        setPanelHeight(kb.desiredHeight())
+        panel.visibility = View.VISIBLE
+        panel.open()
+    }
+
+    private fun applyEmojiContent() {
+        val r = emojiLoader?.result ?: return
+        emojiPanel?.setContent(r.data, r.typeface, ensureEmojiStore())
+    }
+
+    /** Back to the keys (ABC key, new field, keyboard hidden). Safe to call when the panel was never shown. */
+    private fun closeEmoji() {
+        val panel = emojiPanel ?: return
+        if (panel.visibility != View.VISIBLE) return
+        if (emojiSearch) composer?.clear()
+        emojiSearch = false
+        searchBuf.setLength(0)
+        panel.close()
+        panel.setSearching(false)
+        panel.setQuery("")
+        panel.visibility = View.GONE
+        val kb = keyboard ?: return
+        kb.setStripVisible(true)
+        kb.visibility = View.VISIBLE
+    }
+
+    /** One complete emoji (a ZWJ family, a flag, a skin-toned hand) goes into the editor as plain Unicode text in a single commit. */
+    private fun typeEmoji(text: String) {
+        val ic = currentInputConnection ?: return
+        ic.commitText(text, 1)
+        lastEditAt = SystemClock.uptimeMillis()
+        if (predicting) tracker.append(' ') // an emoji ends the word before it; its own characters are not words
+        if (emojiRecents) emojiStore?.recordUse(text)
+    }
+
+    /** The search pill was tapped: the panel shrinks to the results row and the real keys come back below it. */
+    private fun startSearchTyping() {
+        val kb = keyboard ?: return
+        val panel = emojiPanel ?: return
+        kb.cancelAll()
+        emojiSearch = true
+        composer?.clear()
+        dropSuggestions()
+        kb.setStripVisible(false)
+        kb.setPage(Layouts.PAGE_LETTERS)
+        panel.setSearching(true)
+        setPanelHeight(panel.compactHeight())
+        kb.visibility = View.VISIBLE
+        updateSearchQuery()
+    }
+
+    /** Leave the keys and show the results (or all emoji when the query is blank / was cleared) in the grid. */
+    private fun endSearchTyping(clear: Boolean) {
+        val kb = keyboard ?: return
+        val panel = emojiPanel ?: return
+        flushSearchComposing()
+        composer?.clear()
+        if (clear) searchBuf.setLength(0)
+        emojiSearch = false
+        panel.setSearching(false)
+        panel.setQuery(searchBuf.toString())
+        kb.visibility = View.GONE
+        kb.setStripVisible(true)
+        setPanelHeight(kb.desiredHeight())
+    }
+
+    private fun clearSearch() {
+        searchBuf.setLength(0)
+        composer?.clear()
+        emojiPanel?.setQuery("")
+    }
+
+    /** The Avro word in progress becomes plain query text. */
+    private fun flushSearchComposing() {
+        val comp = composer ?: return
+        if (comp.isComposing) {
+            searchBuf.append(comp.text())
+            comp.clear()
+        }
+        updateSearchQuery()
+    }
+
+    private fun updateSearchQuery() {
+        val comp = composer
+        val q = if (comp != null && comp.isComposing) searchBuf.toString() + comp.text() else searchBuf.toString()
+        emojiPanel?.setQuery(q)
+    }
+
+    private fun searchText(text: String) {
+        if (language == Language.AVRO) {
+            val comp = ensureComposer()
+            if (text.length == 1 && comp.accepts(text[0])) {
+                if (searchBuf.length + comp.rawText().length < MAX_QUERY) {
+                    comp.append(text[0])
+                    updateSearchQuery()
+                }
+                return
+            }
+            flushSearchComposing()
+        }
+        if (searchBuf.length + text.length <= MAX_QUERY) searchBuf.append(text)
+        updateSearchQuery()
+    }
+
+    private fun searchBackspace() {
+        val comp = composer
+        if (comp != null && comp.isComposing) {
+            comp.deleteLast()
+        } else if (searchBuf.isNotEmpty()) {
+            searchBuf.setLength(searchBuf.offsetByCodePoints(searchBuf.length, -1))
+        }
+        updateSearchQuery()
+    }
+
     private fun refreshAutoCaps() {
         // Capitals mean different letters in Avro Phonetic (Dhaka vs dhaka), so never auto-capitalize in Bangla.
         if (language.isBangla) {
@@ -522,5 +779,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private companion object {
         const val DARI = "।"
         const val RESYNC_CHARS = 80
+        const val EMOJI_PRELOAD_MS = 3000L
+        const val MAX_QUERY = 40
     }
 }

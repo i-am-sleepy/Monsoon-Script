@@ -39,6 +39,9 @@ class KeyboardView(context: Context) : View(context) {
 
         /** A suggestion in the strip was tapped (D23): commit that word, plus a space. */
         fun onSuggestion(word: String) {}
+
+        /** The emoji key in the strip was tapped (E2): the IME swaps the keys for the emoji panel. */
+        fun onEmojiKey() {}
     }
 
     var listener: Listener? = null
@@ -46,6 +49,9 @@ class KeyboardView(context: Context) : View(context) {
     /** Keyboard background color; the IME paints its window and the navigation bar area with it. */
     val backgroundColor: Int get() = pal.bg
     val isLightTheme: Boolean get() = pal === LIGHT
+
+    /** The colors in use; the emoji panel (E2) draws with the same ones so the two always match. */
+    val palette: Palette get() = pal
 
     private val density = resources.displayMetrics.density
     private fun dp(v: Float) = v * density
@@ -67,6 +73,7 @@ class KeyboardView(context: Context) : View(context) {
     private var rects: Array<Array<RectF>> = emptyArray()
 
     // ---- state
+    private var stripShown = true // false while the emoji search bar sits above the keys (E2): no strip, no icons, no suggestions
     private var page = Layouts.PAGE_LETTERS
     private var shiftState = SHIFT_OFF
     private var lastShiftTap = 0L
@@ -160,6 +167,24 @@ class KeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
+    /** Hide or show the shortcut strip. Hidden (E2) the keys move up and the view gets shorter by the strip's height. */
+    fun setStripVisible(v: Boolean) {
+        if (v == stripShown) return
+        stripShown = v
+        cancelAll()
+        if (width > 0) computeLayout(width)
+        requestLayout()
+        invalidate()
+    }
+
+    /** The height this view measures to with the strip shown; the emoji panel takes the same height so the window does not jump. */
+    fun desiredHeight(): Int {
+        val land = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val sh = dp(if (land) 38f else 44f)
+        val rh = dp(if (land) 42f else 52f)
+        return (sh + rh * 4 + padTop + padBottom).toInt()
+    }
+
     /** Labels for the strip's language key and the space bar. */
     fun setLanguage(shortLabel: String, spaceBarLabel: String) {
         if (shortLabel == langLabel && spaceBarLabel == spaceLabel) return
@@ -232,7 +257,7 @@ class KeyboardView(context: Context) : View(context) {
         rowH = dp(if (land) 42f else 52f)
         stripH = dp(if (land) 38f else 44f)
         updateTextSizes()
-        val h = (stripH + rowH * 4 + padTop + padBottom).toInt()
+        val h = ((if (stripShown) stripH else 0f) + rowH * 4 + padTop + padBottom).toInt()
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), h)
     }
 
@@ -242,7 +267,7 @@ class KeyboardView(context: Context) : View(context) {
 
     private fun computeLayout(w: Int) {
         val iconCell = dp(44f)
-        rowsTop = stripH + padTop
+        rowsTop = (if (stripShown) stripH else 0f) + padTop
         rowsBottom = rowsTop + rowH * 4
         val outKeys = ArrayList<Array<Key>>()
         val outRects = ArrayList<Array<RectF>>()
@@ -250,16 +275,20 @@ class KeyboardView(context: Context) : View(context) {
             val kl = ArrayList<Key>()
             val rl = ArrayList<RectF>()
             var x = padX
-            for (k in Layouts.stripLeft) {
-                if (k.code == Codes.LANG && !languageKeyEnabled) continue
-                val cw = iconCell * k.weight
-                kl.add(k); rl.add(RectF(x, 0f, x + cw, stripH)); x += cw
+            if (stripShown) {
+                for (k in Layouts.stripLeft) {
+                    if (k.code == Codes.LANG && !languageKeyEnabled) continue
+                    val cw = iconCell * k.weight
+                    kl.add(k); rl.add(RectF(x, 0f, x + cw, stripH)); x += cw
+                }
             }
             stripLeftCount = kl.size
-            var rx = w - padX
-            for (k in Layouts.stripRight.reversed()) {
-                rx -= iconCell
-                kl.add(k); rl.add(RectF(rx, 0f, rx + iconCell, stripH))
+            if (stripShown) {
+                var rx = w - padX
+                for (k in Layouts.stripRight.reversed()) {
+                    rx -= iconCell
+                    kl.add(k); rl.add(RectF(rx, 0f, rx + iconCell, stripH))
+                }
             }
             for ((r, row) in Layouts.pages[p].withIndex()) {
                 val total = row.sumOf { it.weight.toDouble() }.toFloat()
@@ -341,7 +370,7 @@ class KeyboardView(context: Context) : View(context) {
             if (showSug && ks[i].kind == Kind.STRIP) continue // the icons give way to the suggestions
             drawKey(canvas, ks[i], rs[i], isPressedIndex(i))
         }
-        if (sugCount > 0) {
+        if (stripShown && sugCount > 0) {
             drawArrow(canvas)
             if (showSug) drawSuggestions(canvas)
         }
@@ -582,7 +611,7 @@ class KeyboardView(context: Context) : View(context) {
         if (page >= rects.size) return -1
         val rs = rects[page]
         val cx = x.coerceIn(padX, width - padX - 0.01f)
-        val cy = if (y < stripH) y else y.coerceIn(rowsTop, rowsBottom - 0.01f)
+        val cy = if (stripShown && y < stripH) y else y.coerceIn(rowsTop, rowsBottom - 0.01f)
         for (i in rs.indices) if (rs[i].contains(cx, cy)) return i
         return -1
     }
@@ -591,7 +620,7 @@ class KeyboardView(context: Context) : View(context) {
         var slot = -1
         for (s in 0 until MAX_PTR) if (ptrId[s] == -1) { slot = s; break }
         if (slot < 0) return
-        val inStrip = sugCount > 0 && y < stripH
+        val inStrip = stripShown && sugCount > 0 && y < stripH
         val inArrow = inStrip && x < padX + arrowW
         val inSug = inStrip && showSug && !inArrow // the strip shows suggestions: a touch there picks one, never a hidden icon
         val idx = if (inSug || inArrow) -1 else findKey(x, y)
@@ -751,7 +780,8 @@ class KeyboardView(context: Context) : View(context) {
             Codes.LETTERS -> setPage(Layouts.PAGE_LETTERS)
             Codes.GLOBE -> listener?.onGlobe()
             Codes.LANG -> listener?.onLanguageToggle()
-            else -> Unit // emoji, clipboard, mic: not built yet
+            Codes.EMOJI -> listener?.onEmojiKey()
+            else -> Unit // clipboard, mic: not built yet
         }
     }
 
@@ -772,7 +802,7 @@ class KeyboardView(context: Context) : View(context) {
         for (s in 0 until MAX_PTR) cancelTimers(s)
     }
 
-    private class Palette(
+    class Palette(
         val bg: Int,
         val key: Int,
         val keyPressed: Int,

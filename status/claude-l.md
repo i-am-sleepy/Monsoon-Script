@@ -55,3 +55,5 @@ None known. Not verified on a device yet: everything in L2.4 (Android code is on
 replacing the right text in odd apps, backspace resync cost, cold start of the first prediction (packs map lazily), APK size (+~11 MB because the packs are stored uncompressed).
 Avro choices I made without asking (the owner tested T8a without objecting; revisit only if they complain): '.' right after a Bangla word gives the dari (।); '^' after a word gives
 chandrabindu; capitals are never auto-applied in Bangla. ':' follows D24 (smart colon).
+
+- [claude-e -> claude-l] 2026-11-19 E2.5: KeyboardView strip code now has a `stripShown` flag (setStripVisible(false) hides the strip while the emoji search bar sits above the keys; the strip rects, suggestions and touch routing are skipped then) and `Codes.EMOJI` calls `Listener.onEmojiKey()`. MonsoonIme.onCreateInputView returns a LinearLayout around the KeyboardView. Re-pull before editing KeyboardView's strip, onMeasure/computeLayout or MonsoonIme's start/finish input code.

@@ -12,9 +12,9 @@ E2 Emoji system [~] owner brief: offline, Unicode data in assets, Noto Color Emo
   E2.2 [x] Owner answered the design questions (D56): Gboard-style panel, per-emoji remembered skin tones (two-step for couples), English + Bangla search, hide emoji the phone cannot draw. Next free D id: D57.
   E2.3 [x] `tools/gen_emoji_data.py` -> `assets/emoji/emoji.tsv` (328 KB, text, one line per base emoji; format in the script header), font `assets/emoji/NotoColorEmoji.ttf` (noCompress "ttf"), credits in assets/licenses/emoji.txt + third_party/emoji-data. CI #17 green with the 10.7 MB font.
   E2.4 [x] Pure Kotlin in `emoji/`: EmojiData (parse, search en+bn, baseOf, withoutUnsupported), EmojiStore (recents + remembered tones over a TextStore), EmojiGrid (layout + hit test). 18 JUnit tests in src/test/.../emoji (all pass locally: /tmp/kc.sh trick = Gradle's bundled kotlin-compiler-embeddable-2.0.21 + junit from /opt/gradle/lib).
-  E2.5 [~] Android part. Plan: E2.5a [ ] EmojiLoader (background: asset -> EmojiData, Typeface from asset, Paint.hasGlyph filter cached per Build.FINGERPRINT); E2.5b [ ] view/EmojiPanelView (Canvas: top search pill, grid with fling scroll, bottom bar ABC + 9 tab icons + backspace, long-press skin-tone popup, two-step for couples);
-           E2.5c [ ] KeyboardView: public Palette + `palette`, `setStripVisible`, `desiredHeight`, Listener.onEmojiKey; E2.5d [ ] MonsoonIme: root LinearLayout (panel + keyboard), onEmoji commit, search typing route (Avro composes into the query), recents not recorded in password / no-learning fields; ARCHITECTURE.md; warn claude-g/claude-l.
-  E2.6 [ ] CI green, owner test checklist.
+  E2.5 [x] Android part written (not yet compiled: CI only). E2.5a EmojiLoader + PrefsTextStore [x]; E2.5b view/EmojiPanelView [x]; E2.5c KeyboardView hooks (public Palette + `palette`, `setStripVisible`,
+           `desiredHeight`, Listener.onEmojiKey) [x]; E2.5d MonsoonIme wiring (root LinearLayout, showEmoji/closeEmoji, typeEmoji, search typing routed to the query) + ARCHITECTURE.md + warnings [x].
+  E2.6 [~] Push, wait for CI, fix compile errors, review, give the owner the test checklist (naming my commit).
 E1 Password manager [~] PAUSED (summary + facts: docs/PASSWORD_MANAGER.md, Phase 0 log: docs/PASSWORD_MANAGER_PHASE0.md, brief: docs/PASSWORD_MANAGER_BRIEF.md). Design SIGNED OFF (D53).
   E1.1-E1.9 [x] Design talk, stages 1-8, decisions D25-D52.
   E1.10 [x] Sign-off: the owner approved the design and said to start the feasibility check now (D53, 2026-11-18).
@@ -35,14 +35,16 @@ T9 Fixed layouts as data + language-key popup [ ] waits behind E1 (owner priorit
 T11 Bangla digit hints [ ] (after T9) English digits typed, Bangla digits as hints and on long-press (D18).
 
 ## Next step
-E2: get the owner's answers to the design questions (E2.2), record them in DECISIONS.md, then E2.3. Re-pull first: claude-g edits MonsoonIme/KeyboardView/strings (G1) and LicensesActivity (its FILES list needs a new `licenses/emoji.txt`; append a Warning to status/claude-g.md when I touch it).
+E2.6: after the push, wait 4-8 min and read `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt`; fix any compile error in view/EmojiPanelView.kt, emoji/EmojiLoader.kt, ime/MonsoonIme.kt or view/KeyboardView.kt; then post the test checklist.
+Ideas not built (ask the owner first, UI): GIF/kaomoji tabs, emoji suggestions in the strip, a "clear recents" button in settings (EmojiStore.clearRecent exists).
 (E1, paused) If the owner has moved the workflow file: read `e1-status-build` / `e1-status-emulator` (get_file_contents, ref refs/heads/<name>, path status.txt) and continue E1.11d. If not: ask again, or
 work on T9 meanwhile (owner's call). Check ci-status first (last read: CI #8 green; main has moved on, claude-l reports green up to #13).
 Switch languages only through `MonsoonIme.setLanguage` (see STATUS "Hand-offs"). Strip layout changed by claude-l's D41: re-read KeyboardView before touching the strip.
 LESSON (mine): always re-read a notes file before rewriting it, other Claudes append warnings to it.
 
 ## Half-done files / known bugs
-Main: none (E1 only added docs and decisions). Side branch `e1-feasibility`: spike, not built yet, never to be merged as it is (workflow file in tools/, CI clone instead of a submodule).
+E2 code has never been compiled (only CI can): expect small compile fixes. Known limits: a hardware keyboard types into the app while the emoji search bar is open; Recents refresh only when the panel opens.
+Side branch `e1-feasibility` (E1 spike): not built yet, never to be merged as it is.
 
 ## Test checklist for my latest build (owner)
 (none: no change on main affects the app)
