@@ -40,13 +40,14 @@ object VaultSpike {
         db.saveData(cache, { file.outputStream() }, MasterCredential(password.toCharArray()), noHardwareKey, limits)
     }
 
+    /** [keyFile] is the raw content of the key file, if the vault has one. */
     @Synchronized
-    fun open(file: File, password: String, dir: File): Database {
+    fun open(file: File, password: String, dir: File, keyFile: ByteArray? = null): Database {
         val db = Database()
         file.inputStream().use { input ->
             db.loadData(
                 input,
-                MasterCredential(password.toCharArray()),
+                MasterCredential(password.toCharArray(), keyFile),
                 noHardwareKey,
                 readOnly = false,
                 allowUserVerification = false,
