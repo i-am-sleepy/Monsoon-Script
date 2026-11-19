@@ -31,6 +31,6 @@ class LicensesActivity : Activity() {
     }
 
     private companion object {
-        val FILES = listOf("licenses/app.txt", "licenses/avro.txt", "licenses/prediction-data.txt")
+        val FILES = listOf("licenses/app.txt", "licenses/avro.txt", "licenses/prediction-data.txt", "licenses/emoji.txt")
     }
 }

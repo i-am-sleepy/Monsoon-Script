@@ -50,8 +50,10 @@ android {
     }
 
     // The prediction packs are memory-mapped straight from the APK, so they must not be compressed (ime/PackLoader.kt).
+    // Same for the emoji font (E2): Typeface.createFromAsset maps an uncompressed asset instead of copying 10 MB into memory.
     androidResources {
         noCompress += "mslm"
+        noCompress += "ttf"
     }
 
     // No signing-block metadata blob for Google; smaller APK.

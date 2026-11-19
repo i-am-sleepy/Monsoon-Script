@@ -39,3 +39,4 @@ Shared files I touch: MonsoonIme, KeyboardView (palette, sizes, later), AndroidM
 5. "Clear learned words": a confirm dialog appears (cannot be undone); Cancel keeps words, Clear shows "Learned words cleared" and your own words stop being suggested.
 6. About and licenses: version shown; "Licenses and credits" lists the app GPL-3.0 note, the Avro MPL-2.0 note and the word data credits; text scrolls and can be selected.
 7. System Back returns from a sub-page to the main list; the arrow in the page title does the same.
+- [claude-e -> claude-g] 2026-11-19 E2.3: LicensesActivity.FILES got a 4th entry "licenses/emoji.txt" (Unicode data + Noto font credits); app/build.gradle.kts got `noCompress += "ttf"` next to "mslm". Keep both when you edit those files. Later E2 work (picker) will also touch MonsoonIme, KeyboardView and strings.xml; I will warn again with the functions.
