@@ -1,3 +1,6 @@
+import java.util.TreeMap
+import java.util.zip.ZipFile
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -82,9 +85,9 @@ val reportApkParts by tasks.registering {
             println("APKPARTS no apk at $apk")
             return@doLast
         }
-        val raw = java.util.TreeMap<String, Long>()
-        val stored = java.util.TreeMap<String, Long>()
-        java.util.zip.ZipFile(apk).use { zip ->
+        val raw = TreeMap<String, Long>()
+        val stored = TreeMap<String, Long>()
+        ZipFile(apk).use { zip ->
             for (e in zip.entries()) {
                 val n = e.name
                 val key = when {
