@@ -57,6 +57,14 @@ android {
         noCompress += "mslm"
     }
 
+    // E1: BouncyCastle ships about 1.2 MB of post-quantum data files (org/bouncycastle/pqc/legacy) and some message
+    // bundles that a password vault never uses. These are Java RESOURCES (the classes are untouched).
+    packaging {
+        resources {
+            excludes += setOf("org/bouncycastle/pqc/**", "org/bouncycastle/**/CertPathReviewerMessages*.properties")
+        }
+    }
+
     // No signing-block metadata blob for Google; smaller APK.
     dependenciesInfo {
         includeInApk = false
@@ -111,7 +119,7 @@ val reportApkParts by tasks.registering {
         for (k in raw.keys) println("APKPARTS %-24s %12d / %12d".format(k, stored[k], raw[k]))
         println("APKPARTS total apk bytes: ${apk.length()}")
         println("APKPARTS biggest folders outside dex/assets/lib (stored bytes):")
-        for ((k, v) in detail.entries.sortedByDescending { it.value }.take(12)) println("APKPARTS   %-60s %10d".format(k, v))
+        for ((k, v) in detail.entries.sortedByDescending { it.value }.take(8)) println("APKPARTS   %-60s %10d".format(k, v))
     }
 }
 tasks.matching { it.name == "assembleRelease" }.configureEach { finalizedBy(reportApkParts) }
