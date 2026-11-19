@@ -1,11 +1,20 @@
 # claude-e notes (only claude-e edits this file; others only append lines under "Warnings")
-Updated: 2026-11-18, session 1. Focus: E1 Phase 0 (feasibility check on the side branch `e1-feasibility`), owner priority before T9, T11.
+Updated: 2026-11-19, session 2. Focus: E2 EMOJI SYSTEM (owner order 2026-11-19: forget every other pending task for now). E1, T9, T11 are paused, not cancelled.
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 - [claude-l -> claude-e] 2026-11-17 D41: the strip gets a small arrow button at the left (suggestions <-> icons, Gboard style) and next-word suggestions after a space, in every language. I will change view/KeyboardView.kt (strip layout and touch routing) and keep Layouts.stripLeft/stripRight as they are; your password key icon (D27) and the language popup keep working. Re-pull before editing KeyboardView's strip code. (restored by claude-e on 2026-11-18: my earlier full rewrites of this file dropped it by mistake; not handled yet, it matters when the key icon is built)
 
 ## Tasks and steps
-E1 Password manager [~] (summary + facts: docs/PASSWORD_MANAGER.md, Phase 0 log: docs/PASSWORD_MANAGER_PHASE0.md, brief: docs/PASSWORD_MANAGER_BRIEF.md). Design SIGNED OFF (D53).
+E2 Emoji system [~] owner brief: offline, Unicode data in assets, Noto Color Emoji, picker (categories, search, recents), skin tones + ZWJ, commitText only (never images), recents persisted, Gboard-like minimal look. Ask the owner before UI decisions.
+  E2.1 [x] Research. Sandbox facts: unicode.org is blocked, but Unicode's GitHub mirror works: emoji-test.txt 17.0 at raw.githubusercontent.com/unicode-org/unicodetools/main/unicodetools/data/emoji/17.0/emoji-test.txt
+           (3,944 fully-qualified emoji: 1,914 base + 2,030 skin-tone variants, 1,614 ZWJ, 9 groups); CLDR names/keywords: raw.githubusercontent.com/unicode-org/cldr/main/common/annotations/{en,bn}.xml (+ annotationsDerived/en.xml).
+           Font: raw.githubusercontent.com/googlefonts/noto-emoji/main/2D/fonts/NotoColorEmoji.ttf (v2.057, 10.7 MB, CBDT, OFL 1.1, has U+1FAEA = Unicode 17; github.com/.../raw/ gives 403, use raw.githubusercontent.com).
+  E2.2 [~] Ask the owner the design questions (layout, skin tones, Bangla names, hide undrawable emoji) -> record as D56+ in DECISIONS.md, clear STATUS Needs user #8.
+  E2.3 [ ] `tools/gen_emoji_data.py` -> `assets/emoji/emoji.bin` (names, group, keywords en [+bn], variants as whole strings); font to `assets/emoji/NotoColorEmoji.ttf` (noCompress "ttf"); licenses text in assets/licenses.
+  E2.4 [ ] Pure-Kotlin `emoji/` data reader + search + recents model with JUnit tests (run locally with kc.sh trick); recents saved in the prefs file.
+  E2.5 [ ] Canvas panel view (grid, fling scroll, category bar, search, skin-tone popup) + wiring in KeyboardView/MonsoonIme (strip emoji key, `onEmoji` -> finishComposing + commitText); ARCHITECTURE.md.
+  E2.6 [ ] CI green, owner test checklist.
+E1 Password manager [~] PAUSED (summary + facts: docs/PASSWORD_MANAGER.md, Phase 0 log: docs/PASSWORD_MANAGER_PHASE0.md, brief: docs/PASSWORD_MANAGER_BRIEF.md). Design SIGNED OFF (D53).
   E1.1-E1.9 [x] Design talk, stages 1-8, decisions D25-D52.
   E1.10 [x] Sign-off: the owner approved the design and said to start the feasibility check now (D53, 2026-11-18).
   E1.11 [~] Phase 0 feasibility check on the SIDE BRANCH `e1-feasibility` (D49). Never publish a release or touch `ci-status` from it.
@@ -25,7 +34,8 @@ T9 Fixed layouts as data + language-key popup [ ] waits behind E1 (owner priorit
 T11 Bangla digit hints [ ] (after T9) English digits typed, Bangla digits as hints and on long-press (D18).
 
 ## Next step
-If the owner has moved the workflow file: read `e1-status-build` / `e1-status-emulator` (get_file_contents, ref refs/heads/<name>, path status.txt) and continue E1.11d. If not: ask again, or
+E2: get the owner's answers to the design questions (E2.2), record them in DECISIONS.md, then E2.3. Re-pull first: claude-g edits MonsoonIme/KeyboardView/strings (G1) and LicensesActivity (its FILES list needs a new `licenses/emoji.txt`; append a Warning to status/claude-g.md when I touch it).
+(E1, paused) If the owner has moved the workflow file: read `e1-status-build` / `e1-status-emulator` (get_file_contents, ref refs/heads/<name>, path status.txt) and continue E1.11d. If not: ask again, or
 work on T9 meanwhile (owner's call). Check ci-status first (last read: CI #8 green; main has moved on, claude-l reports green up to #13).
 Switch languages only through `MonsoonIme.setLanguage` (see STATUS "Hand-offs"). Strip layout changed by claude-l's D41: re-read KeyboardView before touching the strip.
 LESSON (mine): always re-read a notes file before rewriting it, other Claudes append warnings to it.

@@ -22,7 +22,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
         strip + space-bar swipe (D15/D19), no auto-caps in Bangla, raw letters in password/URL/e-mail fields. Awaiting the owner's device test.
   - [x] T8b (claude-l) Suggestion strip while composing (D23) + dictionary index/search from `avro-dictionary.tsv`; owner-tested OK, feels instant (2026-11-17)
   - [x] T8c (claude-l) Smart colon in Avro (D24): visarga inside a word, plain colon at the end (owner-tested OK 2026-11-17)
-- [ ] T9 (claude-e) Fixed layouts as data: Provat and National from `third_party/avro-reference/layouts` (key maps, images stripped); Bijoy
+- [ ] T9 (claude-e) PAUSED by the owner 2026-11-19 (E2 first). Fixed layouts as data: Provat and National from `third_party/avro-reference/layouts` (key maps, images stripped); Bijoy
       Classic from the standard chart (owner must verify); language-key long-press popup (D19). Bornona, Munir Optima, Avro Easy later (D17)
 - [x] T10 (claude-g) Settings activity + SharedPreferences: switches for the language key and space-bar swipe (both default ON, D15,
       `KeyboardView.setLanguageOptions`), persist the chosen language (built in G1.1/G1.2, commit 63f95a7; owner device test pending)
@@ -30,7 +30,10 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       clear button, suggestion toggles, vibration/sound/long-press, theme, number row, height + key-gap sliders with live preview; later: hint bubble for held top-row digits. Includes T10 and L2.5.
       G1.1 prefs + G1.2 main list/Typing/Suggestions/About pages DONE (63f95a7, checkpoint; CI #16 pending at checkpoint time, then owner test); next G1.3 (suggestion toggles). Steps in status/claude-g.md
 - [ ] T11 (claude-e, after T9) Bangla digit hints on digit keys (English typed, Bangla long-press, D18)
-- [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). Owner priority,
+- [~] E2 (claude-e) Emoji system (owner priority 2026-11-19: all other claude-e tasks are paused): fully offline picker, Unicode 17 emoji data in assets, bundled Noto Color Emoji,
+      category tabs, searchable grid, recents, skin tones and ZWJ sequences, inserted as Unicode text with commitText. Research done; waiting for the owner's design answers
+      (Needs user #8) before any code. Steps in status/claude-e.md
+- [~] E1 (claude-e) PAUSED by the owner 2026-11-19 (E2 first). Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). Owner priority,
       before T9. Design SIGNED OFF (D53, 2026-11-18). Phase 0 (feasibility check) is running on the side branch `e1-feasibility` (D49); it needs ONE owner
       action to start its CI job (Needs user #5). Nothing from Phase 0 is on main. Log: docs/PASSWORD_MANAGER_PHASE0.md. Brief: docs/PASSWORD_MANAGER_BRIEF.md
 - [~] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
@@ -58,6 +61,7 @@ Password manager (E1): Phase 0 now; later phases follow D51 after the go/no-go r
    so only the owner or a Claude Code session can. Never merge that file into main as it is. (claude-e)
 6. (answered 2026-11-17: prediction data, see D41 and D42)
 7. (answered 2026-11-18: Banglish prediction quality, see D54)
+8. Emoji (E2) design questions asked 2026-11-19: panel layout, skin-tone handling, Bangla search names, hiding emoji the phone's font cannot draw. Answers go to DECISIONS.md. (claude-e)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.
