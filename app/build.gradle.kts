@@ -87,6 +87,7 @@ val reportApkParts by tasks.registering {
         }
         val raw = TreeMap<String, Long>()
         val stored = TreeMap<String, Long>()
+        val detail = TreeMap<String, Long>()
         ZipFile(apk).use { zip ->
             for (e in zip.entries()) {
                 val n = e.name
@@ -100,11 +101,51 @@ val reportApkParts by tasks.registering {
                 }
                 raw.merge(key, e.size) { x, y -> x + y }
                 stored.merge(key, e.compressedSize) { x, y -> x + y }
+                if (key != "dex" && key != "assets" && !key.startsWith("lib/")) {
+                    val d = n.split('/').take(4).joinToString("/")
+                    detail.merge(d, e.compressedSize) { x, y -> x + y }
+                }
             }
         }
         println("APKPARTS part: bytes stored in the apk / bytes uncompressed")
         for (k in raw.keys) println("APKPARTS %-24s %12d / %12d".format(k, stored[k], raw[k]))
         println("APKPARTS total apk bytes: ${apk.length()}")
+        println("APKPARTS biggest folders outside dex/assets/lib (stored bytes):")
+        for ((k, v) in detail.entries.sortedByDescending { it.value }.take(12)) println("APKPARTS   %-60s %10d".format(k, v))
     }
 }
 tasks.matching { it.name == "assembleRelease" }.configureEach { finalizedBy(reportApkParts) }
+
+// E1 Phase 0 (side branch only): smoke-test the SHRUNK release build on the connected emulator. Shrinking can break native
+// code or reflection in ways that only show at run time. Installs the release APK (debug-signed in CI), sends a broadcast
+// to the spike receiver, and waits for its result line in the log. Runs after the emulator tests (see vault/build.gradle.kts).
+val smokeRelease by tasks.registering {
+    dependsOn("installRelease")
+    doLast {
+        val sdk = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
+        val adb = if (sdk != null) "$sdk/platform-tools/adb" else "adb"
+        fun run(vararg a: String): String {
+            val p = ProcessBuilder(listOf(adb) + a).redirectErrorStream(true).start()
+            val out = p.inputStream.bufferedReader().readText()
+            p.waitFor()
+            return out
+        }
+        run("logcat", "-c")
+        val sent = run(
+            "shell", "am", "broadcast", "--include-stopped-packages",
+            "-n", "com.monsoonscript.keyboard/com.monsoonscript.vault.VaultSmokeReceiver"
+        )
+        println("SMOKE broadcast: " + sent.trim().replace("\n", " | "))
+        var result = "no result line within 90 s"
+        for (i in 1..45) {
+            val line = run("logcat", "-d", "-s", "VaultSmoke:I").lines().lastOrNull { it.contains("RESULT:") }
+            if (line != null) {
+                result = line.substringAfter("RESULT:").trim()
+                break
+            }
+            Thread.sleep(2000)
+        }
+        println("SMOKE release build result: $result")
+        if (!result.startsWith("ok")) throw GradleException("release smoke test failed: $result")
+    }
+}

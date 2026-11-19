@@ -30,3 +30,8 @@ dependencies {
     androidTestImplementation(libs.androidx.test.core)
     androidTestImplementation(libs.junit)
 }
+
+// E1 Phase 0 (side branch only): after the emulator tests, smoke-test the shrunk release build (see app/build.gradle.kts).
+tasks.matching { it.name == "connectedDebugAndroidTest" }.configureEach {
+    finalizedBy(":app:smokeRelease")
+}

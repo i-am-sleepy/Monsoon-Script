@@ -7,5 +7,12 @@
             android:name=".VaultSpikeService"
             android:exported="false"
             android:process=":vault" />
+
+        <!-- Phase 0 spike ONLY (side branch, never for main): lets the CI shell trigger a smoke test of the shrunk build.
+             Only holders of the DUMP permission (the adb shell, the system) may send to it. -->
+        <receiver
+            android:name=".VaultSmokeReceiver"
+            android:exported="true"
+            android:permission="android.permission.DUMP" />
     </application>
 </manifest>
