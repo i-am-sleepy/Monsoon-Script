@@ -144,3 +144,10 @@
   settings pages where it is cheap (the Appearance page shows a real keyboard view that follows the sliders); (3) vibration strength Off/Light/Normal/Strong: the app DECLARES the normal
   permission VIBRATE (first permission, no prompt); (4) later, lower priority: holding a top-row letter shows a hint bubble with its digit and the digit is typed when the finger is released
   (today it is typed without a preview).
+- D56 2026-11-19 Emoji system (E2, claude-e; the owner told claude-e to drop every other pending task for it). Brief: fully offline; official Unicode emoji data (emoji-test 17.0 + CLDR names/keywords) stored
+  in assets; Google Noto Color Emoji (OFL 1.1) bundled to draw the picker; picker with category navigation, searchable grid, recents; skin tones and ZWJ sequences; every emoji is kept and committed as ONE
+  complete Unicode string with `commitText` (never an image); recents saved locally; Gboard-like, minimal, no extra colors/animations/shadows. The owner chose: (1) LAYOUT Gboard-style: the panel replaces the
+  keys at the same height, search bar on top (tapping it brings the normal keys back below it and you type into the bar in the current language), bottom bar = ABC, category icons, backspace; Smileys & Emotion
+  and People & Body are ONE tab like Gboard; (2) SKIN TONES per emoji: long-press an emoji with variants for a popup, the pick is remembered for that emoji; two-person emoji (couples, handshake...) get a
+  two-step picker; (3) SEARCH matches English AND Bangla names/keywords (CLDR en + bn), in whichever language is being typed; (4) OLD PHONES: hide emoji the phone's own system font cannot draw (checked once on
+  the phone with Paint.hasGlyph, result cached), while the picker itself draws with Noto.

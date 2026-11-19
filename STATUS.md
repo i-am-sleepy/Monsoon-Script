@@ -31,8 +31,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       G1.1 prefs + G1.2 main list/Typing/Suggestions/About pages DONE (63f95a7, checkpoint; CI #16 pending at checkpoint time, then owner test); next G1.3 (suggestion toggles). Steps in status/claude-g.md
 - [ ] T11 (claude-e, after T9) Bangla digit hints on digit keys (English typed, Bangla long-press, D18)
 - [~] E2 (claude-e) Emoji system (owner priority 2026-11-19: all other claude-e tasks are paused): fully offline picker, Unicode 17 emoji data in assets, bundled Noto Color Emoji,
-      category tabs, searchable grid, recents, skin tones and ZWJ sequences, inserted as Unicode text with commitText. Research done; waiting for the owner's design answers
-      (Needs user #8) before any code. Steps in status/claude-e.md
+      category tabs, searchable grid, recents, skin tones and ZWJ sequences, inserted as Unicode text with commitText. Research done, design answered (D56), building. Steps in status/claude-e.md
 - [~] E1 (claude-e) PAUSED by the owner 2026-11-19 (E2 first). Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). Owner priority,
       before T9. Design SIGNED OFF (D53, 2026-11-18). Phase 0 (feasibility check) is running on the side branch `e1-feasibility` (D49); it needs ONE owner
       action to start its CI job (Needs user #5). Nothing from Phase 0 is on main. Log: docs/PASSWORD_MANAGER_PHASE0.md. Brief: docs/PASSWORD_MANAGER_BRIEF.md
@@ -61,7 +60,7 @@ Password manager (E1): Phase 0 now; later phases follow D51 after the go/no-go r
    so only the owner or a Claude Code session can. Never merge that file into main as it is. (claude-e)
 6. (answered 2026-11-17: prediction data, see D41 and D42)
 7. (answered 2026-11-18: Banglish prediction quality, see D54)
-8. Emoji (E2) design questions asked 2026-11-19: panel layout, skin-tone handling, Bangla search names, hiding emoji the phone's font cannot draw. Answers go to DECISIONS.md. (claude-e)
+8. (answered 2026-11-19: emoji layout, skin tones, Bangla search names, hide undrawable emoji, see D56)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.

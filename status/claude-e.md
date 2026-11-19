@@ -9,7 +9,7 @@ E2 Emoji system [~] owner brief: offline, Unicode data in assets, Noto Color Emo
   E2.1 [x] Research. Sandbox facts: unicode.org is blocked, but Unicode's GitHub mirror works: emoji-test.txt 17.0 at raw.githubusercontent.com/unicode-org/unicodetools/main/unicodetools/data/emoji/17.0/emoji-test.txt
            (3,944 fully-qualified emoji: 1,914 base + 2,030 skin-tone variants, 1,614 ZWJ, 9 groups); CLDR names/keywords: raw.githubusercontent.com/unicode-org/cldr/main/common/annotations/{en,bn}.xml (+ annotationsDerived/en.xml).
            Font: raw.githubusercontent.com/googlefonts/noto-emoji/main/2D/fonts/NotoColorEmoji.ttf (v2.057, 10.7 MB, CBDT, OFL 1.1, has U+1FAEA = Unicode 17; github.com/.../raw/ gives 403, use raw.githubusercontent.com).
-  E2.2 [~] Ask the owner the design questions (layout, skin tones, Bangla names, hide undrawable emoji) -> record as D56+ in DECISIONS.md, clear STATUS Needs user #8.
+  E2.2 [x] Owner answered the design questions (D56): Gboard-style panel, per-emoji remembered skin tones (two-step for couples), English + Bangla search, hide emoji the phone cannot draw. Next free D id: D57.
   E2.3 [ ] `tools/gen_emoji_data.py` -> `assets/emoji/emoji.bin` (names, group, keywords en [+bn], variants as whole strings); font to `assets/emoji/NotoColorEmoji.ttf` (noCompress "ttf"); licenses text in assets/licenses.
   E2.4 [ ] Pure-Kotlin `emoji/` data reader + search + recents model with JUnit tests (run locally with kc.sh trick); recents saved in the prefs file.
   E2.5 [ ] Canvas panel view (grid, fling scroll, category bar, search, skin-tone popup) + wiring in KeyboardView/MonsoonIme (strip emoji key, `onEmoji` -> finishComposing + commitText); ARCHITECTURE.md.
