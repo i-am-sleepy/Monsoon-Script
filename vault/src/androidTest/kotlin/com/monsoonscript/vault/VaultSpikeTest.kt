@@ -2,6 +2,7 @@ package com.monsoonscript.vault
 
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kunzisoft.encrypt.NativeLib
+import com.kunzisoft.keepass.database.crypto.EncryptionAlgorithm
 import com.kunzisoft.keepass.database.crypto.kdf.KdfFactory
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -23,5 +24,12 @@ class VaultSpikeTest {
     @Test
     fun createSaveLoadWithArgon2id() {
         assertTrue(VaultSpike.roundTrip(dir, KdfFactory.argon2idKdf, "argon2id").contains("ok"))
+    }
+
+    @Test
+    fun createSaveLoadWithEveryCipher() {
+        for (cipher in EncryptionAlgorithm.values()) {
+            assertTrue(VaultSpike.roundTrip(dir, KdfFactory.argon2idKdf, "argon2id", cipher).contains("ok"))
+        }
     }
 }

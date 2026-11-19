@@ -1,5 +1,6 @@
 package com.monsoonscript.vault
 
+import com.kunzisoft.keepass.database.crypto.EncryptionAlgorithm
 import com.kunzisoft.keepass.database.crypto.kdf.KdfEngine
 import com.kunzisoft.keepass.database.crypto.kdf.KdfFactory
 import com.kunzisoft.keepass.database.crypto.kdf.Limits
@@ -21,10 +22,15 @@ object VaultSpike {
     private val limits = Limits(isMemorySufficient = { _, _ -> true }, parallelism = 1L)
     private val noHardwareKey: (HardwareKey, ByteArray?) -> ByteArray = { _, _ -> ByteArray(0) }
 
-    fun newDatabase(kdf: KdfEngine, name: String = "Spike"): Database {
+    fun newDatabase(
+        kdf: KdfEngine,
+        name: String = "Spike",
+        cipher: EncryptionAlgorithm = EncryptionAlgorithm.AESRijndael
+    ): Database {
         val db = Database()
         db.createData(name, "Root", null)
         db.kdfEngine = kdf
+        db.encryptionAlgorithm = cipher
         return db
     }
 
@@ -61,17 +67,26 @@ object VaultSpike {
     }
 
     /** Creates a KDBX in [dir], saves it, loads it again. Returns a short report; throws on failure. */
-    fun roundTrip(dir: File, kdf: KdfEngine, label: String): String {
-        val file = File(dir, "spike-$label.kdbx")
-        save(newDatabase(kdf), file, "spike-password", dir)
+    fun roundTrip(
+        dir: File,
+        kdf: KdfEngine,
+        label: String,
+        cipher: EncryptionAlgorithm = EncryptionAlgorithm.AESRijndael
+    ): String {
+        val file = File(dir, "spike-$label-${cipher.name}.kdbx")
+        save(newDatabase(kdf, cipher = cipher), file, "spike-password", dir)
         val reloaded = open(file, "spike-password", dir)
-        check(reloaded.loaded) { "$label: database not marked as loaded" }
-        check(reloaded.rootGroup != null) { "$label: no root group after loading" }
-        return "$label ok: ${file.length()} bytes"
+        check(reloaded.loaded) { "$label/${cipher.name}: database not marked as loaded" }
+        check(reloaded.rootGroup != null) { "$label/${cipher.name}: no root group after loading" }
+        return "$label/${cipher.name} ok: ${file.length()} bytes"
     }
 
-    fun runAll(dir: File): List<String> = listOf(
-        roundTrip(dir, KdfFactory.aesKdf, "aes-kdf"),
-        roundTrip(dir, KdfFactory.argon2idKdf, "argon2id")
-    )
+    /** AES-KDF once, then Argon2id with each of the three vault ciphers (each goes through a different crypto path). */
+    fun runAll(dir: File): List<String> {
+        val report = mutableListOf(roundTrip(dir, KdfFactory.aesKdf, "aes-kdf"))
+        for (cipher in EncryptionAlgorithm.values()) {
+            report += roundTrip(dir, KdfFactory.argon2idKdf, "argon2id", cipher)
+        }
+        return report
+    }
 }
