@@ -20,6 +20,7 @@ import com.monsoonscript.keyboard.lang.avro.AvroAutoCorrect
 import com.monsoonscript.keyboard.lang.avro.AvroPhoneticConverter
 import com.monsoonscript.keyboard.layout.Layouts
 import com.monsoonscript.keyboard.predict.WordTracker
+import com.monsoonscript.keyboard.prefs.Prefs
 import com.monsoonscript.keyboard.view.KeyboardView
 import java.io.IOException
 
@@ -95,12 +96,19 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** The settings screen's "Clear learned words" bumps an epoch counter; the service empties its in-memory copy when it hears it. */
     private val prefsListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == LearnSettings.KEY_CLEAR_EPOCH) predWorker?.clearLearned()
+        if (key == LearnSettings.KEY_CLEAR_EPOCH) predWorker?.clearLearned() else applyPrefs()
+    }
+
+    /** Settings that the view needs to know (read when the view is created, when an input starts and when a setting changes). */
+    private fun applyPrefs() {
+        keyboard?.setLanguageOptions(Prefs.languageKey(this), Prefs.spaceSwipe(this))
     }
 
     override fun onCreate() {
         super.onCreate()
-        getSharedPreferences(LearnSettings.PREFS, MODE_PRIVATE).registerOnSharedPreferenceChangeListener(prefsListener)
+        language = Prefs.language(this) // where the keyboard was left (saved by name, unknown = English)
+        lastBangla = Prefs.lastBangla(this)
+        Prefs.of(this).registerOnSharedPreferenceChangeListener(prefsListener)
     }
 
     override fun onCreateInputView(): View {
@@ -108,6 +116,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         v.listener = this
         v.setLanguage(language.shortLabel, language.spaceLabel)
         keyboard = v
+        applyPrefs()
         applySystemBars()
         return v
     }
@@ -134,6 +143,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         tracker.reset(null)
         hasSelection = false
         val v = keyboard ?: return
+        applyPrefs()
         val numeric = cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE || cls == InputType.TYPE_CLASS_DATETIME
         v.setPage(if (numeric) Layouts.PAGE_SYMBOLS else Layouts.PAGE_LETTERS)
         v.setLanguage(language.shortLabel, language.spaceLabel)
@@ -154,7 +164,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onDestroy() {
-        getSharedPreferences(LearnSettings.PREFS, MODE_PRIVATE).unregisterOnSharedPreferenceChangeListener(prefsListener)
+        Prefs.of(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
         worker?.stop()
         worker = null
         predWorker?.stop()
@@ -363,6 +373,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun setLanguage(l: Language) {
         language = l
         if (l.isBangla) lastBangla = l
+        Prefs.saveLanguage(this, l, lastBangla)
         keyboard?.setLanguage(l.shortLabel, l.spaceLabel)
         refreshAutoCaps()
     }

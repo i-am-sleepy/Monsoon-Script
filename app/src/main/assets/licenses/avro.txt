@@ -1,0 +1,3 @@
+Avro Phonetic typing and the Bangla suggestion dictionary
+
+The phonetic conversion rules, the autocorrect list, the suggestion search and the Bangla suggestion dictionary of Monsoon Script are ported from or derived from Avro Keyboard by OmicronLab, which is licensed under the Mozilla Public License 2.0 (https://www.mozilla.org/MPL/2.0/). These files stay under the MPL-2.0; their source is in the Monsoon Script source code (folder lang/avro and assets/avro).

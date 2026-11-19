@@ -1,0 +1,4 @@
+Monsoon Script
+
+Free software, licensed under the GNU General Public License version 3 (GPL-3.0). You may use, study, share and change it under that license.
+Source code: https://github.com/i-am-sleepy/Monsoon-Script

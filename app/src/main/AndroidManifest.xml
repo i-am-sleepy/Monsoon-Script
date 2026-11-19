@@ -32,5 +32,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".settings.SettingsPageActivity"
+            android:exported="false"
+            android:label="@string/app_name" />
+
+        <activity
+            android:name=".settings.LicensesActivity"
+            android:exported="false"
+            android:label="@string/settings_licenses" />
     </application>
 </manifest>

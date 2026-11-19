@@ -5,49 +5,39 @@ import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
-import android.widget.Button
-import android.widget.LinearLayout
 import android.widget.TextView
 import com.monsoonscript.keyboard.R
 
-/** Placeholder setup screen: enable the keyboard, then choose it. The real settings UI comes later (needs owner design input). */
+/**
+ * The main screen (and the keyboard's settings entry): setup status and the two setup steps on top, then the list of settings pages (D55):
+ * Typing, Suggestions, About and licenses. Appearance joins when its settings exist (G1.5). Each row opens [SettingsPageActivity].
+ */
 class SetupActivity : Activity() {
 
     private lateinit var status: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val dp = resources.displayMetrics.density
-        val pad = (24 * dp).toInt()
-
-        val title = TextView(this).apply {
-            setText(R.string.app_name)
-            textSize = 28f
-        }
+        val ui = SettingsUi(this)
+        val page = ui.page(getString(R.string.app_name), null)
         status = TextView(this).apply {
             textSize = 16f
-            setPadding(0, (16 * dp).toInt(), 0, (16 * dp).toInt())
+            setTextColor(ui.secondary)
+            setPadding(ui.dp(20), 0, ui.dp(20), ui.dp(8))
         }
-        val enable = Button(this).apply {
-            setText(R.string.setup_enable)
-            setOnClickListener { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) }
+        with(ui) {
+            page.content.add(status)
+            page.content.add(buttonRow(getString(R.string.setup_enable), null) { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) })
+            page.content.add(buttonRow(getString(R.string.setup_choose), null) { imm().showInputMethodPicker() })
+            page.content.add(header(getString(R.string.settings_header)))
+            page.content.add(navRow(getString(R.string.settings_typing), getString(R.string.settings_typing_summary)) { open(SettingsPageActivity.TYPING) })
+            page.content.add(navRow(getString(R.string.settings_suggestions), getString(R.string.settings_suggestions_summary)) { open(SettingsPageActivity.SUGGESTIONS) })
+            page.content.add(navRow(getString(R.string.settings_about), getString(R.string.settings_about_summary)) { open(SettingsPageActivity.ABOUT) })
         }
-        val choose = Button(this).apply {
-            setText(R.string.setup_choose)
-            setOnClickListener { imm().showInputMethodPicker() }
-        }
-
-        setContentView(
-            LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                setPadding(pad, pad * 2, pad, pad)
-                addView(title)
-                addView(status)
-                addView(enable)
-                addView(choose)
-            }
-        )
+        setContentView(page.root)
     }
+
+    private fun open(page: String) = startActivity(SettingsPageActivity.intent(this, page))
 
     override fun onResume() {
         super.onResume()
