@@ -6,7 +6,12 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
 - `view/KeyboardView.kt`: one Canvas view (strip icons + 4 rows), multi-touch (4 pointers), commit on release, finger sliding
   switches the pressed key, shift/caps lock, backspace repeat, digit long-press hints, key bubble, light/dark palette, no allocations in touch/draw.
 - `layout/Keys.kt` + `layout/Layouts.kt`: key model and the letters / symbols / symbols2 pages as data.
-- `settings/SetupActivity.kt` (enable/choose screen), `.github/workflows/build.yml`.
+- `prefs/Prefs.kt`: the ONE SharedPreferences file `monsoon_prefs` (key constants + typed getters: language, last Bangla layout, language key, space swipe, learn).
+  `ime/LearnSettings` uses the same file. The IME listens (`MonsoonIme.applyPrefs`) so settings take effect live.
+- `settings/` (plain framework Views, no libraries, light/dark from the theme): `SetupActivity` = main list (setup status + steps, rows for the pages),
+  `SettingsPageActivity` = Typing / Suggestions / About pages chosen by the `page` extra, `LicensesActivity` (assets/licenses/*.txt), `SettingsUi` = row builders
+  (page, header, switchRow, navRow, buttonRow, infoRow, note). A new setting = a Prefs key + a row + a read in `applyPrefs()`.
+- `.github/workflows/build.yml`.
 - `lang/avro/` (MPL-2.0 port, pure Kotlin, no Android classes, NOT thread-safe, one instance on the main thread):
   `AvroPhoneticConverter` (`convert(word)` -> Bangla, with Avro autocorrect + `joNukta` flag), `AvroAutoCorrect` (loads
   `assets/avro/autodict.dct`, a copy of the reference file), `AvroRules` (GENERATED rule tables for k g n c t d p b m l s h) and
