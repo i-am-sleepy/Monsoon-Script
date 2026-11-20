@@ -19,16 +19,16 @@ L4 প্রভাত (Probhat) + জাতীয় (National) layouts [~] (own
 
 L5 Sign keys without the dotted circle [~] (D62)
   L5.1 [x] `Key.drawable`: a Mn/Mc sign is painted on `Key.NBSP` instead of "◌" (keys, hints, bubble); typed text unchanged; test `combiningSignsAreDrawnOnANoBreakSpaceNotOnADottedCircle`.
-  L5.2 [~] Pushed with L6/T11; owner checks ূ ী ্ ি ু ে on Probhat and National. If a sign is off-center, nudge in `KeyboardView.drawKey` (the no-break space adds a little width).
+  L5.2 [~] Pushed in 65133d1 (CI #29 green); owner checks ূ ী ্ ি ু ে on Probhat and National. If a sign is off-center, nudge in `KeyboardView.drawKey` (the no-break space adds a little width).
 L6 Rare signs on the ?123 pages [~] (D63, owner chose Bangla layouts only)
   L6.1 [x] `Key.bnHint` + `Layouts.symbols/symbols2` hints (৲ ॥ ৺ ৴ ৵ ৶ ৷ ৸ ৹ ঽ ৄ ৢ ৣ); `KeyboardView.hintOf` shows them only when `language.isBangla`.
   L6.2 [x] FixedLayoutsTest: every Bangla character of Probhat and National is typable, each rare sign is on exactly one key (15 tests pass locally).
-  L6.3 [~] Pushed, waiting for CI and the owner's test.
+  L6.3 [~] Pushed in 65133d1, CI #29 green; waiting for the owner's test.
 T11 Bangla digits [~] (D18, D61; taken over from claude-e on the owner's order 2026-11-21)
   T11.1 [x] Owner decided: a setting that swaps typed digit and hint on every digit key; hints only in Bangla layouts.
   T11.2 [x] `Key.digit`, `Key.BN_DIGITS`; `KeyboardView.typedOf/faceOf/hintOf/hintDrawnOf/setBanglaDigits`.
   T11.3 [x] `Prefs.DIGITS` (Int 0 English / 1 Bangla), `Prefs.banglaDigits`, Typing page `choiceRow` + note, strings, `MonsoonIme.applyPrefs` calls `setBanglaDigits`.
-  T11.4 [~] Pushed, waiting for CI. Then the owner's test checklist (in my reply).
+  T11.4 [~] Pushed in 65133d1, CI #29 green (build, tests, signed APK); waiting for the owner's test (checklist was in my reply).
 
 L1 Multi-Claude workflow [~]
   L1.1 [x] Design agreed with the owner (D20-D22).
@@ -71,8 +71,7 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
   Reminder: pure-Kotlin parts are tested locally (kc.sh); Android parts only by CI.
 
 ## Next step
-After the push: wait 4-8 min, `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt`; fix any compile error in view/KeyboardView.kt (hintOf / typedOf / faceOf, the Android part nobody compiled locally), settings/SettingsPageActivity.kt or prefs/Prefs.kt.
-Then the owner tests L5, L6 and T11 together; fix what he reports. Nothing left out any more of Probhat / National (FixedLayoutsTest checks it).
+The owner tests 65133d1 (L5 signs without circle, L6 rare signs on ?123, T11 Bangla digits setting). Fix what he reports (watch: sign faces off-center because of the no-break space). Nothing left out any more of Probhat / National (FixedLayoutsTest checks it).
 Nothing else of mine is open except waiting. L2.5 (claude-g: learning switch, Clear button, Licenses screen via `ime/LearnSettings` and `assets/licenses/prediction-data.txt`) and L1.4 (owner starting
 claude-e/g/s) are others'. Ideas only if the owner asks: smarter Banglish bridge (match more words, e.g. tomar/tomake/ekta/apni via the Avro dictionary search), Bangla-script
 suggestion for Banglish typing, tuning of the 0.4 short-prefix prior (`Predictor.SHORT_PREFIX_PRIOR`). Do not start new features without the owner's go-ahead.
