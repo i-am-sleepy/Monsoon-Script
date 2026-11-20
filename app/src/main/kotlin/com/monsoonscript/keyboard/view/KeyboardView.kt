@@ -98,6 +98,7 @@ class KeyboardView(context: Context) : View(context) {
     private val ptrId = IntArray(MAX_PTR) { -1 }
     private val ptrKey = IntArray(MAX_PTR) { -1 }
     private val ptrLong = BooleanArray(MAX_PTR)
+    private val ptrHint = BooleanArray(MAX_PTR) // a long press armed the key's hint: its bubble shows the hint, which is typed on release (G1.6)
     private val downX = FloatArray(MAX_PTR)
     private val swipeArmed = BooleanArray(MAX_PTR)
     private val repeatCount = IntArray(MAX_PTR)
@@ -369,6 +370,7 @@ class KeyboardView(context: Context) : View(context) {
             ptrId[s] = -1
             ptrKey[s] = -1
             ptrLong[s] = false
+            ptrHint[s] = false
             swipeArmed[s] = false
             ptrInSug[s] = false
             ptrSug[s] = -1
@@ -506,7 +508,13 @@ class KeyboardView(context: Context) : View(context) {
         }
         for (s in 0 until MAX_PTR) {
             val i = ptrKey[s]
-            if (i >= 0 && !ptrLong[s] && i < ks.size && ks[i].kind == Kind.CHAR) drawBubble(canvas, ks[i], rs[i])
+            if (i < 0 || i >= ks.size) continue
+            if (ptrHint[s]) {
+                val hint = hintOf(ks[i])
+                if (hint != null) drawBubble(canvas, hint, rs[i]) // held long enough: the bubble shows the hint, typed on release
+            } else if (!ptrLong[s] && ks[i].kind == Kind.CHAR) {
+                drawBubble(canvas, if (shiftState != SHIFT_OFF && ks[i].isLetter) ks[i].upper else ks[i].text, rs[i])
+            }
         }
     }
 
@@ -695,7 +703,7 @@ class KeyboardView(context: Context) : View(context) {
         return if (i in 0 until SUG_SLOTS && sug[i] != null) i else -1
     }
 
-    private fun drawBubble(c: Canvas, k: Key, r: RectF) {
+    private fun drawBubble(c: Canvas, text: String, r: RectF) {
         val bw = r.width() * 1.25f
         val bh = rowH * 1.05f
         val margin = dp(2f)
@@ -704,8 +712,7 @@ class KeyboardView(context: Context) : View(context) {
         tmp.set(left, top, left + bw, top + bh)
         fillPaint.color = pal.bubble
         c.drawRoundRect(tmp, radius * 1.4f, radius * 1.4f, fillPaint)
-        val t = if (shiftState != SHIFT_OFF && k.isLetter) k.upper else k.text
-        c.drawText(t, tmp.centerX(), tmp.centerY() + bubbleBase, bubblePaint)
+        c.drawText(text, tmp.centerX(), tmp.centerY() + bubbleBase, bubblePaint)
     }
 
     // ---------------------------------------------------------------- touch
@@ -757,6 +764,7 @@ class KeyboardView(context: Context) : View(context) {
         ptrId[slot] = id
         ptrKey[slot] = idx
         ptrLong[slot] = false
+        ptrHint[slot] = false
         repeatCount[slot] = 0
         swipeArmed[slot] = false
         ptrInSug[slot] = inSug
@@ -836,16 +844,22 @@ class KeyboardView(context: Context) : View(context) {
         cancelTimers(slot)
         val idx = ptrKey[slot]
         val wasLong = ptrLong[slot]
+        val wasHint = ptrHint[slot]
         val wasSug = ptrInSug[slot]
         val wasArrow = ptrArrow[slot]
         val sugIdx = ptrSug[slot]
         ptrId[slot] = -1
         ptrKey[slot] = -1
         ptrLong[slot] = false
+        ptrHint[slot] = false
         ptrInSug[slot] = false
         ptrArrow[slot] = false
         ptrSug[slot] = -1
         invalidate()
+        if (wasHint) { // the finger was lifted while the hint bubble showed: type the hint now (G1.6)
+            if (idx >= 0 && page < keys.size) hintOf(keys[page][idx])?.let { listener?.onText(it) }
+            return
+        }
         if (wasArrow) {
             if (sugIdx == ARROW_SLOT && sugCount > 0) iconsPinned = !iconsPinned
             return
@@ -876,10 +890,10 @@ class KeyboardView(context: Context) : View(context) {
             invalidate()
             return
         }
-        val hint = hintOf(k) ?: return
+        if (hintOf(k) == null) return
         ptrLong[slot] = true
+        ptrHint[slot] = true // the hint is typed when the finger is lifted; until then its bubble shows it
         longTap()
-        listener?.onText(hint)
         invalidate()
     }
 

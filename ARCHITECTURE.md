@@ -4,7 +4,7 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
 - `ime/MonsoonIme.kt`: commits text, backspace/enter/tab as key events, enter honors the editor's IME action, globe = next IME,
   auto-caps (asked only after space . ! ? and at start, because getCursorCapsMode blocks on the app), no fullscreen extract UI.
 - `view/KeyboardView.kt`: one Canvas view (strip icons + 4 rows), multi-touch (4 pointers), commit on release, finger sliding
-  switches the pressed key, shift/caps lock, backspace repeat, digit long-press hints, key bubble, light/dark palette, no allocations in touch/draw.
+  switches the pressed key, shift/caps lock, backspace repeat, digit long-press hints (after the long-press delay the key bubble shows the hint and the hint is typed when the finger is lifted, G1.6; `ptrHint`), key bubble, light/dark palette, no allocations in touch/draw.
 - `layout/Keys.kt` + `layout/Layouts.kt`: key model and the letters / symbols / symbols2 pages as data, plus `Layouts.numberRow` (the optional digits row, G1.5).
 - `prefs/Prefs.kt`: the ONE SharedPreferences file `monsoon_prefs` (key constants + typed getters: language, last Bangla layout, language key, space swipe, learn, strip toggles `suggest_show` / `suggest_next_word` / `suggest_typed_first`, typing feel `typing_vibration` (Int 0-3) / `typing_key_sound` / `typing_long_press` (Int 0-2), appearance `appearance_theme` (Int 0-2) / `appearance_number_row` / `appearance_height_portrait` + `appearance_height_landscape` (percent 70-130) / `appearance_key_gap` (dp 0-6)).
   `ime/LearnSettings` uses the same file. The IME listens (`MonsoonIme.applyPrefs`) so settings take effect live.

@@ -14,11 +14,11 @@ G1 Settings pages [~]  (T10 = G1.1 + G1.2, L2.5 = G1.2)
   G1.3 [~] Suggestion toggles pushed in 3 commits (e08984c prefs/switches/PredictionWorker, 78e7a92 MonsoonIme, then docs); claude-l warned. NOT compiled (no local compiler): check CI for the newest commit. Owner answered #9: Avro choices stay unaffected (D57). Owner saw the new switches on the Suggestions page (2026-11-20); the behaviour checklist below is not reported yet.
   G1.4 [~] Typing feel pushed (Prefs, KeyboardView.setTypingFeel, choiceRow + tryField in SettingsUi, Typing page, VIBRATE in the manifest). CI #23 (2b499bf) green, build + tests. Light/Strong strengths and the 220/450 ms delays are guesses, tune after the owner's report.
   G1.5 [~] Appearance pushed: Appearance page with a live preview (theme Follow phone/Light/Dark, number row, height sliders portrait/landscape 70-130%, key gap 0-6 dp), SetupActivity row, `KeyboardView.setAppearance`. CI #24 (20464dd) green, build + tests. Owner chose to test G1.4 and G1.5 together.
-  G1.6 [ ] (low priority) hold-hint bubble for top-row digits: show the digit while held, type it on release
+  G1.6 [~] Hold-hint bubble pushed: holding a hint key (top-row digits) past the long-press delay shows the digit in the key bubble and types it when the finger is lifted (before: typed at the moment of the long press, no preview). Owner asked for it 2026-11-20 to test everything at once.
 
 ## Next action
-0. FIRST: `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt`. If the newest commit failed, read only `--- errors ---` and fix; if green, give the owner the checklist below.
-G1.6 (low priority) hold-hint bubble for top-row digits: show the digit in the bubble while the key is held, type it on release instead of at the long-press moment (today it is typed at once, without a preview). Touches `KeyboardView.onLongPress`/`up`/bubble drawing; skip when the number row is on (hints are hidden then). Ask the owner whether they still want it before starting.
+0. FIRST: `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt`. If the newest commit failed, read only `--- errors ---` and fix; if green, give the owner the checklist below (G1.3 to G1.6 are all waiting for the owner's device test).
+G1 has no open step left. After the owner's report: fix what they find, tune the guesses (Light/Strong vibration, long-press delays 220/450 ms, height clamp 65%), then tick G1 [x] in STATUS.md. Do not start new features without the owner's go-ahead.
 Chat-session tooling: the sandbox has no git login. Either the GitHub connector's `push_files` (full file contents, JSON-escape backslashes) or a token the owner pastes in the chat (use it only for one push command via `git -c http.extraheader=...`, never save it in files, memory or git config; tell the owner to revoke it afterwards). Check with `git fetch origin main && git diff origin/main` that main equals the local files.
 How to add a setting: `Prefs` key + `ui.switchRow(...)` / `ui.choiceRow(title, key, options, default)` / `ui.sliderRow(title, key, min, max, default, format)` (or navRow/buttonRow/infoRow/note/tryField in `SettingsUi`), then read it in `applyPrefs()`.
 
@@ -27,7 +27,8 @@ ARCHITECTURE.md is up to date for G1.3 and G1.4.
 Not compiled locally (CI only). Hand-offs kept: language has ONE entry point `MonsoonIme.setLanguage`, saved by enum NAME, unknown falls back to EN.
 Shared files I touch: MonsoonIme, KeyboardView (palette, sizes, later), AndroidManifest (VIBRATE added in G1.4), strings.xml; warn claude-e (layouts, number row) and claude-l (strip/prediction toggles) when I change them.
 
-## Test checklist for my latest build (owner) - G1.4 + G1.5 together (CI #24 green; UNTESTED on a device)
+## Test checklist for my latest build (owner) - G1.3 to G1.6 together (UNTESTED on a device)
+G1.3 suggestion switches (Settings > Suggestions): a. Show word suggestions off = no completions or next words (icon row stays), Bangla Avro spelling choices still show. b. Next-word suggestions off = nothing after a space, completions still show while typing. c. Show my typed word first off = first choice while typing is a completion. d. Learn from my typing still works with the strip off.
 G1.4 typing feel (Settings > Typing): 1. new "Typing feel" section + "Try it" box. 2. Vibration Off / Light / Normal (like before) / Strong on letters, backspace, suggestion tap, long press. 3. Sound on key press (needs Android Touch sounds on; off by default). 4. Long-press delay Short / Normal / Long applies at once. 5. Typing, shift, backspace repeat, space swipe unchanged.
 G1.5 Appearance (new row on the main list, between Suggestions and About):
 6. The page shows a keyboard preview on top. Touching it does nothing and the page still scrolls.
@@ -36,6 +37,9 @@ G1.5 Appearance (new row on the main list, between Suggestions and About):
 9. Height sliders: the portrait slider changes the preview when the phone is upright, the landscape one when it is sideways; 100% looks like before; very tall settings stop growing at about two thirds of the screen. Open a text field after changing: the keyboard has the new height.
 10. Space between keys: 0 = keys touching, 6 = wide gaps, 3 = as before; keys stay tappable.
 11. Emoji panel (the emoji key): still opens at the same height as the keys after a height or number-row change.
+G1.6 hold-hint bubble:
+12. Hold a top-row letter (q w e r t y u i o p) past the long-press delay: the key bubble switches from the letter to its digit and you feel the long-press tick; nothing is typed yet. Lift the finger: the digit is typed. A quick tap still types the letter. With the number row on, holding does nothing special.
+13. Hold q, then slide the finger to another key and lift: the digit of q is typed (the hold stays armed). Holding the globe key still opens the keyboard picker at once.
 
 - [claude-e -> claude-g] 2026-11-19 E2.3: LicensesActivity.FILES got a 4th entry "licenses/emoji.txt" (Unicode data + Noto font credits); app/build.gradle.kts got `noCompress += "ttf"` next to "mslm". Keep both when you edit those files. Later E2 work (picker) will also touch MonsoonIme, KeyboardView and strings.xml; I will warn again with the functions.
 
