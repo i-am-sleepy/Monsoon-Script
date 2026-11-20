@@ -1,0 +1,100 @@
+job: build (release APK + upstream unit tests)
+result: success
+upstream database unit tests: success
+upstream: KeePassDX 4.5.8
+run: #12 https://github.com/i-am-sleepy/Monsoon-Script/actions/runs/44657525316
+commit: 8b6ace16a7c0da84f1873885a5273744a5f90779
+time: 2026-11-20T02:02:47Z
+release apk bytes: 14064386
+main latest apk: content-length: 22765352
+--- apk contents (native libs + dex) ---
+  1297720  1981-01-01 01:01   classes.dex
+   207424  1981-01-01 01:01   lib/arm64-v8a/libaes.so
+   166024  1981-01-01 01:01   lib/arm64-v8a/libargon2.so
+   181472  1981-01-01 01:01   lib/armeabi-v7a/libaes.so
+   157112  1981-01-01 01:01   lib/armeabi-v7a/libargon2.so
+   196956  1981-01-01 01:01   lib/x86/libaes.so
+   139436  1981-01-01 01:01   lib/x86/libargon2.so
+   210664  1981-01-01 01:01   lib/x86_64/libaes.so
+   163488  1981-01-01 01:01   lib/x86_64/libargon2.so
+
+--- errors ---
+
+--- tail ---
+> Task :vault:compileReleaseKotlin
+> Task :vault:compileReleaseJavaWithJavac NO-SOURCE
+> Task :vault:mergeReleaseGeneratedProguardFiles
+> Task :vault:exportReleaseConsumerProguardFiles
+> Task :vault:bundleLibCompileToJarRelease
+> Task :vault:bundleLibRuntimeToJarRelease
+> Task :vault:processReleaseJavaRes
+> Task :app:compileReleaseKotlin
+> Task :app:compileReleaseJavaWithJavac NO-SOURCE
+> Task :app:expandReleaseArtProfileWildcards
+> Task :app:mergeReleaseGeneratedProguardFiles
+> Task :app:processReleaseJavaRes
+> Task :app:mergeReleaseJavaResource
+> Task :app:minifyReleaseWithR8
+> Task :app:compileReleaseArtProfile
+> Task :app:convertShrunkResourcesToBinaryRelease
+> Task :app:optimizeReleaseResources
+> Task :app:packageRelease
+> Task :app:createReleaseApkListingFileRedirect
+> Task :app:assembleRelease
+
+> Task :app:reportApkParts
+APKPARTS part: bytes stored in the apk / bytes uncompressed
+APKPARTS AndroidManifest.xml              1146 /         3452
+APKPARTS META-INF                          278 /          300
+APKPARTS assets                       11779011 /     15013195
+APKPARTS dex                            570454 /      1297720
+APKPARTS kotlin                          10468 /        29945
+APKPARTS kotlin-tooling-metadata.json          285 /          627
+APKPARTS lib/arm64-v8a                  373448 /       373448
+APKPARTS lib/armeabi-v7a                338584 /       338584
+APKPARTS lib/x86                        336392 /       336392
+APKPARTS lib/x86_64                     374152 /       374152
+APKPARTS org                            120505 /       201979
+APKPARTS res                               730 /         1508
+APKPARTS resources.arsc                   1732 /         1732
+APKPARTS total apk bytes: 14064386
+APKPARTS biggest folders outside dex/assets/lib (stored bytes):
+APKPARTS   org/joda/time/tz                                                 113448
+APKPARTS   org/joda/time/format                                               7057
+APKPARTS   kotlin/kotlin.kotlin_builtins                                      5257
+APKPARTS   resources.arsc                                                     1732
+APKPARTS   kotlin/collections/collections.kotlin_builtins                     1521
+APKPARTS   kotlin/ranges/ranges.kotlin_builtins                               1292
+APKPARTS   kotlin/reflect/reflect.kotlin_builtins                             1286
+APKPARTS   AndroidManifest.xml                                                1146
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/build-1795139979869.json
+
+BUILD SUCCESSFUL in 2m 35s
+117 actionable tasks: 107 executed, 10 from cache
+
+--- upstream unit tests (tail) ---
+> Task :database:processDebugManifest FROM-CACHE
+> Task :database:processDebugUnitTestManifest
+> Task :database:javaPreCompileDebugUnitTest FROM-CACHE
+> Task :database:generateDebugUnitTestAssets UP-TO-DATE
+> Task :database:mergeDebugShaders
+> Task :database:compileDebugShaders NO-SOURCE
+> Task :database:generateDebugAssets UP-TO-DATE
+> Task :database:mergeDebugAssets
+> Task :database:mergeDebugUnitTestAssets
+> Task :database:processDebugUnitTestResources
+> Task :database:packageDebugUnitTestForUnitTest
+> Task :database:generateDebugUnitTestConfig
+> Task :database:compileDebugKotlin
+> Task :database:compileDebugJavaWithJavac NO-SOURCE
+> Task :database:processDebugJavaRes
+> Task :database:bundleLibRuntimeToJarDebug
+> Task :database:bundleLibCompileToJarDebug
+> Task :database:compileDebugUnitTestKotlin
+> Task :database:compileDebugUnitTestJavaWithJavac NO-SOURCE
+> Task :database:processDebugUnitTestJavaRes
+> Task :database:testDebugUnitTest
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/utests-1795140131243.json
+
+BUILD SUCCESSFUL in 36s
+49 actionable tasks: 29 executed, 20 from cache
