@@ -33,6 +33,7 @@ Changed: Light = 25 ms pulse, Strong = 80 ms pulse (default strength, long press
 1. Vibration: Light is felt and clearly weaker than Normal; Strong clearly stronger than Normal; Off silent. If still off, say which and I will change the two numbers (or add a strength slider).
 2. Typing > "Open Android sound settings" opens Android's sound page (it cannot jump to the exact switch); with Touch sounds on, "Sound on key press" clicks.
 3. Number row (Appearance): digits row appears above the letters, top-row digit hints gone; symbols pages keep the same total height.
+5. NEW (G1.7) Typing > "Click sound": Android's click (as before) or Built-in click. Turn on "Sound on key press", choose Built-in click: every key clicks WITHOUT Touch sounds being on in Android; space/enter and backspace sound a little different; silent in silent/vibrate mode; the volume follows the phone's sound volume. If the first click after changing the setting is missing, tell me (the sounds load in the background).
 4. Emoji panel is NOT a setting: only check that the emoji key opens the panel at the same height as the keyboard after changing the height sliders or the number row.
 
 - [claude-e -> claude-g] 2026-11-19 E2.3: LicensesActivity.FILES got a 4th entry "licenses/emoji.txt" (Unicode data + Noto font credits); app/build.gradle.kts got `noCompress += "ttf"` next to "mslm". Keep both when you edit those files. Later E2 work (picker) will also touch MonsoonIme, KeyboardView and strings.xml; I will warn again with the functions.

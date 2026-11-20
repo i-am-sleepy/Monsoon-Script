@@ -50,6 +50,9 @@ class SettingsPageActivity : Activity() {
             page.content.add(choiceRow(getString(R.string.settings_vibration), Prefs.VIBRATION, levels, Prefs.VIB_NORMAL))
             page.content.add(note(getString(R.string.settings_vibration_note)))
             page.content.add(switchRow(getString(R.string.settings_key_sound), getString(R.string.settings_key_sound_summary), Prefs.KEY_SOUND, false))
+            val sources = listOf(R.string.settings_sound_android, R.string.settings_sound_builtin).map { getString(it) }
+            page.content.add(choiceRow(getString(R.string.settings_sound_source), Prefs.SOUND_SOURCE, sources, Prefs.SOUND_ANDROID))
+            page.content.add(note(getString(R.string.settings_sound_source_note)))
             page.content.add(buttonRow(getString(R.string.settings_sound_settings), getString(R.string.settings_sound_settings_summary)) { openSoundSettings() })
             val delays = listOf(R.string.settings_press_short, R.string.settings_press_normal, R.string.settings_press_long).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.settings_long_press), Prefs.LONG_PRESS, delays, Prefs.LONG_PRESS_NORMAL))

@@ -306,6 +306,8 @@ class KeyboardView(context: Context) : View(context) {
 
     private var vibration = VIB_NORMAL
     private var keySound = false
+    private var builtinSound = false
+    private var clicks: ClickSound? = null // exists only while the built-in click is selected and the view is attached
     private var longPressMs = LONG_PRESS_MS
     private var tapEffect: VibrationEffect? = null
     private var longEffect: VibrationEffect? = null
@@ -314,13 +316,15 @@ class KeyboardView(context: Context) : View(context) {
 
     /**
      * [vibration]: 0 Off, 1 Light, 2 Normal (Android's own keyboard tap, the behaviour before the setting existed), 3 Strong. Light and Strong
-     * drive the vibration motor directly (a short and a long pulse). [keySound] plays Android's key click (it follows
-     * the system "touch sounds" switch). [longPressMs] is the hold time of a long press.
+     * drive the vibration motor directly (a short and a long pulse). [keySound] plays a click on every key: Android's own (it follows the
+     * system "touch sounds" switch) or, with [builtinSound], the keyboard's own [ClickSound]. [longPressMs] is the hold time of a long press.
      */
-    fun setTypingFeel(vibration: Int, keySound: Boolean, longPressMs: Long) {
+    fun setTypingFeel(vibration: Int, keySound: Boolean, builtinSound: Boolean, longPressMs: Long) {
         this.vibration = vibration.coerceIn(VIB_OFF, VIB_STRONG)
         this.keySound = keySound
+        this.builtinSound = builtinSound
         this.longPressMs = longPressMs
+        syncClicks()
         tapEffect = null
         longEffect = null
         if (this.vibration == VIB_LIGHT || this.vibration == VIB_STRONG) {
@@ -359,8 +363,22 @@ class KeyboardView(context: Context) : View(context) {
         }
     }
 
+    /** Create the built-in click (loads its sounds in the background) when it is wanted, drop it when not. */
+    private fun syncClicks() {
+        val want = keySound && builtinSound && isAttachedToWindow
+        if (want && clicks == null) clicks = ClickSound(context)
+        if (!want && clicks != null) {
+            clicks?.release()
+            clicks = null
+        }
+    }
+
     private fun click(code: Int) {
         if (!keySound) return
+        if (builtinSound) {
+            clicks?.play(code)
+            return
+        }
         val effect = when (code) {
             Codes.SPACE -> AudioManager.FX_KEYPRESS_SPACEBAR
             Codes.BACKSPACE -> AudioManager.FX_KEYPRESS_DELETE
@@ -1099,9 +1117,15 @@ class KeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        syncClicks()
+    }
+
     override fun onDetachedFromWindow() {
         super.onDetachedFromWindow()
         for (s in 0 until MAX_PTR) cancelTimers(s)
+        syncClicks()
     }
 
     class Palette(

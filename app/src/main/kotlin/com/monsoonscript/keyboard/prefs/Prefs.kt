@@ -36,6 +36,9 @@ object Prefs {
     // typing feel (G1.4)
     const val VIBRATION = "typing_vibration" // Int: 0 Off, 1 Light, 2 Normal (Android's own key tap, as before G1.4), 3 Strong
     const val KEY_SOUND = "typing_key_sound" // default off
+    const val SOUND_SOURCE = "typing_sound_source" // Int: 0 Android's click (needs system Touch sounds), 1 the keyboard's own click
+    const val SOUND_ANDROID = 0
+    const val SOUND_BUILTIN = 1
     const val LONG_PRESS = "typing_long_press" // Int: 0 Short, 1 Normal, 2 Long
     const val VIB_NORMAL = 2
     const val LONG_PRESS_NORMAL = 1
@@ -68,6 +71,8 @@ object Prefs {
     fun vibration(context: Context): Int = of(context).getInt(VIBRATION, VIB_NORMAL).coerceIn(0, 3)
 
     fun keySound(context: Context): Boolean = of(context).getBoolean(KEY_SOUND, false)
+
+    fun soundSource(context: Context): Int = of(context).getInt(SOUND_SOURCE, SOUND_ANDROID).coerceIn(SOUND_ANDROID, SOUND_BUILTIN)
 
     /** How long a key is held before its long-press (hint character, globe menu) fires. */
     fun longPressMs(context: Context): Long = when (of(context).getInt(LONG_PRESS, LONG_PRESS_NORMAL)) {

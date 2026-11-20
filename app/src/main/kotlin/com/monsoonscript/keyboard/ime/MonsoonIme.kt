@@ -136,7 +136,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             applySystemBars() // the theme setting can change the keyboard color
             emojiPanel?.setPalette(kb.palette)
         }
-        keyboard?.setTypingFeel(Prefs.vibration(this), Prefs.keySound(this), Prefs.longPressMs(this))
+        keyboard?.setTypingFeel(Prefs.vibration(this), Prefs.keySound(this), Prefs.soundSource(this) == Prefs.SOUND_BUILTIN, Prefs.longPressMs(this))
         showSuggestions = Prefs.showSuggestions(this)
         nextWord = Prefs.nextWord(this)
         typedFirst = Prefs.typedFirst(this)

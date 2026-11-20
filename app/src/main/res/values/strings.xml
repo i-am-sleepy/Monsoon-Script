@@ -47,9 +47,13 @@
     <string name="settings_vib_strong">Strong</string>
     <string name="settings_vibration_note">Normal is Android\'s own key tap. Light and Strong drive the vibration motor directly: Light is a short pulse, Strong a long one.</string>
     <string name="settings_key_sound">Sound on key press</string>
-    <string name="settings_key_sound_summary">Plays the Android key click. Android only plays it when Touch sounds (also called Touch tone) is on in its sound settings. The separate keyboard tone option there is for the phone\'s own keyboard and does not affect this one.</string>
+    <string name="settings_key_sound_summary">A click on every key press. Pick which click below.</string>
+    <string name="settings_sound_source">Click sound</string>
+    <string name="settings_sound_android">Android\'s click</string>
+    <string name="settings_sound_builtin">Built-in click</string>
+    <string name="settings_sound_source_note">Android\'s click is the phone\'s own key click and plays only while Touch sounds (Touch tone) is on in Android\'s sound settings. The built-in click is made by this keyboard, works without that switch and stays silent in silent or vibrate mode. Both follow the phone\'s sound volume.</string>
     <string name="settings_sound_settings">Open Android sound settings</string>
-    <string name="settings_sound_settings_summary">Opens the sound page. Turn on Touch sounds or Touch tone there; the name differs between phones.</string>
+    <string name="settings_sound_settings_summary">Only needed for Android\'s click. Opens the sound page; turn on Touch sounds or Touch tone there (the name differs between phones).</string>
     <string name="settings_sound_settings_failed">Could not open Android settings. Open Settings > Sound yourself.</string>
     <string name="settings_long_press">Long-press delay</string>
     <string name="settings_press_short">Short</string>
