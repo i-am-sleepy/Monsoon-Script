@@ -13,7 +13,7 @@ G1 Settings pages [~]  (T10 = G1.1 + G1.2, L2.5 = G1.2)
            `LicensesActivity` shows assets/licenses/{app,avro,prediction-data}.txt. Owner-tested OK (2026-11-19).
   G1.3 [~] Suggestion toggles pushed in 3 commits (e08984c prefs/switches/PredictionWorker, 78e7a92 MonsoonIme, then docs); claude-l warned. NOT compiled (no local compiler): check CI for the newest commit. Owner answered #9: Avro choices stay unaffected (D57). Owner saw the new switches on the Suggestions page (2026-11-20); the behaviour checklist below is not reported yet.
   G1.4 [~] Typing feel pushed (Prefs, KeyboardView.setTypingFeel, choiceRow + tryField in SettingsUi, Typing page, VIBRATE in the manifest). CI #23 (2b499bf) green, build + tests. Light/Strong strengths and the 220/450 ms delays are guesses, tune after the owner's report.
-  G1.5 [~] Appearance pushed: Appearance page with a live preview (theme Follow phone/Light/Dark, number row, height sliders portrait/landscape 70-130%, key gap 0-6 dp), SetupActivity row, `KeyboardView.setAppearance`. Compile result: see the CI line below. Owner chose to test G1.4 and G1.5 together.
+  G1.5 [~] Appearance pushed: Appearance page with a live preview (theme Follow phone/Light/Dark, number row, height sliders portrait/landscape 70-130%, key gap 0-6 dp), SetupActivity row, `KeyboardView.setAppearance`. CI #24 (20464dd) green, build + tests. Owner chose to test G1.4 and G1.5 together.
   G1.6 [ ] (low priority) hold-hint bubble for top-row digits: show the digit while held, type it on release
 
 ## Next action
@@ -27,7 +27,7 @@ ARCHITECTURE.md is up to date for G1.3 and G1.4.
 Not compiled locally (CI only). Hand-offs kept: language has ONE entry point `MonsoonIme.setLanguage`, saved by enum NAME, unknown falls back to EN.
 Shared files I touch: MonsoonIme, KeyboardView (palette, sizes, later), AndroidManifest (VIBRATE added in G1.4), strings.xml; warn claude-e (layouts, number row) and claude-l (strip/prediction toggles) when I change them.
 
-## Test checklist for my latest build (owner) - G1.4 + G1.5 together (UNTESTED on a device; CI result below)
+## Test checklist for my latest build (owner) - G1.4 + G1.5 together (CI #24 green; UNTESTED on a device)
 G1.4 typing feel (Settings > Typing): 1. new "Typing feel" section + "Try it" box. 2. Vibration Off / Light / Normal (like before) / Strong on letters, backspace, suggestion tap, long press. 3. Sound on key press (needs Android Touch sounds on; off by default). 4. Long-press delay Short / Normal / Long applies at once. 5. Typing, shift, backspace repeat, space swipe unchanged.
 G1.5 Appearance (new row on the main list, between Suggestions and About):
 6. The page shows a keyboard preview on top. Touching it does nothing and the page still scrolls.
