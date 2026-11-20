@@ -40,7 +40,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       (uni/bi/trigram + learned usage), compact binary tables, async. Built: engine + data (L2.3), English/Bangla strip, arrow, learning (L2.4, CI green up to #13); owner device test OK (2026-11-18); L2.5 (settings switch, clear button, licenses screen) is done by claude-g in G1.2 (63f95a7); steps in status/claude-l.md
 - [x] L3 (claude-l) Banglish prediction quality (D54, owner-tested OK 2026-11-18, CI #15): bridge from Banglish words to the Bangla pair data for next-word, lean Banglish for 1-3 letter prefixes, typed word as first strip choice, no repeat of the word just typed. Steps in status/claude-l.md
 - [~] L4 (claude-l) প্রভাত (Probhat) and জাতীয় (National) fixed Bangla layouts as generated data (also usable by claude-s's T6), typing through the layouts, language-key long-press popup (D19).
-      Taken over from claude-e's T9 (T9.1, T9.2, T9.4) on the owner's order 2026-11-20. Asking the owner the design questions first (Needs user #10). Steps in status/claude-l.md
+      Taken over from claude-e's T9 (T9.1, T9.2, T9.4) on the owner's order 2026-11-20. Design answered (D58-D60), built in 46d05d1 (CI #26 green), waiting for the owner's phone test. Steps in status/claude-l.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)

@@ -11,10 +11,10 @@ L4 প্রভাত (Probhat) + জাতীয় (National) layouts [~] (own
   Probhat needs extra keys (ে ো on [ ], ্ on /, ৃ on shift-comma, ঁ on shift-period, ঞ ৎ ৳ on number-row shifts, nukta on AltGr+period, ZWNJ/ZWJ). Both are logical-order (no reordering engine).
   L4.1 [x] Owner design answers -> D58 (Probhat 4 rows, extra keys), D59 (National + AltGr by long press), D60 (labels). Needs user #10 answered.
   L4.2 [x] `tools/gen_fixed_layouts.py` -> `lang/avro/AvroLayoutTables.kt` (generated, MPL) + `layout/FixedLayout.kt`; `FixedLayoutsTest` (13 tests, run locally with the Kotlin compiler in /opt/gradle/lib).
-  L4.3 [x] `Language.PROBHAT/NATIONAL`, `Layouts.pages(language)`, `Key.shifted/hintShifted/face/hintDrawn*`, KeyboardView per-language rows + shift-aware hints (code written, CI not yet seen).
+  L4.3 [x] `Language.PROBHAT/NATIONAL`, `Layouts.pages(language)`, `Key.shifted/hintShifted/face/hintDrawn*`, KeyboardView per-language rows + shift-aware hints.
   L4.4 [x] `MonsoonIme.switchLanguage`, `KeyboardView.setLanguage(Language)`; typing is the plain commitText path, predictions run in Bangla mode.
   L4.5 [x] Language-key long-press popup (`openLanguagePopup` / `popupTouch` in KeyboardView, `onLanguagePicked` in the IME).
-  L4.6 [~] CI green? then warn claude-s (T6 can reuse `FixedLayout.text`), owner test checklist. Not compiled locally (no android.jar): if CI is red, the error is in KeyboardView/MonsoonIme.
+  L4.6 [x] commit 46d05d1 = CI #26 green (build + tests, signed APK); warnings to claude-e/g/s written. Waiting for the owner's test of the APK (checklist was in my reply); fix what he reports.
 
 L1 Multi-Claude workflow [~]
   L1.1 [x] Design agreed with the owner (D20-D22).
@@ -57,7 +57,7 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
   Reminder: pure-Kotlin parts are tested locally (kc.sh); Android parts only by CI.
 
 ## Next step
-L4.6: read the ci-status build of my L4 commit; fix it if red; then give the owner the test checklist (see the end of my last reply) and warn claude-s.
+L4: owner tests 46d05d1 (Probhat, National, language popup). Fix what he reports. Not built yet and left out on purpose: see D58/D59 (rare signs, ॥, number-row fraction signs).
 Nothing else of mine is open except waiting. L2.5 (claude-g: learning switch, Clear button, Licenses screen via `ime/LearnSettings` and `assets/licenses/prediction-data.txt`) and L1.4 (owner starting
 claude-e/g/s) are others'. Ideas only if the owner asks: smarter Banglish bridge (match more words, e.g. tomar/tomake/ekta/apni via the Avro dictionary search), Bangla-script
 suggestion for Banglish typing, tuning of the 0.4 short-prefix prior (`Predictor.SHORT_PREFIX_PRIOR`). Do not start new features without the owner's go-ahead.
