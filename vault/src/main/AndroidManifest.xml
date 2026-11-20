@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Phase 1 adds the vault service here, with android:process=":vault" (D44). -->
+</manifest>
