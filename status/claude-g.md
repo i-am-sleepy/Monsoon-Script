@@ -27,7 +27,7 @@ ARCHITECTURE.md is up to date for G1.3 and G1.4.
 Not compiled locally (CI only). Hand-offs kept: language has ONE entry point `MonsoonIme.setLanguage`, saved by enum NAME, unknown falls back to EN.
 Shared files I touch: MonsoonIme, KeyboardView (palette, sizes, later), AndroidManifest (VIBRATE added in G1.4), strings.xml; warn claude-e (layouts, number row) and claude-l (strip/prediction toggles) when I change them.
 
-## Test checklist for my latest build (owner) - G1.3 to G1.6 together (UNTESTED on a device)
+## Test checklist for my latest build (owner) - G1.3 to G1.6 together (CI #25 green; UNTESTED on a device)
 G1.3 suggestion switches (Settings > Suggestions): a. Show word suggestions off = no completions or next words (icon row stays), Bangla Avro spelling choices still show. b. Next-word suggestions off = nothing after a space, completions still show while typing. c. Show my typed word first off = first choice while typing is a completion. d. Learn from my typing still works with the strip off.
 G1.4 typing feel (Settings > Typing): 1. new "Typing feel" section + "Try it" box. 2. Vibration Off / Light / Normal (like before) / Strong on letters, backspace, suggestion tap, long press. 3. Sound on key press (needs Android Touch sounds on; off by default). 4. Long-press delay Short / Normal / Long applies at once. 5. Typing, shift, backspace repeat, space swipe unchanged.
 G1.5 Appearance (new row on the main list, between Suggestions and About):
