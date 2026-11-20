@@ -18,6 +18,7 @@ import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import kotlin.math.abs
+import com.monsoonscript.keyboard.lang.Language
 import com.monsoonscript.keyboard.layout.Codes
 import com.monsoonscript.keyboard.layout.Key
 import com.monsoonscript.keyboard.layout.Kind
@@ -39,6 +40,9 @@ class KeyboardView(context: Context) : View(context) {
 
         /** Language key tap, or a swipe across the space bar: switch English <-> the last Bangla layout. */
         fun onLanguageToggle()
+
+        /** A layout was picked in the popup that a long press on the language key opens (L4, D19). */
+        fun onLanguagePicked(language: Language) {}
 
         /** A suggestion in the strip was tapped (D23): commit that word, plus a space. */
         fun onSuggestion(word: String) {}
@@ -88,11 +92,21 @@ class KeyboardView(context: Context) : View(context) {
     private var shiftState = SHIFT_OFF
     private var lastShiftTap = 0L
 
-    // ---- language (the IME owns the state and pushes labels in)
+    // ---- language (the IME owns the state and pushes it in; the letters page and the labels follow it)
+    private var language = Language.ENGLISH
     private var langLabel = "EN"
     private var spaceLabel = "English"
     private var languageKeyEnabled = true
     private var spaceSwipeEnabled = true
+
+    // ---- language popup (L4, D19): a long press on the strip's language key lists the layouts, drawn over the keys below the strip
+    private val popupLanguages = Language.values()
+    private var popupOpen = false
+    private var popupHeld = false // the finger that opened it is still down; lifting it off the key leaves the list open
+    private var popupSel = -1
+    private var popupDownOutside = false
+    private val popupRect = RectF()
+    private var popupRowH = 0f
 
     // ---- pointers (multi-touch)
     private val ptrId = IntArray(MAX_PTR) { -1 }
@@ -130,6 +144,11 @@ class KeyboardView(context: Context) : View(context) {
         textAlign = Paint.Align.CENTER
         typeface = Typeface.DEFAULT_BOLD
     }
+    private val popupPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.LEFT }
+    private val popupBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.STROKE
+        strokeWidth = dp(1f)
+    }
     private val sugPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { textAlign = Paint.Align.CENTER }
     private val sugBoldPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textAlign = Paint.Align.CENTER
@@ -146,6 +165,7 @@ class KeyboardView(context: Context) : View(context) {
     private var stripBase = 0f
     private var sugBase = 0f
     private var hintTop = 0f
+    private var popupBase = 0f
     private var pal = DARK
 
     private val iconShift = Path().apply {
@@ -236,20 +256,39 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     /** The rows of page [p]; the letters page gets the number row on top when it is on. */
-    private fun rowsOf(p: Int): Array<Array<Key>> =
-        if (numberRow && p == Layouts.PAGE_LETTERS) arrayOf(Layouts.numberRow) + Layouts.pages[p] else Layouts.pages[p]
+    private fun rowsOf(p: Int): Array<Array<Key>> {
+        val rows = Layouts.pages(language)[p] // the letters page follows the language (Probhat, National), the symbol pages are shared
+        return if (numberRow && p == Layouts.PAGE_LETTERS) arrayOf(Layouts.numberRow) + rows else rows
+    }
 
-    /** The corner hint of [k]; the digit hints of the top letter row are dropped while the number row shows the digits itself. */
+    /**
+     * What a long press on [k] types, and its corner hint: with Shift on the Shift hint (Shift+AltGr of a fixed Bangla layout, D59), else the
+     * plain one. The digit hints of the top letter row are dropped while the number row shows the digits itself.
+     */
     private fun hintOf(k: Key): String? {
-        val h = k.hint ?: return null
+        val h = (if (shiftState != SHIFT_OFF) k.hintShifted else k.hint) ?: return null
         return if (numberRow && page == Layouts.PAGE_LETTERS && h.length == 1 && h[0] in '0'..'9') null else h
     }
 
-    /** Labels for the strip's language key and the space bar. */
-    fun setLanguage(shortLabel: String, spaceBarLabel: String) {
-        if (shortLabel == langLabel && spaceBarLabel == spaceLabel) return
-        langLabel = shortLabel
-        spaceLabel = spaceBarLabel
+    /** What is painted for that hint: ZWNJ / ZWJ by name, a vowel sign with a dotted circle (see [Key.drawable]). */
+    private fun hintDrawnOf(k: Key): String? =
+        if (hintOf(k) == null) null else if (shiftState != SHIFT_OFF) k.hintDrawnShifted else k.hintDrawn
+
+    /**
+     * The typing language: its letters page (Probhat and National have their own, D58 / D59), the label of the strip's language key and
+     * the space bar label (D60). A different layout starts with Shift off, so a locked Shift cannot leak into another script.
+     */
+    fun setLanguage(l: Language) {
+        if (l == language) return
+        val newLayout = Layouts.pages(l) !== Layouts.pages(language)
+        language = l
+        langLabel = l.shortLabel
+        spaceLabel = l.spaceLabel
+        if (newLayout) {
+            shiftState = SHIFT_OFF
+            cancelAll()
+            if (width > 0) computeLayout(width)
+        }
         invalidate()
     }
 
@@ -376,6 +415,9 @@ class KeyboardView(context: Context) : View(context) {
             ptrSug[s] = -1
             ptrArrow[s] = false
         }
+        popupOpen = false
+        popupHeld = false
+        popupSel = -1
         invalidate()
     }
 
@@ -452,6 +494,8 @@ class KeyboardView(context: Context) : View(context) {
         letterPaint.textSize = rowH * 0.40f
         labelPaint.textSize = rowH * 0.27f
         hintPaint.textSize = rowH * 0.22f
+        popupPaint.textSize = dp(16f)
+        popupBase = baseline(popupPaint)
         bubblePaint.textSize = rowH * 0.62f
         stripTextPaint.textSize = stripH * 0.36f
         sugPaint.textSize = stripH * 0.40f
@@ -510,12 +554,104 @@ class KeyboardView(context: Context) : View(context) {
             val i = ptrKey[s]
             if (i < 0 || i >= ks.size) continue
             if (ptrHint[s]) {
-                val hint = hintOf(ks[i])
+                val hint = hintDrawnOf(ks[i])
                 if (hint != null) drawBubble(canvas, hint, rs[i]) // held long enough: the bubble shows the hint, typed on release
             } else if (!ptrLong[s] && ks[i].kind == Kind.CHAR) {
-                drawBubble(canvas, if (shiftState != SHIFT_OFF && ks[i].isLetter) ks[i].upper else ks[i].text, rs[i])
+                drawBubble(canvas, if (shiftState != SHIFT_OFF) ks[i].faceShifted else ks[i].face, rs[i])
             }
         }
+        if (popupOpen) drawLanguagePopup(canvas)
+    }
+
+    /** The list of layouts (L4, D19) over the keys below the strip: the current one in the accent color, the one under the finger highlighted. */
+    private fun drawLanguagePopup(c: Canvas) {
+        fillPaint.color = pal.bubble
+        c.drawRoundRect(popupRect, radius * 1.4f, radius * 1.4f, fillPaint)
+        popupBorderPaint.color = pal.specialPressed
+        c.drawRoundRect(popupRect, radius * 1.4f, radius * 1.4f, popupBorderPaint)
+        val pad = dp(6f)
+        for (i in popupLanguages.indices) {
+            val top = popupRect.top + pad + i * popupRowH
+            if (i == popupSel) {
+                tmp.set(popupRect.left + pad, top, popupRect.right - pad, top + popupRowH)
+                fillPaint.color = pal.specialPressed
+                c.drawRoundRect(tmp, radius, radius, fillPaint)
+            }
+            popupPaint.color = if (popupLanguages[i] == language) pal.accent else pal.text
+            c.drawText(popupLanguages[i].spaceLabel, popupRect.left + dp(18f), top + popupRowH / 2 + popupBase, popupPaint)
+        }
+    }
+
+    /** Open the list under the language key [anchor]; rows shrink when the keyboard is too low for all of them. */
+    private fun openLanguagePopup(anchor: RectF) {
+        val n = popupLanguages.size
+        val pad = dp(6f)
+        val top = (if (stripShown) stripH else 0f) + dp(2f)
+        popupRowH = minOf(dp(46f), (height - top - dp(4f) - 2 * pad) / n).coerceAtLeast(dp(26f))
+        val w = minOf(dp(240f), width - 2 * padX)
+        val left = anchor.left.coerceIn(padX, (width - padX - w).coerceAtLeast(padX))
+        popupRect.set(left, top, left + w, top + popupRowH * n + 2 * pad)
+        popupOpen = true
+        popupHeld = true
+        popupSel = -1
+        popupDownOutside = false
+        invalidate()
+    }
+
+    private fun closeLanguagePopup() {
+        popupOpen = false
+        popupHeld = false
+        popupSel = -1
+        invalidate()
+    }
+
+    private fun popupIndexAt(x: Float, y: Float): Int {
+        if (!popupRect.contains(x, y)) return -1
+        val i = ((y - popupRect.top - dp(6f)) / popupRowH).toInt()
+        return if (i in popupLanguages.indices && y >= popupRect.top + dp(6f)) i else -1
+    }
+
+    /**
+     * While the list is open every touch belongs to it: sliding highlights, lifting over a row picks it. The finger that opened the list is
+     * usually still down, lifting it off the key leaves the list open; a touch that starts and ends outside the list closes it.
+     */
+    private fun popupTouch(e: MotionEvent): Boolean {
+        val a = e.actionIndex
+        val x = e.getX(a)
+        val y = e.getY(a)
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                popupDownOutside = !popupRect.contains(x, y)
+                popupSel = popupIndexAt(x, y)
+                invalidate()
+            }
+            MotionEvent.ACTION_MOVE -> {
+                val s = popupIndexAt(e.x, e.y)
+                if (s != popupSel) {
+                    popupSel = s
+                    invalidate()
+                }
+            }
+            MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                val s = popupIndexAt(x, y)
+                val held = popupHeld
+                popupHeld = false
+                when {
+                    s >= 0 -> {
+                        val picked = popupLanguages[s]
+                        closeLanguagePopup()
+                        tap()
+                        listener?.onLanguagePicked(picked)
+                    }
+                    held -> popupSel = -1 // the opening finger left the key: the list stays
+                    popupDownOutside || !popupRect.contains(x, y) -> closeLanguagePopup()
+                    else -> popupSel = -1
+                }
+                invalidate()
+            }
+            MotionEvent.ACTION_CANCEL -> closeLanguagePopup()
+        }
+        return true
     }
 
     private fun isPressedIndex(i: Int): Boolean {
@@ -540,10 +676,14 @@ class KeyboardView(context: Context) : View(context) {
         val cy = tmp.centerY()
         when (k.code) {
             Codes.CHAR -> {
-                val t = if (shiftState != SHIFT_OFF && k.isLetter) k.upper else k.text
-                c.drawText(t, cx, cy + letterBase, letterPaint)
-                val hint = hintOf(k)
-                if (hint != null) c.drawText(hint, tmp.right - dp(6f), tmp.top + hintTop, hintPaint)
+                c.drawText(if (shiftState != SHIFT_OFF) k.faceShifted else k.face, cx, cy + letterBase, letterPaint)
+                val hint = hintDrawnOf(k)
+                if (hint != null) {
+                    val small = hint.length > 2 // "ZWNJ" / "ZWJ" must still fit in the corner
+                    if (small) hintPaint.textSize = rowH * 0.15f
+                    c.drawText(hint, tmp.right - dp(6f), tmp.top + hintTop, hintPaint)
+                    if (small) hintPaint.textSize = rowH * 0.22f
+                }
             }
             Codes.SPACE -> {
                 labelPaint.color = pal.textMuted
@@ -718,6 +858,7 @@ class KeyboardView(context: Context) : View(context) {
     // ---------------------------------------------------------------- touch
 
     override fun onTouchEvent(e: MotionEvent): Boolean {
+        if (popupOpen) return popupTouch(e) // before ACTION_DOWN's cancelAll(), which would close the list
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 cancelAll() // drop any stuck pointer from a missed UP
@@ -857,7 +998,16 @@ class KeyboardView(context: Context) : View(context) {
         ptrSug[slot] = -1
         invalidate()
         if (wasHint) { // the finger was lifted while the hint bubble showed: type the hint now (G1.6)
-            if (idx >= 0 && page < keys.size) hintOf(keys[page][idx])?.let { listener?.onText(it) }
+            if (idx >= 0 && page < keys.size) {
+                val k = keys[page][idx]
+                val hint = hintOf(k)
+                if (hint != null) {
+                    // A Shift hint (Shift+AltGr character, D59) uses up a one-shot Shift like any typed character; a digit hint does not.
+                    if (shiftState == SHIFT_ONCE && k.shiftHint != null) shiftState = SHIFT_OFF
+                    listener?.onText(hint)
+                    invalidate()
+                }
+            }
             return
         }
         if (wasArrow) {
@@ -890,6 +1040,13 @@ class KeyboardView(context: Context) : View(context) {
             invalidate()
             return
         }
+        if (k.code == Codes.LANG) { // the list of layouts (L4, D19); it takes over every touch until it is closed
+            val anchor = rects[page][idx]
+            cancelAll()
+            longTap()
+            openLanguagePopup(anchor)
+            return
+        }
         if (hintOf(k) == null) return
         ptrLong[slot] = true
         ptrHint[slot] = true // the hint is typed when the finger is lifted; until then its bubble shows it
@@ -897,7 +1054,7 @@ class KeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
-    private fun hasLongPress(k: Key): Boolean = hintOf(k) != null || k.code == Codes.GLOBE
+    private fun hasLongPress(k: Key): Boolean = hintOf(k) != null || k.code == Codes.GLOBE || k.code == Codes.LANG
 
     private fun onRepeat(slot: Int) {
         val idx = ptrKey[slot]
@@ -910,7 +1067,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun perform(k: Key) {
         when (k.code) {
             Codes.CHAR -> {
-                val t = if (shiftState != SHIFT_OFF && k.isLetter) k.upper else k.text
+                val t = if (shiftState != SHIFT_OFF) k.shifted else k.text
                 val wasOnce = shiftState == SHIFT_ONCE
                 if (wasOnce) shiftState = SHIFT_OFF // before the listener, so the IME can switch it back on
                 listener?.onText(t)

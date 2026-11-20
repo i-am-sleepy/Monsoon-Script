@@ -9,12 +9,12 @@ L4 প্রভাত (Probhat) + জাতীয় (National) layouts [~] (own
   Source facts: `third_party/avro-reference/layouts/{Probhat,National (Jatiya)}.avrolayout` = XML, 4 layers per PC key (Normal, Shift, AltGr, ShiftAltGr), tags `Key_<K>_<Layer>`; ignore `Num*` tags;
   `&apos; &quot; &amp; &lt; &gt;` inside the CDATA are literal text and must be unescaped. National fits the 10/9/7 QWERTY grid (all signs on letters, independent vowels on AltGr);
   Probhat needs extra keys (ে ো on [ ], ্ on /, ৃ on shift-comma, ঁ on shift-period, ঞ ৎ ৳ on number-row shifts, nukta on AltGr+period, ZWNJ/ZWJ). Both are logical-order (no reordering engine).
-  L4.1 [~] Ask the owner the phone design questions (Probhat extra keys, AltGr access, labels) -> DECISIONS.md. Needs user #10.
-  L4.2 [ ] `tools/gen_fixed_layouts.py` -> generated `layout/FixedLayouts.kt` (keyed by PC key name, 4 layers; claude-s can reuse it for T6) + JUnit sync test against the XML.
-  L4.3 [ ] `Language.PROBHAT/NATIONAL`; soft arrangement per layout; KeyboardView per-language letters page, shifted text for non-letter keys, hint per shift state.
-  L4.4 [ ] MonsoonIme: type fixed-layout characters with commitText (no composing), tracker/predictions as in Bangla, no auto-caps; labels (pill / space bar).
-  L4.5 [ ] Language-key long-press popup (D19): lists the layouts that exist (Avro, প্রভাত, জাতীয়; Bijoy joins when claude-e builds it).
-  L4.6 [ ] CI green, ARCHITECTURE.md, DECISIONS.md, owner test checklist. Warn claude-s (T6 can reuse FixedLayouts) and claude-g (settings: nothing needed, last layout is saved by enum name).
+  L4.1 [x] Owner design answers -> D58 (Probhat 4 rows, extra keys), D59 (National + AltGr by long press), D60 (labels). Needs user #10 answered.
+  L4.2 [x] `tools/gen_fixed_layouts.py` -> `lang/avro/AvroLayoutTables.kt` (generated, MPL) + `layout/FixedLayout.kt`; `FixedLayoutsTest` (13 tests, run locally with the Kotlin compiler in /opt/gradle/lib).
+  L4.3 [x] `Language.PROBHAT/NATIONAL`, `Layouts.pages(language)`, `Key.shifted/hintShifted/face/hintDrawn*`, KeyboardView per-language rows + shift-aware hints (code written, CI not yet seen).
+  L4.4 [x] `MonsoonIme.switchLanguage`, `KeyboardView.setLanguage(Language)`; typing is the plain commitText path, predictions run in Bangla mode.
+  L4.5 [x] Language-key long-press popup (`openLanguagePopup` / `popupTouch` in KeyboardView, `onLanguagePicked` in the IME).
+  L4.6 [~] CI green? then warn claude-s (T6 can reuse `FixedLayout.text`), owner test checklist. Not compiled locally (no android.jar): if CI is red, the error is in KeyboardView/MonsoonIme.
 
 L1 Multi-Claude workflow [~]
   L1.1 [x] Design agreed with the owner (D20-D22).
@@ -57,7 +57,7 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
   Reminder: pure-Kotlin parts are tested locally (kc.sh); Android parts only by CI.
 
 ## Next step
-L4: get the owner's answers to the design questions (L4.1), then L4.2. (Older note: other than L4, nothing of mine is open except waiting.)
+L4.6: read the ci-status build of my L4 commit; fix it if red; then give the owner the test checklist (see the end of my last reply) and warn claude-s.
 Nothing else of mine is open except waiting. L2.5 (claude-g: learning switch, Clear button, Licenses screen via `ime/LearnSettings` and `assets/licenses/prediction-data.txt`) and L1.4 (owner starting
 claude-e/g/s) are others'. Ideas only if the owner asks: smarter Banglish bridge (match more words, e.g. tomar/tomake/ekta/apni via the Avro dictionary search), Bangla-script
 suggestion for Banglish typing, tuning of the 0.4 short-prefix prior (`Predictor.SHORT_PREFIX_PRIOR`). Do not start new features without the owner's go-ahead.

@@ -153,7 +153,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     override fun onCreateInputView(): View {
         val v = KeyboardView(this)
         v.listener = this
-        v.setLanguage(language.shortLabel, language.spaceLabel)
+        v.setLanguage(language)
         keyboard = v
         // The keys and (once the emoji key is used) the emoji panel share this column; only one of them is visible at a time, except while searching.
         val r = LinearLayout(this)
@@ -205,7 +205,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
         val numeric = cls == InputType.TYPE_CLASS_NUMBER || cls == InputType.TYPE_CLASS_PHONE || cls == InputType.TYPE_CLASS_DATETIME
         v.setPage(if (numeric) Layouts.PAGE_SYMBOLS else Layouts.PAGE_LETTERS)
-        v.setLanguage(language.shortLabel, language.spaceLabel)
+        v.setLanguage(language)
         applySystemBars()
         refreshAutoCaps()
         // Read what is already in the field once the keyboard is on screen (a blocking call into the app, so not before the first frame).
@@ -454,7 +454,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         language = l
         if (l.isBangla) lastBangla = l
         Prefs.saveLanguage(this, l, lastBangla)
-        keyboard?.setLanguage(l.shortLabel, l.spaceLabel)
+        keyboard?.setLanguage(l)
         refreshAutoCaps()
     }
 
@@ -595,9 +595,15 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     /** Language key / space-bar swipe: English <-> the Bangla layout used last (D19). */
-    override fun onLanguageToggle() {
+    override fun onLanguageToggle() = switchLanguage(if (language.isBangla) Language.ENGLISH else lastBangla)
+
+    /** A layout was picked in the popup that a long press on the language key opens (L4, D19). */
+    override fun onLanguagePicked(language: Language) = switchLanguage(language)
+
+    private fun switchLanguage(target: Language) {
+        if (target == language) return
         commitComposingIfAny()
-        setLanguage(if (language.isBangla) Language.ENGLISH else lastBangla)
+        setLanguage(target)
         dropSuggestions()
         resyncAndPredict() // English: read what is in the field now (the Bangla text was not tracked)
     }

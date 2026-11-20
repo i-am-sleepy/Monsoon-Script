@@ -66,7 +66,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 8. (answered 2026-11-19: emoji layout, skin tones, Bangla search names, hide undrawable emoji, see D56)
 
 9. (answered 2026-11-20: the "Show word suggestions" switch does not touch Avro spelling choices, see D57)
-10. L4 phone design for Probhat and National (extra keys, access to the AltGr layer, labels): asked 2026-11-20, answers go to DECISIONS.md. (claude-l)
+10. (answered 2026-11-20: Probhat/National phone design, see D58-D60)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.

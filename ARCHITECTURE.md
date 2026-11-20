@@ -6,6 +6,14 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
 - `view/KeyboardView.kt`: one Canvas view (strip icons + 4 rows), multi-touch (4 pointers), commit on release, finger sliding
   switches the pressed key, shift/caps lock, backspace repeat, digit long-press hints (after the long-press delay the key bubble shows the hint and the hint is typed when the finger is lifted, G1.6; `ptrHint`), key bubble, light/dark palette, no allocations in touch/draw.
 - `layout/Keys.kt` + `layout/Layouts.kt`: key model and the letters / symbols / symbols2 pages as data, plus `Layouts.numberRow` (the optional digits row, G1.5).
+  `Layouts.pages(language)` returns the page set of a language (same array every time; English and Avro share `Layouts.pages`, Probhat and National have their own
+  letters page, the symbol pages are shared). `Key` also carries `shifted` (what Shift shows/types, any script), `hintShifted` (long press with Shift on) and the painted
+  stand-ins `face` / `hintDrawn*` (a dotted circle before a vowel sign, "ZWNJ" / "ZWJ" by name). `KeyboardView` only paints and types those.
+- Fixed Bangla layouts (L4, D58-D60): `layout/FixedLayout.kt` = one layout as a PC key table (`text(pcKey, layer)`, layers Normal / Shift / AltGr / Shift+AltGr, Avro's key
+  names "A".."Z", "COMMA", "OEM4" ...). The tables of Probhat and National are GENERATED (MPL-2.0) into `lang/avro/AvroLayoutTables.kt` by `tools/gen_fixed_layouts.py` from
+  `third_party/avro-reference/layouts`; `FixedLayoutsTest` fails when they drift from the XML or when a Bangla character becomes unreachable on the phone. The phone
+  arrangement (which PC keys sit where, hints) is `Layouts.probhatLetters` / `nationalLetters` built with `fk(...)`: a long press types the AltGr layer (Shift on: Shift+AltGr),
+  the top row keeps the digit hints. A hardware keyboard (T6) can map its key codes to the same PC key names and call `FixedLayout.text`. Bijoy (T9.3) adds its own table.
 - `prefs/Prefs.kt`: the ONE SharedPreferences file `monsoon_prefs` (key constants + typed getters: language, last Bangla layout, language key, space swipe, learn, strip toggles `suggest_show` / `suggest_next_word` / `suggest_typed_first`, typing feel `typing_vibration` (Int 0-3) / `typing_key_sound` / `typing_long_press` (Int 0-2), appearance `appearance_theme` (Int 0-2) / `appearance_number_row` / `appearance_height_portrait` + `appearance_height_landscape` (percent 70-130) / `appearance_key_gap` (dp 0-6)).
   `ime/LearnSettings` uses the same file. The IME listens (`MonsoonIme.applyPrefs`) so settings take effect live.
 - `settings/` (plain framework Views, no libraries, light/dark from the theme): `SetupActivity` = main list (setup status + steps, rows for the pages),
@@ -18,13 +26,15 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   `AvroBanglaChars` (GENERATED constants). Hand-written parts: vowels, o/O, r/rri, j, dot, w/y/x, CutText, CorrectCase.
   The generated files come from `third_party/avro-reference/engine/*.pas`; if the tables ever need a change, fix the generator
   idea (parse `if Cnv('pat', expr) = True then`) or edit the Kotlin by hand and drop the GENERATED note.
-- `lang/Language.kt` (EN, AVRO; labels for the strip pill and space bar) and `lang/PhoneticComposer.kt` (the raw Latin word being typed,
+- `lang/Language.kt` (ENGLISH, AVRO, PROBHAT, NATIONAL; labels for the strip pill and space bar, order = order of the language popup; Probhat/National type plain `commitText` like English, no composing, predictions run in Bangla mode) and `lang/PhoneticComposer.kt` (the raw Latin word being typed,
   `text()` = live Bangla, `accepts(ch)`, `externalMove(...)` = decide from onUpdateSelection whether the user moved the cursor). Pure Kotlin.
   Smart colon (D24): ':' joins a word after a letter; `text()` shows a trailing ':' as a plain colon and the engine's visarga once a letter follows.
 - `MonsoonIme`: in Avro it shows the word with `setComposingText`; space, digits, punctuation, Enter, Tab, globe and language switch call
   `finishComposingText` first, so editor text always equals what is shown. Backspace edits the Latin buffer while composing.
   `onUpdateSelection` clears the buffer if the cursor leaves the word (ignores echoes within 250 ms of our own edit).
-  Strip order: globe, language pill (`Codes.LANG`, text pill, 1.25 cells wide), emoji, clipboard ... mic. `KeyboardView.setLanguage` pushes labels in.
+  Strip order: globe, language pill (`Codes.LANG`, text pill, 1.25 cells wide), emoji, clipboard ... mic. `KeyboardView.setLanguage(Language)` pushes the language in (labels + the letters page; a new
+  layout resets Shift). Long press on the pill opens the language popup (D19, `openLanguagePopup` / `popupTouch`, drawn over the keys, takes every touch until closed, lifting over a row
+  calls `Listener.onLanguagePicked` -> `MonsoonIme.switchLanguage`; it lists `Language.values()`, so a new layout shows up by adding it to the enum).
 - Suggestion engine (T8b, `lang/avro/`, MPL-2.0, pure Kotlin, no Android classes, NOT thread-safe: use one instance per worker thread):
   `AvroSuggester(words: AvroWordSource, suffixes)`.`suggest(english, plainBangla, limit=12)`: `AvroRegexBuilder.convert(english)` makes a regex of
   every Bangla spelling the typed word could have; `AvroBucketMap.forLetter` picks the dictionary buckets for the first letter; each bucket's

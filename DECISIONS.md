@@ -153,3 +153,17 @@
   the phone with Paint.hasGlyph, result cached), while the picker itself draws with Noto.
 - D57 2026-11-20 Suggestion strip switches (G1.3, claude-g): asked whether "Show word suggestions" should also hide the Avro (Bangla typing) dictionary spelling choices, the owner answered NO: those
   choices are not affected by the switch and always stay on. The switch only controls the prediction strip (completions and next words) in English, Bangla and Banglish.
+- D58 2026-11-20 Probhat (প্রভাত) on the phone (L4, claude-l; the owner chose the recommended option): 4 rows, no number row. Row 1 = দ ূ ী র ট এ ু ি ও প (10 keys); row 2 = া স ড ত গ হ জ ক ল ে ো (11 keys,
+  ে ো give ৈ ৌ on Shift); row 3 = Shift য় শ চ আ ব ন ম ্ Backspace; row 4 = ?123 , space । Enter, where the comma key gives ৃ on Shift and the । key gives ঁ on Shift. Shift flips the letters to the
+  Probhat Shift layer (ধ ঊ ঈ ড় ঠ ঐ উ ই ঔ ফ / অ ষ ঢ থ ঘ ঃ ঝ খ ং / য ঢ় ছ ঋ ভ ণ ঙ). Long-press: ঞ on ন, ৎ on ত, nukta (়) on ।, ZWNJ on ্ (ZWJ with Shift on); ৳ stays on the ?123 page.
+  Top-row long-press digits (D14) and English digits (D18) stay as they are. Source: third_party/avro-reference/layouts/Probhat.avrolayout.
+  Rest of Probhat's AltGr layer by long press as well: ঌ ৠ on া, ৡ ৣ on স, ৄ ৢ on ড, ঽ on হ, ৗ on ো. Left out in v1 (tell me if you need them): ॥ and the fraction/currency
+  numerator signs of the PC number row (৴ ৵ ৶ ৷ ৸ ৹ ৲ ৺). Held keys show a bubble and type on release (G1.6); with Shift on the Shift hint is typed (Shift + hold the ্ key = ZWJ).
+- D59 2026-11-20 National (জাতীয়) on the phone (L4; the owner chose the recommended option): the standard 10/9/7 letter grid with the BCC key map (row 1 ঙ য ড প ট চ জ হ গ ড়, row 2 ৃ ু ি ব ্ া ক ত দ,
+  row 3 ঁ ো ে র ন স ম; Shift gives the second layer). The third "AltGr" layer (independent vowels আ ই উ এ ও ঋ and more) is reached by LONG-PRESS: a small corner hint on the key, holding types it; with Shift on,
+  holding gives the Shift+AltGr character (ঈ ঊ ঐ ঔ ...). Top-row keys keep the digit hints (D14), so the four very rare signs ৢ ৣ ৄ ঽ that clash with them (Q and E, I) are left out for now.
+  The same long-press rule is used for Probhat's AltGr characters. Source: third_party/avro-reference/layouts/National (Jatiya).avrolayout.
+  claude-l's own placements (the PC layout has no phone equivalent for them): hold ত = ৎ (as in Probhat), hold ্ = ZWNJ and Shift + hold = ZWJ (they take the place of ॥, which is left out),
+  ৺ is the hold of the ঁ key, ৰ ৱ the hold of ব, ঌ ৡ the hold of দ. Row 4 is the English one (, and .): the dari । is Shift + ্ as on the PC. Also left out: the number-row fraction signs (৴ ৵ ৶ ৷ ৸ ৲).
+- D60 2026-11-20 Labels (L4; the owner chose the recommended option): the strip pill stays বাং for every Bangla layout, the space bar names the layout: বাংলা (Avro), বাংলা (প্রভাত), বাংলা (জাতীয়).
+  The long-press popup on the language key (D19) lists the layouts that exist; Bijoy joins when it is built (claude-e, T9.3).
