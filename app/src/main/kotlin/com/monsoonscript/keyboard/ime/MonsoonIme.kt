@@ -91,6 +91,14 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private val predicting: Boolean get() = predictionAllowed
 
     /**
+     * Strip settings (G1.3), cached by [applyPrefs]. They only decide what the strip shows: [predicting] (the word tracker, and with it
+     * learning) is not touched, so turning the strip off does not stop "Learn from my typing". Avro dictionary choices are not affected.
+     */
+    private var showSuggestions = true
+    private var nextWord = true
+    private var typedFirst = true
+
+    /**
      * Finished words are remembered (on the phone only, D42) when the owner left "Learn from my typing" on and the field allows it:
      * not in password/e-mail/URL fields, and not when the app asks for no personalized learning (incognito tabs and the like).
      */
@@ -123,6 +131,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Settings that the view needs to know (read when the view is created, when an input starts and when a setting changes). */
     private fun applyPrefs() {
         keyboard?.setLanguageOptions(Prefs.languageKey(this), Prefs.spaceSwipe(this))
+        showSuggestions = Prefs.showSuggestions(this)
+        nextWord = Prefs.nextWord(this)
+        typedFirst = Prefs.typedFirst(this)
+        if (!showSuggestions && composer?.isComposing != true) dropSuggestions() // switched off: clear what is shown, never an Avro word in progress
     }
 
     override fun onCreate() {
@@ -359,10 +371,14 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** Ask the worker for completions of the word in progress, or for the next word when none is started. */
     private fun requestPrediction() {
-        if (!predicting) return
+        if (!predicting || !showSuggestions) return
         if (composer?.isComposing == true) return // the Avro dictionary words own the strip while a word is composed
         val prefix = tracker.prefix
         val w1 = tracker.w1
+        if (prefix.isEmpty() && !nextWord) { // next-word suggestions are off: nothing between words, the icon row stays
+            dropSuggestions()
+            return
+        }
         if (prefix.isEmpty() && w1 == null) { // nothing to go on (start of a field or sentence): the icon row stays
             dropSuggestions()
             return
@@ -370,7 +386,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val seq = ++predSeq
         val w = predWorker ?: PredictionWorker(this, ::onPredictionResult).also { predWorker = it }
         val mode = if (language.isBangla) PredictionWorker.Mode.BANGLA else PredictionWorker.Mode.ENGLISH
-        w.request(seq, mode, tracker.typed, prefix, w1, tracker.w2, tracker.atSentenceStart)
+        w.request(seq, mode, tracker.typed, prefix, w1, tracker.w2, tracker.atSentenceStart, typedFirst)
     }
 
     private fun learnWord(prev: String?, word: String) {
@@ -381,7 +397,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun onPredictionResult(r: PredictionWorker.Result) {
-        if (r.seq != predSeq || !predicting) return
+        if (r.seq != predSeq || !predicting || !showSuggestions) return
         setSuggestions(r.words)
     }
 
