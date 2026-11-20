@@ -20,6 +20,19 @@ object Prefs {
     const val LANGUAGE_KEY = "language_key" // default on (D15)
     const val SPACE_SWIPE = "space_swipe" // default on (D15)
 
+    // appearance (G1.5)
+    const val THEME = "appearance_theme" // Int: 0 follow the phone, 1 light, 2 dark
+    const val NUMBER_ROW = "appearance_number_row" // default off
+    const val HEIGHT_PORTRAIT = "appearance_height_portrait" // percent of the standard key height
+    const val HEIGHT_LANDSCAPE = "appearance_height_landscape"
+    const val KEY_GAP = "appearance_key_gap" // dp between keys
+    const val HEIGHT_MIN = 70
+    const val HEIGHT_MAX = 130
+    const val HEIGHT_DEFAULT = 100
+    const val GAP_MIN = 0
+    const val GAP_MAX = 6
+    const val GAP_DEFAULT = 3
+
     // typing feel (G1.4)
     const val VIBRATION = "typing_vibration" // Int: 0 Off, 1 Light, 2 Normal (Android's own key tap, as before G1.4), 3 Strong
     const val KEY_SOUND = "typing_key_sound" // default off
@@ -41,6 +54,16 @@ object Prefs {
     fun languageKey(context: Context): Boolean = of(context).getBoolean(LANGUAGE_KEY, true)
 
     fun spaceSwipe(context: Context): Boolean = of(context).getBoolean(SPACE_SWIPE, true)
+
+    fun theme(context: Context): Int = of(context).getInt(THEME, 0).coerceIn(0, 2)
+
+    fun numberRow(context: Context): Boolean = of(context).getBoolean(NUMBER_ROW, false)
+
+    fun heightPortrait(context: Context): Int = of(context).getInt(HEIGHT_PORTRAIT, HEIGHT_DEFAULT).coerceIn(HEIGHT_MIN, HEIGHT_MAX)
+
+    fun heightLandscape(context: Context): Int = of(context).getInt(HEIGHT_LANDSCAPE, HEIGHT_DEFAULT).coerceIn(HEIGHT_MIN, HEIGHT_MAX)
+
+    fun keyGap(context: Context): Int = of(context).getInt(KEY_GAP, GAP_DEFAULT).coerceIn(GAP_MIN, GAP_MAX)
 
     fun vibration(context: Context): Int = of(context).getInt(VIBRATION, VIB_NORMAL).coerceIn(0, 3)
 

@@ -59,14 +59,21 @@ class KeyboardView(context: Context) : View(context) {
     private val density = resources.displayMetrics.density
     private fun dp(v: Float) = v * density
 
+    // ---- appearance (G1.5): set by the IME from the settings (and by the preview on the Appearance page); declared before init, which reads themeMode
+    private var themeMode = THEME_SYSTEM
+    private var numberRow = false
+    private var heightPortrait = 100
+    private var heightLandscape = 100
+    private var keyGapDp = 3
+
     // ---- geometry (px)
     private var stripH = dp(44f)
     private var rowH = dp(52f)
     private val padX = dp(4f)
     private val padTop = dp(4f)
     private val padBottom = dp(8f)
-    private val gapX = dp(3f)
-    private val gapY = dp(4f)
+    private var gapX = dp(3f)
+    private var gapY = dp(4f)
     private val radius = dp(8f)
     private var rowsTop = 0f
     private var rowsBottom = 0f
@@ -181,11 +188,60 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     /** The height this view measures to with the strip shown; the emoji panel takes the same height so the window does not jump. */
-    fun desiredHeight(): Int {
-        val land = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        val sh = dp(if (land) 38f else 44f)
-        val rh = dp(if (land) 42f else 52f)
-        return (sh + rh * 4 + padTop + padBottom).toInt()
+    fun desiredHeight(): Int = (stripHeight() + currentRowH() * rowSlots() + padTop + padBottom).toInt()
+
+    /**
+     * [theme]: 0 follow the phone, 1 light, 2 dark. [numberRow] adds the digits row above the letters (the symbol pages keep the same total
+     * height with taller keys). [heightPortrait] / [heightLandscape] are percent of the standard key height, [keyGapDp] the space between keys.
+     */
+    fun setAppearance(theme: Int, numberRow: Boolean, heightPortrait: Int, heightLandscape: Int, keyGapDp: Int) {
+        if (theme == themeMode && numberRow == this.numberRow && heightPortrait == this.heightPortrait &&
+            heightLandscape == this.heightLandscape && keyGapDp == this.keyGapDp
+        ) return
+        themeMode = theme
+        this.numberRow = numberRow
+        this.heightPortrait = heightPortrait
+        this.heightLandscape = heightLandscape
+        this.keyGapDp = keyGapDp
+        refreshTheme()
+        updateMetrics()
+        cancelAll()
+        if (width > 0) computeLayout(width)
+        requestLayout()
+        invalidate()
+    }
+
+    private fun isLandscape(): Boolean = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    private fun rowSlots(): Int = if (numberRow) 5 else 4
+
+    private fun stripHeight(): Float = dp(if (isLandscape()) 38f else 44f)
+
+    /** One key row: the standard height scaled by the setting, but never so tall that the keyboard takes more than 65% of the screen. */
+    private fun currentRowH(): Float {
+        val land = isLandscape()
+        val base = dp(if (land) 42f else 52f) * (if (land) heightLandscape else heightPortrait) / 100f
+        val room = (resources.displayMetrics.heightPixels * 0.65f - stripHeight() - padTop - padBottom) / rowSlots()
+        return minOf(base, maxOf(room, dp(30f)))
+    }
+
+    /** Row height, strip height, key gaps (never more than a fifth of a key) and text sizes for the current settings and orientation. */
+    private fun updateMetrics() {
+        stripH = stripHeight()
+        rowH = currentRowH()
+        gapX = minOf(dp(keyGapDp.toFloat()), resources.displayMetrics.widthPixels / 50f)
+        gapY = minOf(dp(keyGapDp + 1f), rowH * 0.2f)
+        updateTextSizes()
+    }
+
+    /** The rows of page [p]; the letters page gets the number row on top when it is on. */
+    private fun rowsOf(p: Int): Array<Array<Key>> =
+        if (numberRow && p == Layouts.PAGE_LETTERS) arrayOf(Layouts.numberRow) + Layouts.pages[p] else Layouts.pages[p]
+
+    /** The corner hint of [k]; the digit hints of the top letter row are dropped while the number row shows the digits itself. */
+    private fun hintOf(k: Key): String? {
+        val h = k.hint ?: return null
+        return if (numberRow && page == Layouts.PAGE_LETTERS && h.length == 1 && h[0] in '0'..'9') null else h
     }
 
     /** Labels for the strip's language key and the space bar. */
@@ -324,11 +380,8 @@ class KeyboardView(context: Context) : View(context) {
     // ---------------------------------------------------------------- measure / layout
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val land = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        rowH = dp(if (land) 42f else 52f)
-        stripH = dp(if (land) 38f else 44f)
-        updateTextSizes()
-        val h = ((if (stripShown) stripH else 0f) + rowH * 4 + padTop + padBottom).toInt()
+        updateMetrics()
+        val h = ((if (stripShown) stripH else 0f) + rowH * rowSlots() + padTop + padBottom).toInt()
         setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), h)
     }
 
@@ -339,7 +392,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun computeLayout(w: Int) {
         val iconCell = dp(44f)
         rowsTop = (if (stripShown) stripH else 0f) + padTop
-        rowsBottom = rowsTop + rowH * 4
+        rowsBottom = rowsTop + rowH * rowSlots()
         val outKeys = ArrayList<Array<Key>>()
         val outRects = ArrayList<Array<RectF>>()
         for (p in 0 until Layouts.PAGE_COUNT) {
@@ -361,15 +414,17 @@ class KeyboardView(context: Context) : View(context) {
                     kl.add(k); rl.add(RectF(rx, 0f, rx + iconCell, stripH))
                 }
             }
-            for ((r, row) in Layouts.pages[p].withIndex()) {
+            val rows = rowsOf(p)
+            val rh = rowH * rowSlots() / rows.size // the same total height on every page: fewer rows = taller rows
+            for ((r, row) in rows.withIndex()) {
                 val total = row.sumOf { it.weight.toDouble() }.toFloat()
                 val unit = (w - 2 * padX) / total
-                val top = rowsTop + r * rowH
+                val top = rowsTop + r * rh
                 var kx = padX
                 for (k in row) {
                     val kw = k.weight * unit
                     if (k.kind != Kind.SPACER) {
-                        kl.add(k); rl.add(RectF(kx, top, kx + kw, top + rowH))
+                        kl.add(k); rl.add(RectF(kx, top, kx + kw, top + rh))
                     }
                     kx += kw
                 }
@@ -415,7 +470,11 @@ class KeyboardView(context: Context) : View(context) {
     // ---------------------------------------------------------------- theme
 
     fun refreshTheme() {
-        val night = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val night = when (themeMode) {
+            THEME_LIGHT -> false
+            THEME_DARK -> true
+            else -> (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        }
         pal = if (night) DARK else LIGHT
         letterPaint.color = pal.text
         labelPaint.color = pal.text
@@ -475,7 +534,7 @@ class KeyboardView(context: Context) : View(context) {
             Codes.CHAR -> {
                 val t = if (shiftState != SHIFT_OFF && k.isLetter) k.upper else k.text
                 c.drawText(t, cx, cy + letterBase, letterPaint)
-                val hint = k.hint
+                val hint = hintOf(k)
                 if (hint != null) c.drawText(hint, tmp.right - dp(6f), tmp.top + hintTop, hintPaint)
             }
             Codes.SPACE -> {
@@ -817,14 +876,14 @@ class KeyboardView(context: Context) : View(context) {
             invalidate()
             return
         }
-        val hint = k.hint ?: return
+        val hint = hintOf(k) ?: return
         ptrLong[slot] = true
         longTap()
         listener?.onText(hint)
         invalidate()
     }
 
-    private fun hasLongPress(k: Key): Boolean = k.hint != null || k.code == Codes.GLOBE
+    private fun hasLongPress(k: Key): Boolean = hintOf(k) != null || k.code == Codes.GLOBE
 
     private fun onRepeat(slot: Int) {
         val idx = ptrKey[slot]
@@ -894,6 +953,9 @@ class KeyboardView(context: Context) : View(context) {
         const val SHIFT_ONCE = 1
         const val SHIFT_LOCKED = 2
         const val LONG_PRESS_MS = 300L
+        const val THEME_SYSTEM = 0 // the theme values match Prefs.THEME
+        const val THEME_LIGHT = 1
+        const val THEME_DARK = 2
         const val VIB_OFF = 0 // the vibration levels match Prefs.VIBRATION
         const val VIB_LIGHT = 1
         const val VIB_NORMAL = 2

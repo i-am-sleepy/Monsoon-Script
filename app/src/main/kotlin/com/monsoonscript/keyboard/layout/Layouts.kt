@@ -62,4 +62,7 @@ object Layouts {
     )
 
     val pages: Array<Array<Array<Key>>> = arrayOf(letters, symbols, symbols2)
+
+    /** The optional number row (G1.5, a setting): KeyboardView puts it above the rows of the letters page. */
+    val numberRow: Array<Key> = arrayOf(c("1"), c("2"), c("3"), c("4"), c("5"), c("6"), c("7"), c("8"), c("9"), c("0"))
 }

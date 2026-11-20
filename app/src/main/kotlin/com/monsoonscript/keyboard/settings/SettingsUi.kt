@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
+import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
 import com.monsoonscript.keyboard.prefs.Prefs
@@ -167,6 +168,45 @@ internal class SettingsUi(private val context: Context) {
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()
             }
+        }
+    }
+
+    /** A row with a slider for the Int preference [key] from [minValue] to [maxValue]; [format] writes the current value next to the title. */
+    fun sliderRow(title: String, key: String, minValue: Int, maxValue: Int, default: Int, format: (Int) -> String): View {
+        val prefs = Prefs.of(context)
+        val start = prefs.getInt(key, default).coerceIn(minValue, maxValue)
+        val valueText = TextView(context).apply {
+            text = format(start)
+            textSize = 14f
+            setTextColor(secondary)
+        }
+        val bar = SeekBar(context).apply {
+            max = maxValue - minValue
+            progress = start - minValue
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    valueText.text = format(progress + minValue)
+                    if (fromUser) prefs.edit().putInt(key, progress + minValue).apply()
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) {}
+
+                override fun onStopTrackingTouch(seekBar: SeekBar) {}
+            })
+        }
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(10), dp(20), dp(10))
+            addView(LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                addView(TextView(context).apply {
+                    text = title
+                    textSize = 17f
+                    setTextColor(primary)
+                }, weighted())
+                addView(valueText)
+            })
+            addView(bar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
     }
 

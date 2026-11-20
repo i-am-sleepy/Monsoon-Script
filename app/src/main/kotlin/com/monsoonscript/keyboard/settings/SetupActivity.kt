@@ -32,6 +32,7 @@ class SetupActivity : Activity() {
             page.content.add(header(getString(R.string.settings_header)))
             page.content.add(navRow(getString(R.string.settings_typing), getString(R.string.settings_typing_summary)) { open(SettingsPageActivity.TYPING) })
             page.content.add(navRow(getString(R.string.settings_suggestions), getString(R.string.settings_suggestions_summary)) { open(SettingsPageActivity.SUGGESTIONS) })
+            page.content.add(navRow(getString(R.string.settings_appearance), getString(R.string.settings_appearance_summary)) { open(SettingsPageActivity.APPEARANCE) })
             page.content.add(navRow(getString(R.string.settings_about), getString(R.string.settings_about_summary)) { open(SettingsPageActivity.ABOUT) })
         }
         setContentView(page.root)
