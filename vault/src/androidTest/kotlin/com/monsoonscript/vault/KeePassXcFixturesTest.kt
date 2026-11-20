@@ -14,6 +14,9 @@ import java.io.File
  * E1 Phase 0, emulator only: vaults made by REAL KeePassXC 2.7.6 (command-line tool; fake data). They use the older KDBX 3.1
  * format with AES key derivation (about 33 million rounds, so the engine's native AES path is exercised), a nested folder, an
  * attachment, Unicode text, and a key file in KeePassXC's own XML v2 format.
+ *
+ * Lesson from the first run: KDBX 3.1 stores attachments GZIP-compressed. The engine's `getInputDataStream` returns the raw
+ * (compressed) bytes; `getUnGzipInputDataStream` is the call that works for compressed and uncompressed attachments alike.
  */
 class KeePassXcFixturesTest {
     private val instrumentation get() = InstrumentationRegistry.getInstrumentation()
@@ -43,7 +46,7 @@ class KeePassXcFixturesTest {
         assertEquals("kx note line", messenger.notes)
         val attachments = messenger.getAttachments(db.attachmentPool)
         assertEquals(listOf("note.txt"), attachments.map { it.name })
-        val bytes = attachments.first().binaryData.getInputDataStream(db.binaryCache).use { it.readBytes() }
+        val bytes = attachments.first().binaryData.getUnGzipInputDataStream(db.binaryCache).use { it.readBytes() }
         assertEquals("fixture attachment bytes\n", String(bytes))
     }
 
