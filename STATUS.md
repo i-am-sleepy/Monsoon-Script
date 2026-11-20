@@ -62,7 +62,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 7. (answered 2026-11-18: Banglish prediction quality, see D54)
 8. (answered 2026-11-19: emoji layout, skin tones, Bangla search names, hide undrawable emoji, see D56)
 
-9. Suggestion strip toggle (G1.3): "Show word suggestions" currently hides only the English/Bangla/Banglish prediction strip; Avro (Bangla typing) dictionary choices stay on. Should the switch hide those too? Default if no answer: keep as is. (claude-g)
+9. (answered 2026-11-20: the "Show word suggestions" switch does not touch Avro spelling choices, see D57)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.

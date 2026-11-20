@@ -151,3 +151,5 @@
   and People & Body are ONE tab like Gboard; (2) SKIN TONES per emoji: long-press an emoji with variants for a popup, the pick is remembered for that emoji; two-person emoji (couples, handshake...) get a
   two-step picker; (3) SEARCH matches English AND Bangla names/keywords (CLDR en + bn), in whichever language is being typed; (4) OLD PHONES: hide emoji the phone's own system font cannot draw (checked once on
   the phone with Paint.hasGlyph, result cached), while the picker itself draws with Noto.
+- D57 2026-11-20 Suggestion strip switches (G1.3, claude-g): asked whether "Show word suggestions" should also hide the Avro (Bangla typing) dictionary spelling choices, the owner answered NO: those
+  choices are not affected by the switch and always stay on. The switch only controls the prediction strip (completions and next words) in English, Bangla and Banglish.

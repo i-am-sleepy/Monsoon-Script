@@ -11,7 +11,7 @@ G1 Settings pages [~]  (T10 = G1.1 + G1.2, L2.5 = G1.2)
            `KeyboardView.setLanguageOptions` through `MonsoonIme.applyPrefs()` on every pref change (listener)
   G1.2 [x] SetupActivity = main list (status, 2 setup steps, rows Typing / Suggestions / About and licenses); `SettingsPageActivity` (extra `page`) holds the three pages;
            `LicensesActivity` shows assets/licenses/{app,avro,prediction-data}.txt. Owner-tested OK (2026-11-19).
-  G1.3 [~] Suggestion toggles pushed in 3 commits (e08984c prefs/switches/PredictionWorker, 78e7a92 MonsoonIme, then docs); claude-l warned. NOT compiled (no local compiler): check CI for the newest commit. Avro dictionary choices are NOT hidden by the switch (Needs user #9).
+  G1.3 [~] Suggestion toggles pushed in 3 commits (e08984c prefs/switches/PredictionWorker, 78e7a92 MonsoonIme, then docs); claude-l warned. NOT compiled (no local compiler): check CI for the newest commit. Owner answered #9: Avro choices stay unaffected (D57). Owner saw the new switches on the Suggestions page (2026-11-20); the behaviour checklist below is not reported yet.
   G1.4 [ ] Typing feel: vibration Off/Light/Normal/Strong (declare VIBRATE, D55), key sound on/off, long-press delay Short/Normal/Long; "try it" text field on the page
   G1.5 [ ] Appearance: theme (system/light/dark), number row switch, height sliders portrait + landscape, key-gap slider (limits so keys never overlap or get too small), live preview (a real KeyboardView); then add the "Appearance" row to SetupActivity
   G1.6 [ ] (low priority) hold-hint bubble for top-row digits: show the digit while held, type it on release
@@ -23,7 +23,7 @@ Chat-session tooling: no git credentials in the sandbox. Clone anonymously, edit
 How to add a setting: `Prefs` key + `ui.switchRow(title, summary, key, default)` (or navRow/buttonRow/infoRow/note in `SettingsUi`), then read it in `applyPrefs()`.
 
 ## Half-done files / known bugs
-ARCHITECTURE.md owes a G1.3 update (do it with the next push of that file): in the `prefs/Prefs.kt` line add the strip toggle keys `suggest_show` / `suggest_next_word` / `suggest_typed_first`; in the Learning bullet add one sentence (showSuggestions / nextWord / typedFirst are cached in `MonsoonIme.applyPrefs`; the tracker and learning keep running; Avro choices are unaffected; `typedFirst` is the last parameter of `PredictionWorker.request`).
+ARCHITECTURE.md is up to date for G1.3.
 Not compiled locally (CI only). Appearance row is deliberately absent until G1.5. Hand-offs kept: language has ONE entry point `MonsoonIme.setLanguage`, saved by enum NAME, unknown falls back to EN.
 Shared files I touch: MonsoonIme, KeyboardView (palette, sizes, later), AndroidManifest (VIBRATE in G1.4), strings.xml; warn claude-e (layouts, number row) and claude-l (strip/prediction toggles) when I change them.
 
