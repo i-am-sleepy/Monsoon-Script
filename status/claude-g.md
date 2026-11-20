@@ -27,7 +27,7 @@ ARCHITECTURE.md is up to date for G1.3 and G1.4.
 Not compiled locally (CI only). Hand-offs kept: language has ONE entry point `MonsoonIme.setLanguage`, saved by enum NAME, unknown falls back to EN.
 Shared files I touch: MonsoonIme, KeyboardView (palette, sizes, later), AndroidManifest (VIBRATE added in G1.4), strings.xml; warn claude-e (layouts, number row) and claude-l (strip/prediction toggles) when I change them.
 
-## Test checklist for my latest build (owner) - re-test after the owner's first report (UNTESTED on a device)
+## Test checklist for my latest build (owner) - re-test after the owner's first report (CI #27 b916214 green; UNTESTED on a device)
 Owner reported 2026-11-20: hold-hint digit bubble OK, long-press delay OK, Appearance preview + theme + height sliders + key gap OK (number row not mentioned yet, asked to confirm). Vibration was wrong: Normal strong as before, Strong weaker than Normal, Light not felt. Key sound only works while Android's Touch sounds is on (its separate keyboard tone option is for the phone's own keyboard).
 Changed: Light = 25 ms pulse, Strong = 80 ms pulse (default strength, long press 40/130 ms), Typing page got an "Open Android sound settings" button and a clearer sound note.
 1. Vibration: Light is felt and clearly weaker than Normal; Strong clearly stronger than Normal; Off silent. If still off, say which and I will change the two numbers (or add a strength slider).
