@@ -24,6 +24,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
   - [x] T8c (claude-l) Smart colon in Avro (D24): visarga inside a word, plain colon at the end (owner-tested OK 2026-11-17)
 - [ ] T9 (claude-e) PAUSED by the owner 2026-11-19 (E2 first). Fixed layouts as data: Provat and National from `third_party/avro-reference/layouts` (key maps, images stripped); Bijoy
       Classic from the standard chart (owner must verify); language-key long-press popup (D19). Bornona, Munir Optima, Avro Easy later (D17)
+      2026-11-20 OWNER ORDER: Provat (Probhat) + National and the language-key popup (T9.1, T9.2, T9.4) moved to claude-l as L4. Left here: Bijoy Classic (T9.3), Bornona, Munir Optima, Avro Easy.
 - [x] T10 (claude-g) Settings activity + SharedPreferences: switches for the language key and space-bar swipe (both default ON, D15,
       `KeyboardView.setLanguageOptions`), persist the chosen language (built in G1.1/G1.2, commit 63f95a7; owner-tested OK 2026-11-19)
 - [~] G1 (claude-g) Settings pages and extra settings (D55): main list with sub-pages (Typing, Suggestions, Appearance, About and licenses); prefs helper; language key/swipe, learn switch +
@@ -38,6 +39,8 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [~] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
       (uni/bi/trigram + learned usage), compact binary tables, async. Built: engine + data (L2.3), English/Bangla strip, arrow, learning (L2.4, CI green up to #13); owner device test OK (2026-11-18); L2.5 (settings switch, clear button, licenses screen) is done by claude-g in G1.2 (63f95a7); steps in status/claude-l.md
 - [x] L3 (claude-l) Banglish prediction quality (D54, owner-tested OK 2026-11-18, CI #15): bridge from Banglish words to the Bangla pair data for next-word, lean Banglish for 1-3 letter prefixes, typed word as first strip choice, no repeat of the word just typed. Steps in status/claude-l.md
+- [~] L4 (claude-l) প্রভাত (Probhat) and জাতীয় (National) fixed Bangla layouts as generated data (also usable by claude-s's T6), typing through the layouts, language-key long-press popup (D19).
+      Taken over from claude-e's T9 (T9.1, T9.2, T9.4) on the owner's order 2026-11-20. Asking the owner the design questions first (Needs user #10). Steps in status/claude-l.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
@@ -63,6 +66,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 8. (answered 2026-11-19: emoji layout, skin tones, Bangla search names, hide undrawable emoji, see D56)
 
 9. (answered 2026-11-20: the "Show word suggestions" switch does not touch Avro spelling choices, see D57)
+10. L4 phone design for Probhat and National (extra keys, access to the AltGr layer, labels): asked 2026-11-20, answers go to DECISIONS.md. (claude-l)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.

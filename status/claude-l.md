@@ -1,10 +1,21 @@
 # claude-l notes (only claude-l edits this file; others only append lines under "Warnings")
-Updated: 2026-11-18, session 5. Focus: prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
+Updated: 2026-11-20, session 6. Focus: L4 (Probhat + National layouts, owner order); before that prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
 
 ## Tasks and steps
+L4 প্রভাত (Probhat) + জাতীয় (National) layouts [~] (owner order 2026-11-20, taken over from claude-e's T9.1/T9.2/T9.4; Bijoy stays with claude-e)
+  Source facts: `third_party/avro-reference/layouts/{Probhat,National (Jatiya)}.avrolayout` = XML, 4 layers per PC key (Normal, Shift, AltGr, ShiftAltGr), tags `Key_<K>_<Layer>`; ignore `Num*` tags;
+  `&apos; &quot; &amp; &lt; &gt;` inside the CDATA are literal text and must be unescaped. National fits the 10/9/7 QWERTY grid (all signs on letters, independent vowels on AltGr);
+  Probhat needs extra keys (ে ো on [ ], ্ on /, ৃ on shift-comma, ঁ on shift-period, ঞ ৎ ৳ on number-row shifts, nukta on AltGr+period, ZWNJ/ZWJ). Both are logical-order (no reordering engine).
+  L4.1 [~] Ask the owner the phone design questions (Probhat extra keys, AltGr access, labels) -> DECISIONS.md. Needs user #10.
+  L4.2 [ ] `tools/gen_fixed_layouts.py` -> generated `layout/FixedLayouts.kt` (keyed by PC key name, 4 layers; claude-s can reuse it for T6) + JUnit sync test against the XML.
+  L4.3 [ ] `Language.PROBHAT/NATIONAL`; soft arrangement per layout; KeyboardView per-language letters page, shifted text for non-letter keys, hint per shift state.
+  L4.4 [ ] MonsoonIme: type fixed-layout characters with commitText (no composing), tracker/predictions as in Bangla, no auto-caps; labels (pill / space bar).
+  L4.5 [ ] Language-key long-press popup (D19): lists the layouts that exist (Avro, প্রভাত, জাতীয়; Bijoy joins when claude-e builds it).
+  L4.6 [ ] CI green, ARCHITECTURE.md, DECISIONS.md, owner test checklist. Warn claude-s (T6 can reuse FixedLayouts) and claude-g (settings: nothing needed, last layout is saved by enum name).
+
 L1 Multi-Claude workflow [~]
   L1.1 [x] Design agreed with the owner (D20-D22).
   L1.2 [x] CLAUDE.md rules, STATUS.md owner tags and hand-offs, status/ notes files, README paste command.
@@ -46,7 +57,8 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
   Reminder: pure-Kotlin parts are tested locally (kc.sh); Android parts only by CI.
 
 ## Next step
-Nothing of mine is open except waiting. L2.5 (claude-g: learning switch, Clear button, Licenses screen via `ime/LearnSettings` and `assets/licenses/prediction-data.txt`) and L1.4 (owner starting
+L4: get the owner's answers to the design questions (L4.1), then L4.2. (Older note: other than L4, nothing of mine is open except waiting.)
+Nothing else of mine is open except waiting. L2.5 (claude-g: learning switch, Clear button, Licenses screen via `ime/LearnSettings` and `assets/licenses/prediction-data.txt`) and L1.4 (owner starting
 claude-e/g/s) are others'. Ideas only if the owner asks: smarter Banglish bridge (match more words, e.g. tomar/tomake/ekta/apni via the Avro dictionary search), Bangla-script
 suggestion for Banglish typing, tuning of the 0.4 short-prefix prior (`Predictor.SHORT_PREFIX_PRIOR`). Do not start new features without the owner's go-ahead.
 
