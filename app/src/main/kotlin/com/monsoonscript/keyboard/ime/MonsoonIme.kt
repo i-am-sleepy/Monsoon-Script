@@ -131,6 +131,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Settings that the view needs to know (read when the view is created, when an input starts and when a setting changes). */
     private fun applyPrefs() {
         keyboard?.setLanguageOptions(Prefs.languageKey(this), Prefs.spaceSwipe(this))
+        keyboard?.setBanglaDigits(Prefs.banglaDigits(this))
         keyboard?.let { kb ->
             kb.setAppearance(Prefs.theme(this), Prefs.numberRow(this), Prefs.heightPortrait(this), Prefs.heightLandscape(this), Prefs.keyGap(this))
             applySystemBars() // the theme setting can change the keyboard color

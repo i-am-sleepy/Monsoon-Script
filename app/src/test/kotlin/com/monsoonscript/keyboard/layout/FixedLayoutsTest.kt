@@ -3,6 +3,7 @@ package com.monsoonscript.keyboard.layout
 import com.monsoonscript.keyboard.lang.Language
 import com.monsoonscript.keyboard.lang.avro.AvroLayoutTables
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -106,7 +107,7 @@ class FixedLayoutsTest {
         assertEquals(Key.ZWNJ, hasanta.hint); assertEquals(Key.ZWJ, hasanta.hintShifted)
         assertEquals("ZWNJ", hasanta.hintDrawn); assertEquals("ZWJ", hasanta.hintDrawnShifted)
         assertEquals("়", key(Language.PROBHAT, "।").hint)
-        assertEquals("◌়", key(Language.PROBHAT, "।").hintDrawn)
+        assertEquals(NB + "়", key(Language.PROBHAT, "।").hintDrawn)
     }
 
     @Test fun topRowKeepsTheDigitHintsInBothLayouts() {
@@ -128,9 +129,13 @@ class FixedLayoutsTest {
         assertEquals(",", comma.shifted); assertNull(comma.hint)
     }
 
-    @Test fun combiningSignsGetADottedCircleOnTheKeyFace() {
-        assertEquals("◌ি", key(Language.PROBHAT, "ি").face)
-        assertEquals("◌ৈ", key(Language.PROBHAT, "ে").faceShifted)
+    @Test fun combiningSignsAreDrawnOnANoBreakSpaceNotOnADottedCircle() {
+        assertEquals(NB + "ি", key(Language.PROBHAT, "ি").face)
+        assertEquals(NB + "ৈ", key(Language.PROBHAT, "ে").faceShifted)
+        for (l in listOf(Language.PROBHAT, Language.NATIONAL)) for (page in Layouts.pages(l)) for (row in page) for (k in row) {
+            assertFalse("dotted circle on a key face", k.face.contains('\u25CC') || k.faceShifted.contains('\u25CC'))
+            assertFalse("dotted circle on a hint", (k.hintDrawn ?: "").contains('\u25CC') || (k.hintDrawnShifted ?: "").contains('\u25CC'))
+        }
         assertEquals("ক", key(Language.PROBHAT, "ক").face) // a letter is drawn as it is
         assertEquals("ি", key(Language.PROBHAT, "ি").text) // ...but the typed text is never changed
     }
@@ -144,6 +149,7 @@ class FixedLayoutsTest {
             if (k.kind != Kind.CHAR) continue
             out += k.text; out += k.shifted
             k.hint?.let { out += it }; k.hintShifted?.let { out += it }
+            k.bnHint?.let { out += it } // the Bangla-only hints of the ?123 pages (L6)
         }
         return out
     }
@@ -161,19 +167,51 @@ class FixedLayoutsTest {
         return out
     }
 
+    private val NB = "\u00A0"
+
     private fun setOf(vararg codePoints: Int): Set<String> = codePoints.map { String(Character.toChars(it)) }.toSet()
 
-    @Test fun everyProbhatCharacterIsTypableExceptTheListedOnes() {
-        val missing = banglaOf(AvroLayoutTables.PROBHAT) - typable(Language.PROBHAT)
-        // ॥ (double danda) and the rare fraction / currency numerator signs of the PC number row: not on the phone in v1 (D58).
-        assertEquals(setOf(0x0965, 0x09F2, 0x09F4, 0x09F5, 0x09F6, 0x09F7, 0x09F8, 0x09F9, 0x09FA), missing)
+    @Test fun everyProbhatCharacterIsTypable() {
+        // L6: the rare signs that did not fit on the letters page (D58) are long-press hints on the ?123 pages now
+        assertEquals(emptySet<String>(), banglaOf(AvroLayoutTables.PROBHAT) - typable(Language.PROBHAT))
     }
 
-    @Test fun everyNationalCharacterIsTypableExceptTheListedOnes() {
-        val missing = banglaOf(AvroLayoutTables.NATIONAL) - typable(Language.NATIONAL)
-        // ৢ ৣ ৄ ঽ clash with the top-row digit hints (D59); ॥ makes room for ZWNJ / ZWJ on the hasanta; the fraction / currency
-        // numerator signs of the PC number row are not on the phone in v1. ৎ ৺ ৰ ৱ ZWNJ ZWJ and ৳ are all reachable.
-        assertEquals(setOf(0x09E2, 0x09E3, 0x09C4, 0x09BD, 0x0965, 0x09F2, 0x09F4, 0x09F5, 0x09F6, 0x09F7, 0x09F8), missing)
+    @Test fun everyNationalCharacterIsTypable() {
+        assertEquals(emptySet<String>(), banglaOf(AvroLayoutTables.NATIONAL) - typable(Language.NATIONAL))
+    }
+
+    private val rareSigns = listOf(0x09F2, 0x0965, 0x09FA, 0x09F4, 0x09F5, 0x09F6, 0x09F7, 0x09F8, 0x09F9, 0x09BD, 0x09C4, 0x09E2, 0x09E3)
+        .map { String(Character.toChars(it)) }
+
+    @Test fun theRareSignsAreBanglaOnlyHintsOnTheSymbolPagesExactlyOnce() {
+        val onPages = ArrayList<String>()
+        for (p in listOf(Layouts.PAGE_SYMBOLS, Layouts.PAGE_SYMBOLS2)) for (row in Layouts.pages[p]) for (k in row) {
+            val h = k.bnHint ?: continue
+            onPages += h
+            assertNull("a key with a normal hint must not also carry a Bangla-only one", k.hint)
+            assertTrue(k.digit < 0)
+        }
+        assertEquals(rareSigns.toSet(), onPages.toSet())
+        assertEquals(onPages.size, onPages.toSet().size) // no sign twice
+        // the letters pages of English and Avro have none: those hints are for the ?123 pages only
+        for (row in Layouts.pages[Layouts.PAGE_LETTERS]) for (k in row) assertNull(k.bnHint)
+        // the signs are painted on a no-break space (no dotted circle); the others as they are
+        val vowelSign = Layouts.pages[Layouts.PAGE_SYMBOLS2].flatMap { it.asList() }.first { it.bnHint == "\u09C4" }
+        assertEquals(NB + "\u09C4", vowelSign.bnHintDrawn)
+        val danda = Layouts.pages[Layouts.PAGE_SYMBOLS2].flatMap { it.asList() }.first { it.bnHint == "\u0965" }
+        assertEquals("\u0965", danda.bnHintDrawn)
+    }
+
+    @Test fun digitKeysKnowTheirValueAndBanglaDigitsAreInUnicodeOrder() {
+        for (i in 0..9) assertEquals(String(Character.toChars(0x09E6 + i)), Key.BN_DIGITS[i])
+        for (p in listOf(Layouts.pages[Layouts.PAGE_SYMBOLS][0], Layouts.numberRow)) {
+            assertEquals(listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 0), p.map { it.digit })
+        }
+        // letters, symbols and the strip are never digit keys
+        assertEquals(-1, key(Language.ENGLISH, "q").digit)
+        assertEquals(-1, key(Language.PROBHAT, "ক").digit)
+        assertEquals(-1, Layouts.pages[Layouts.PAGE_SYMBOLS][1][0].digit)
+        assertEquals(-1, Layouts.pages[Layouts.PAGE_SYMBOLS][3][0].digit) // the ABC key
     }
 
     @Test fun theTakaSignIsOnTheSymbolsPage() {

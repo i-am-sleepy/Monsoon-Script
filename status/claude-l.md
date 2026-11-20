@@ -1,5 +1,5 @@
 # claude-l notes (only claude-l edits this file; others only append lines under "Warnings")
-Updated: 2026-11-20, session 6. Focus: L4 (Probhat + National layouts, owner order); before that prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
+Updated: 2026-11-21, session 6. Focus: L5 + L6 + T11 (owner feedback after the L4 test); before that L4 (Probhat + National layouts, owner order); before that prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
@@ -14,7 +14,21 @@ L4 প্রভাত (Probhat) + জাতীয় (National) layouts [~] (own
   L4.3 [x] `Language.PROBHAT/NATIONAL`, `Layouts.pages(language)`, `Key.shifted/hintShifted/face/hintDrawn*`, KeyboardView per-language rows + shift-aware hints.
   L4.4 [x] `MonsoonIme.switchLanguage`, `KeyboardView.setLanguage(Language)`; typing is the plain commitText path, predictions run in Bangla mode.
   L4.5 [x] Language-key long-press popup (`openLanguagePopup` / `popupTouch` in KeyboardView, `onLanguagePicked` in the IME).
-  L4.6 [x] commit 46d05d1 = CI #26 green (build + tests, signed APK); warnings to claude-e/g/s written. Waiting for the owner's test of the APK (checklist was in my reply); fix what he reports.
+  L4.6 [x] commit 46d05d1 = CI #26 green (build + tests, signed APK); warnings to claude-e/g/s written.
+  L4.7 [x] Owner tested 2026-11-20: typing in Probhat and National works. His feedback became L5, L6 and T11 below.
+
+L5 Sign keys without the dotted circle [~] (D62)
+  L5.1 [x] `Key.drawable`: a Mn/Mc sign is painted on `Key.NBSP` instead of "◌" (keys, hints, bubble); typed text unchanged; test `combiningSignsAreDrawnOnANoBreakSpaceNotOnADottedCircle`.
+  L5.2 [~] Pushed with L6/T11; owner checks ূ ী ্ ি ু ে on Probhat and National. If a sign is off-center, nudge in `KeyboardView.drawKey` (the no-break space adds a little width).
+L6 Rare signs on the ?123 pages [~] (D63, owner chose Bangla layouts only)
+  L6.1 [x] `Key.bnHint` + `Layouts.symbols/symbols2` hints (৲ ॥ ৺ ৴ ৵ ৶ ৷ ৸ ৹ ঽ ৄ ৢ ৣ); `KeyboardView.hintOf` shows them only when `language.isBangla`.
+  L6.2 [x] FixedLayoutsTest: every Bangla character of Probhat and National is typable, each rare sign is on exactly one key (15 tests pass locally).
+  L6.3 [~] Pushed, waiting for CI and the owner's test.
+T11 Bangla digits [~] (D18, D61; taken over from claude-e on the owner's order 2026-11-21)
+  T11.1 [x] Owner decided: a setting that swaps typed digit and hint on every digit key; hints only in Bangla layouts.
+  T11.2 [x] `Key.digit`, `Key.BN_DIGITS`; `KeyboardView.typedOf/faceOf/hintOf/hintDrawnOf/setBanglaDigits`.
+  T11.3 [x] `Prefs.DIGITS` (Int 0 English / 1 Bangla), `Prefs.banglaDigits`, Typing page `choiceRow` + note, strings, `MonsoonIme.applyPrefs` calls `setBanglaDigits`.
+  T11.4 [~] Pushed, waiting for CI. Then the owner's test checklist (in my reply).
 
 L1 Multi-Claude workflow [~]
   L1.1 [x] Design agreed with the owner (D20-D22).
@@ -57,7 +71,8 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
   Reminder: pure-Kotlin parts are tested locally (kc.sh); Android parts only by CI.
 
 ## Next step
-L4: owner tests 46d05d1 (Probhat, National, language popup). Fix what he reports. Not built yet and left out on purpose: see D58/D59 (rare signs, ॥, number-row fraction signs).
+After the push: wait 4-8 min, `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt`; fix any compile error in view/KeyboardView.kt (hintOf / typedOf / faceOf, the Android part nobody compiled locally), settings/SettingsPageActivity.kt or prefs/Prefs.kt.
+Then the owner tests L5, L6 and T11 together; fix what he reports. Nothing left out any more of Probhat / National (FixedLayoutsTest checks it).
 Nothing else of mine is open except waiting. L2.5 (claude-g: learning switch, Clear button, Licenses screen via `ime/LearnSettings` and `assets/licenses/prediction-data.txt`) and L1.4 (owner starting
 claude-e/g/s) are others'. Ideas only if the owner asks: smarter Banglish bridge (match more words, e.g. tomar/tomake/ekta/apni via the Avro dictionary search), Bangla-script
 suggestion for Banglish typing, tuning of the 0.4 short-prefix prior (`Predictor.SHORT_PREFIX_PRIOR`). Do not start new features without the owner's go-ahead.

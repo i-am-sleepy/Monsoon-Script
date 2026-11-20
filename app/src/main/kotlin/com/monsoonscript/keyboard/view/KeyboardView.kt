@@ -66,6 +66,7 @@ class KeyboardView(context: Context) : View(context) {
     // ---- appearance (G1.5): set by the IME from the settings (and by the preview on the Appearance page); declared before init, which reads themeMode
     private var themeMode = THEME_SYSTEM
     private var numberRow = false
+    private var banglaDigits = false // T11 / D61: in the Bangla layouts the digit keys type ০..৯ and keep 0..9 as the long-press hint
     private var heightPortrait = 100
     private var heightLandscape = 100
     private var keyGapDp = 3
@@ -261,18 +262,54 @@ class KeyboardView(context: Context) : View(context) {
         return if (numberRow && p == Layouts.PAGE_LETTERS) arrayOf(Layouts.numberRow) + rows else rows
     }
 
+    /** True when the digit keys type Bangla digits: the setting is on and a Bangla layout is active (English always types 0..9). */
+    private fun bnDigitsOn(): Boolean = banglaDigits && language.isBangla
+
+    /** What the user sees and types on [k] before Shift: a digit key follows the Bangla digits setting (T11), every other key its own text. */
+    private fun typedOf(k: Key): String =
+        if (k.digit >= 0 && bnDigitsOn()) Key.BN_DIGITS[k.digit] else if (shiftState != SHIFT_OFF) k.shifted else k.text
+
+    /** What is painted on the key face (see [typedOf]; a sign is painted on a no-break space, [Key.drawable]). */
+    private fun faceOf(k: Key): String =
+        if (k.digit >= 0 && bnDigitsOn()) Key.BN_DIGITS[k.digit] else if (shiftState != SHIFT_OFF) k.faceShifted else k.face
+
     /**
      * What a long press on [k] types, and its corner hint: with Shift on the Shift hint (Shift+AltGr of a fixed Bangla layout, D59), else the
-     * plain one. The digit hints of the top letter row are dropped while the number row shows the digits itself.
+     * plain one. The digit hints of the top letter row are dropped while the number row shows the digits itself. In the Bangla layouts
+     * (T11, L6): a digit key hints the other kind of digit, a top-row digit hint turns into a Bangla digit when the setting says so, and a
+     * key without a hint may carry a Bangla-only one ([Key.bnHint], the rare signs on the ?123 pages). English never shows those.
      */
     private fun hintOf(k: Key): String? {
-        val h = (if (shiftState != SHIFT_OFF) k.hintShifted else k.hint) ?: return null
-        return if (numberRow && page == Layouts.PAGE_LETTERS && h.length == 1 && h[0] in '0'..'9') null else h
+        val h = (if (shiftState != SHIFT_OFF) k.hintShifted else k.hint)
+        if (h != null) {
+            val d = if (h.length == 1 && h[0] in '0'..'9') h[0] - '0' else -1
+            if (d >= 0) {
+                if (numberRow && page == Layouts.PAGE_LETTERS) return null
+                if (bnDigitsOn()) return Key.BN_DIGITS[d]
+            }
+            return h
+        }
+        if (!language.isBangla) return null
+        if (k.digit >= 0) return if (banglaDigits) k.text else Key.BN_DIGITS[k.digit]
+        return k.bnHint
     }
 
-    /** What is painted for that hint: ZWNJ / ZWJ by name, a vowel sign with a dotted circle (see [Key.drawable]). */
-    private fun hintDrawnOf(k: Key): String? =
-        if (hintOf(k) == null) null else if (shiftState != SHIFT_OFF) k.hintDrawnShifted else k.hintDrawn
+    /** What is painted for that hint: ZWNJ / ZWJ by name, a vowel sign on a no-break space (see [Key.drawable]); digits as they are. */
+    private fun hintDrawnOf(k: Key): String? {
+        val h = hintOf(k) ?: return null
+        return when {
+            h === k.bnHint -> k.bnHintDrawn
+            h === k.hint || h === k.hintShifted -> if (shiftState != SHIFT_OFF) k.hintDrawnShifted else k.hintDrawn
+            else -> h
+        }
+    }
+
+    /** The Bangla digits setting (T11, D61): which digit a digit key types in the Bangla layouts; the other one is its long-press hint. */
+    fun setBanglaDigits(on: Boolean) {
+        if (on == banglaDigits) return
+        banglaDigits = on
+        invalidate()
+    }
 
     /**
      * The typing language: its letters page (Probhat and National have their own, D58 / D59), the label of the strip's language key and
@@ -575,7 +612,7 @@ class KeyboardView(context: Context) : View(context) {
                 val hint = hintDrawnOf(ks[i])
                 if (hint != null) drawBubble(canvas, hint, rs[i]) // held long enough: the bubble shows the hint, typed on release
             } else if (!ptrLong[s] && ks[i].kind == Kind.CHAR) {
-                drawBubble(canvas, if (shiftState != SHIFT_OFF) ks[i].faceShifted else ks[i].face, rs[i])
+                drawBubble(canvas, faceOf(ks[i]), rs[i])
             }
         }
         if (popupOpen) drawLanguagePopup(canvas)
@@ -694,7 +731,7 @@ class KeyboardView(context: Context) : View(context) {
         val cy = tmp.centerY()
         when (k.code) {
             Codes.CHAR -> {
-                c.drawText(if (shiftState != SHIFT_OFF) k.faceShifted else k.face, cx, cy + letterBase, letterPaint)
+                c.drawText(faceOf(k), cx, cy + letterBase, letterPaint)
                 val hint = hintDrawnOf(k)
                 if (hint != null) {
                     val small = hint.length > 2 // "ZWNJ" / "ZWJ" must still fit in the corner
@@ -1085,7 +1122,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun perform(k: Key) {
         when (k.code) {
             Codes.CHAR -> {
-                val t = if (shiftState != SHIFT_OFF) k.shifted else k.text
+                val t = typedOf(k)
                 val wasOnce = shiftState == SHIFT_ONCE
                 if (wasOnce) shiftState = SHIFT_OFF // before the listener, so the IME can switch it back on
                 listener?.onText(t)

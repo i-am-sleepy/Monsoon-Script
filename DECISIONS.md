@@ -167,3 +167,12 @@
   ৺ is the hold of the ঁ key, ৰ ৱ the hold of ব, ঌ ৡ the hold of দ. Row 4 is the English one (, and .): the dari । is Shift + ্ as on the PC. Also left out: the number-row fraction signs (৴ ৵ ৶ ৷ ৸ ৲).
 - D60 2026-11-20 Labels (L4; the owner chose the recommended option): the strip pill stays বাং for every Bangla layout, the space bar names the layout: বাংলা (Avro), বাংলা (প্রভাত), বাংলা (জাতীয়).
   The long-press popup on the language key (D19) lists the layouts that exist; Bijoy joins when it is built (claude-e, T9.3).
+- D61 2026-11-21 Bangla digits (T11, taken over from claude-e on the owner's order; the owner chose "a setting swaps them"): Settings > Typing gets "Digits in Bangla mode: English / Bangla" (`Prefs.DIGITS`, Int 0/1,
+  default English = D18). It swaps which digit EVERY digit key types in the Bangla layouts (Avro, Probhat, National): the ?123 page digits and the number row (face and typed text), and the small digit hints on the
+  top letter row (D14). The other kind is the long-press hint: with English on, the ?123 / number-row digit keys hint ১ ২ ৩ ...; with Bangla on they type ১ ২ ৩ and hint 1 2 3. English mode ALWAYS types and shows
+  English digits and has no Bangla digit hints. Implemented in KeyboardView (`typedOf`, `faceOf`, `hintOf`), data in `Key.digit` / `Key.BN_DIGITS`.
+- D62 2026-11-21 Vowel-sign key faces (L5, owner request after testing L4): keys whose sign cannot stand alone (ু ূ ি ী ৃ ে ৈ ো ৌ ্ ঁ ় ...) are drawn WITHOUT the dotted circle: the sign sits on a no-break space
+  (`Key.NBSP`, in `Key.drawable`), so Android's text shaper adds no circle either. Typed text is unchanged. ZWNJ / ZWJ keep their names. If a sign looks off-center on a device, nudge it in drawKey.
+- D63 2026-11-21 Rare signs on the ?123 pages (L6, owner request; the owner chose "Bangla layouts only"): the signs D58/D59 left out are now long-press hints (`Key.bnHint`) shown and typed only in Avro, Probhat and
+  National, never in English. ৳ -> ৲ (page 1); page 2: | -> ॥, • -> ৺, the six keys after Tab £ $ ¥ ^ ° _ -> ৴ ৵ ৶ ৷ ৸ ৹ (Unicode order), and on the right end of the third row \ -> ঽ, < -> ৄ, > -> ৢ, … -> ৣ.
+  `FixedLayoutsTest` now demands that EVERY Bangla character of Probhat and National is typable (no left-out list any more).

@@ -39,6 +39,10 @@
     <string name="settings_language_key_summary">Show the EN / বাং key in the top row of icons</string>
     <string name="settings_space_swipe">Swipe the space bar to switch language</string>
     <string name="settings_space_swipe_summary">Slide your finger along the space bar</string>
+    <string name="settings_digits">Digits in Bangla mode</string>
+    <string name="settings_digits_english">English (1 2 3)</string>
+    <string name="settings_digits_bangla">Bangla (১ ২ ৩)</string>
+    <string name="settings_digits_note">Which digit the digit keys type in the Bangla layouts. Hold a key to type the other kind. English mode always types English digits.</string>
     <string name="settings_feel_header">Typing feel</string>
     <string name="settings_vibration">Vibration on key press</string>
     <string name="settings_vib_off">Off</string>

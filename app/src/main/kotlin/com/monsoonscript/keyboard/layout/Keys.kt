@@ -35,8 +35,8 @@ object Kind {
  *
  * Shift: a Latin letter shows and types its capital; any key can say what Shift types with [shiftText] (the fixed Bangla layouts
  * put a second letter there). [shiftHint] is what a long press types while Shift is on (null = the same as [hint]). Combining
- * signs and invisible characters cannot be drawn alone, so [face] and the `hintDrawn*` strings are what is painted: a dotted circle
- * in front of a vowel sign, "ZWNJ" / "ZWJ" for the joiners (or the explicit [hintLabel] / [shiftHintLabel]).
+ * signs and invisible characters cannot be drawn alone, so [face] and the `hintDrawn*` strings are what is painted: a no-break space
+ * under a vowel sign (so no dotted circle is drawn), "ZWNJ" / "ZWJ" for the joiners (or the explicit [hintLabel] / [shiftHintLabel]).
  */
 class Key(
     val code: Int,
@@ -49,9 +49,14 @@ class Key(
     val shiftHint: String? = null,
     hintLabel: String? = null,
     shiftHintLabel: String? = null,
+    /** A hint that exists only in the Bangla layouts (L6: rare signs on the ?123 pages); a key with a normal [hint] never needs it. */
+    val bnHint: String? = null,
 ) {
     val upper: String = text.uppercase()
     val isLetter: Boolean = kind == Kind.CHAR && text.length == 1 && text[0].isLetter()
+
+    /** 0..9 when this is a plain digit key (the ?123 digits and the number row), else -1. The view swaps it for a Bangla digit (T11). */
+    val digit: Int = if (kind == Kind.CHAR && text.length == 1 && text[0] in '0'..'9') text[0] - '0' else -1
 
     /** What the key shows and types while Shift is on. */
     val shifted: String = shiftText ?: if (isLetter) upper else text
@@ -67,18 +72,26 @@ class Key(
     val hintDrawn: String? = hintLabel ?: hint?.let { drawable(it) }
     val hintDrawnShifted: String? = if (shiftHint != null) (shiftHintLabel ?: drawable(shiftHint)) else hintDrawn
 
+    /** Painted in the corner for [bnHint]. */
+    val bnHintDrawn: String? = bnHint?.let { drawable(it) }
+
     companion object {
         const val ZWNJ = "‌"
         const val ZWJ = "‍"
-        private const val DOTTED_CIRCLE = "◌"
 
-        /** [s] as it can be painted on its own: joiners get a name, a combining sign gets a dotted circle, everything else is unchanged. */
+        /** The no-break space: a combining sign standing on it is drawn alone, and the text shaper adds no dotted circle (L5). */
+        const val NBSP = "\u00A0"
+
+        /** The Bangla digits ০..৯ (T11), shared constants so drawing and typing allocate nothing. */
+        val BN_DIGITS: Array<String> = arrayOf("০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯")
+
+        /** [s] as it can be painted on its own: joiners get a name, a combining sign stands on a no-break space (no dotted circle), everything else is unchanged. */
         fun drawable(s: String): String {
             if (s.isEmpty()) return s
             if (s == ZWNJ) return "ZWNJ"
             if (s == ZWJ) return "ZWJ"
             val t = Character.getType(s[0])
-            return if (t == Character.NON_SPACING_MARK.toInt() || t == Character.COMBINING_SPACING_MARK.toInt()) DOTTED_CIRCLE + s else s
+            return if (t == Character.NON_SPACING_MARK.toInt() || t == Character.COMBINING_SPACING_MARK.toInt()) NBSP + s else s
         }
     }
 }

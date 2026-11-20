@@ -13,7 +13,7 @@ object Layouts {
     const val PAGE_SYMBOLS2 = 2
     const val PAGE_COUNT = 3
 
-    private fun c(t: String, w: Float = 1f, hint: String? = null) = Key(Codes.CHAR, t, w, Kind.CHAR, hint)
+    private fun c(t: String, w: Float = 1f, hint: String? = null, bn: String? = null) = Key(Codes.CHAR, t, w, Kind.CHAR, hint, bnHint = bn)
     private fun spacer(w: Float) = Key(Codes.NONE, "", w, Kind.SPACER)
     private fun special(code: Int, label: String, w: Float) = Key(code, label, w, Kind.SPECIAL)
     private fun shift(w: Float) = Key(Codes.SHIFT, "", w, Kind.SPECIAL)
@@ -42,9 +42,19 @@ object Layouts {
         ),
     )
 
+    // rare Bangla signs, long-pressed on the ?123 pages in the Bangla layouts only (L6, D63)
+    private const val RUPEE_MARK = "\u09F2" // ৲
+    private const val DOUBLE_DANDA = "\u0965" // ॥
+    private const val ISSHAR = "\u09FA" // ৺
+    private val CURRENCY_NUMERATORS = arrayOf("\u09F4", "\u09F5", "\u09F6", "\u09F7", "\u09F8", "\u09F9") // ৴ ৵ ৶ ৷ ৸ ৹
+    private const val AVAGRAHA = "\u09BD" // ঽ
+    private const val VOCALIC_RR_SIGN = "\u09C4" // ৄ
+    private const val VOCALIC_L_SIGN = "\u09E2" // ৢ
+    private const val VOCALIC_LL_SIGN = "\u09E3" // ৣ
+
     private val symbols: Array<Array<Key>> = arrayOf(
         arrayOf(c("1"), c("2"), c("3"), c("4"), c("5"), c("6"), c("7"), c("8"), c("9"), c("0")),
-        arrayOf(c("@"), c("#"), c("৳"), c("%"), c("&"), c("*"), c("-"), c("+"), c("("), c(")")),
+        arrayOf(c("@"), c("#"), c("৳", bn = RUPEE_MARK), c("%"), c("&"), c("*"), c("-"), c("+"), c("("), c(")")),
         arrayOf(
             special(Codes.SYMBOLS2, "=\\<", 1.5f), c("!"), c("\""), c("'"), c(":"), c(";"), c("/"), c("?"), backspace(1.5f),
         ),
@@ -54,13 +64,18 @@ object Layouts {
     )
 
     private val symbols2: Array<Array<Key>> = arrayOf(
-        arrayOf(c("~"), c("`"), c("|"), c("•"), c("√"), c("π"), c("÷"), c("×"), c("{"), c("}")),
+        arrayOf(c("~"), c("`"), c("|", bn = DOUBLE_DANDA), c("•", bn = ISSHAR), c("√"), c("π"), c("÷"), c("×"), c("{"), c("}")),
         arrayOf(
             Key(Codes.TAB, "", 1f, Kind.SPECIAL, null, "Tab"),
-            c("£"), c("$"), c("¥"), c("^"), c("°"), c("_"), c("="), c("["), c("]"),
+            // the six old currency fraction signs, in Unicode order on the six keys after Tab
+            c("£", bn = CURRENCY_NUMERATORS[0]), c("$", bn = CURRENCY_NUMERATORS[1]), c("¥", bn = CURRENCY_NUMERATORS[2]),
+            c("^", bn = CURRENCY_NUMERATORS[3]), c("°", bn = CURRENCY_NUMERATORS[4]), c("_", bn = CURRENCY_NUMERATORS[5]),
+            c("="), c("["), c("]"),
         ),
         arrayOf(
-            special(Codes.SYMBOLS, "?123", 1.5f), c("®"), c("©"), c("™"), c("\\"), c("<"), c(">"), c("…"), backspace(1.5f),
+            // the four vowel signs / avagraha that the National layout has no room for (D59) sit on the right end of the third row
+            special(Codes.SYMBOLS, "?123", 1.5f), c("®"), c("©"), c("™"), c("\\", bn = AVAGRAHA), c("<", bn = VOCALIC_RR_SIGN),
+            c(">", bn = VOCALIC_L_SIGN), c("…", bn = VOCALIC_LL_SIGN), backspace(1.5f),
         ),
         arrayOf(
             special(Codes.LETTERS, "ABC", 1.5f), c(","), space(5f), c("."), enter(1.5f),

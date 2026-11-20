@@ -19,6 +19,7 @@ object Prefs {
     // typing
     const val LANGUAGE_KEY = "language_key" // default on (D15)
     const val SPACE_SWIPE = "space_swipe" // default on (D15)
+    const val DIGITS = "typing_digits" // Int: 0 English digits typed in the Bangla layouts (default, D18), 1 Bangla digits (T11, D61)
 
     // appearance (G1.5)
     const val THEME = "appearance_theme" // Int: 0 follow the phone, 1 light, 2 dark
@@ -57,6 +58,9 @@ object Prefs {
     fun languageKey(context: Context): Boolean = of(context).getBoolean(LANGUAGE_KEY, true)
 
     fun spaceSwipe(context: Context): Boolean = of(context).getBoolean(SPACE_SWIPE, true)
+
+    /** True when the digit keys of the Bangla layouts type ০..৯ and keep 0..9 as the long-press hint (D61). */
+    fun banglaDigits(context: Context): Boolean = of(context).getInt(DIGITS, 0) == 1
 
     fun theme(context: Context): Int = of(context).getInt(THEME, 0).coerceIn(0, 2)
 

@@ -45,6 +45,9 @@ class SettingsPageActivity : Activity() {
             page.content.add(header(getString(R.string.settings_language_header)))
             page.content.add(switchRow(getString(R.string.settings_language_key), getString(R.string.settings_language_key_summary), Prefs.LANGUAGE_KEY, true))
             page.content.add(switchRow(getString(R.string.settings_space_swipe), getString(R.string.settings_space_swipe_summary), Prefs.SPACE_SWIPE, true))
+            val digits = listOf(R.string.settings_digits_english, R.string.settings_digits_bangla).map { getString(it) }
+            page.content.add(choiceRow(getString(R.string.settings_digits), Prefs.DIGITS, digits, 0))
+            page.content.add(note(getString(R.string.settings_digits_note)))
             page.content.add(header(getString(R.string.settings_feel_header)))
             val levels = listOf(R.string.settings_vib_off, R.string.settings_vib_light, R.string.settings_vib_normal, R.string.settings_vib_strong).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.settings_vibration), Prefs.VIBRATION, levels, Prefs.VIB_NORMAL))
