@@ -6,11 +6,11 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
 - `view/KeyboardView.kt`: one Canvas view (strip icons + 4 rows), multi-touch (4 pointers), commit on release, finger sliding
   switches the pressed key, shift/caps lock, backspace repeat, digit long-press hints, key bubble, light/dark palette, no allocations in touch/draw.
 - `layout/Keys.kt` + `layout/Layouts.kt`: key model and the letters / symbols / symbols2 pages as data.
-- `prefs/Prefs.kt`: the ONE SharedPreferences file `monsoon_prefs` (key constants + typed getters: language, last Bangla layout, language key, space swipe, learn, strip toggles `suggest_show` / `suggest_next_word` / `suggest_typed_first`).
+- `prefs/Prefs.kt`: the ONE SharedPreferences file `monsoon_prefs` (key constants + typed getters: language, last Bangla layout, language key, space swipe, learn, strip toggles `suggest_show` / `suggest_next_word` / `suggest_typed_first`, typing feel `typing_vibration` (Int 0-3) / `typing_key_sound` / `typing_long_press` (Int 0-2)).
   `ime/LearnSettings` uses the same file. The IME listens (`MonsoonIme.applyPrefs`) so settings take effect live.
 - `settings/` (plain framework Views, no libraries, light/dark from the theme): `SetupActivity` = main list (setup status + steps, rows for the pages),
   `SettingsPageActivity` = Typing / Suggestions / About pages chosen by the `page` extra, `LicensesActivity` (assets/licenses/*.txt), `SettingsUi` = row builders
-  (page, header, switchRow, navRow, buttonRow, infoRow, note). A new setting = a Prefs key + a row + a read in `applyPrefs()`.
+  (page, header, switchRow, choiceRow (Int pref, dialog list), navRow, buttonRow, infoRow, note, tryField). A new setting = a Prefs key + a row + a read in `applyPrefs()`.
 - `.github/workflows/build.yml`.
 - `lang/avro/` (MPL-2.0 port, pure Kotlin, no Android classes, NOT thread-safe, one instance on the main thread):
   `AvroPhoneticConverter` (`convert(word)` -> Bangla, with Avro autocorrect + `joNukta` flag), `AvroAutoCorrect` (loads
@@ -77,6 +77,7 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   `PredictionWorker.learn` when `learnAllowed` (field allows predictions, no `IME_FLAG_NO_PERSONALIZED_LEARNING`, and `LearnSettings.enabled`, default ON). The worker keeps a
   `UserStats` (faded counts, 30-day half-life, pruned at 30k words / 60k pairs; a word no dictionary knows needs 2 uses before it is suggested), loads it from `ime/UserStore`
   (SQLite `learned.db`, table `facts(w1, w2, n, last)`, word rows have w2 = "") on first use, and saves the changes 8 s after the last learn, at `flush()` (keyboard closes) and at `stop()`.
+  Typing feel (G1.4, D55), pushed by `MonsoonIme.applyPrefs` into `KeyboardView.setTypingFeel(vibration, keySound, longPressMs)`: vibration 0 Off / 1 Light / 3 Strong use cached `VibrationEffect` one-shots on the `Vibrator` (needs the VIBRATE permission, declared), 2 Normal = `performHapticFeedback` as before; key sound = `AudioManager.playSoundEffect` (follows Android's touch-sounds switch); the long-press delay replaces the old fixed 300 ms. The Typing settings page ends with a "Try it" text field.
   Strip toggles (G1.3, D57), cached in `MonsoonIme.applyPrefs`: `showSuggestions` off stops `requestPrediction` and drops late answers (the tracker and learning keep running; Avro dictionary choices are never affected), `nextWord` off = no request when no word is started, `typedFirst` is the last parameter of `PredictionWorker.request` (off = 3 predictions, no typed word first).
   Settings contract for claude-g: `ime/LearnSettings` holds the pref names (`PREFS`, `KEY_ENABLED`, `KEY_CLEAR_EPOCH`); the switch writes `learn_enabled`
   (`LearnSettings.setEnabled`), the button calls `LearnSettings.clearLearnedWords(context)` (empties the database and bumps an epoch that the running service hears via a

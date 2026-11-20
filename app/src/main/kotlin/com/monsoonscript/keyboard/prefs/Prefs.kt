@@ -20,6 +20,13 @@ object Prefs {
     const val LANGUAGE_KEY = "language_key" // default on (D15)
     const val SPACE_SWIPE = "space_swipe" // default on (D15)
 
+    // typing feel (G1.4)
+    const val VIBRATION = "typing_vibration" // Int: 0 Off, 1 Light, 2 Normal (Android's own key tap, as before G1.4), 3 Strong
+    const val KEY_SOUND = "typing_key_sound" // default off
+    const val LONG_PRESS = "typing_long_press" // Int: 0 Short, 1 Normal, 2 Long
+    const val VIB_NORMAL = 2
+    const val LONG_PRESS_NORMAL = 1
+
     // suggestion strip (G1.3): all default on
     const val SHOW_SUGGESTIONS = "suggest_show"
     const val NEXT_WORD = "suggest_next_word"
@@ -34,6 +41,17 @@ object Prefs {
     fun languageKey(context: Context): Boolean = of(context).getBoolean(LANGUAGE_KEY, true)
 
     fun spaceSwipe(context: Context): Boolean = of(context).getBoolean(SPACE_SWIPE, true)
+
+    fun vibration(context: Context): Int = of(context).getInt(VIBRATION, VIB_NORMAL).coerceIn(0, 3)
+
+    fun keySound(context: Context): Boolean = of(context).getBoolean(KEY_SOUND, false)
+
+    /** How long a key is held before its long-press (hint character, globe menu) fires. */
+    fun longPressMs(context: Context): Long = when (of(context).getInt(LONG_PRESS, LONG_PRESS_NORMAL)) {
+        0 -> 220L
+        2 -> 450L
+        else -> 300L
+    }
 
     fun showSuggestions(context: Context): Boolean = of(context).getBoolean(SHOW_SUGGESTIONS, true)
 

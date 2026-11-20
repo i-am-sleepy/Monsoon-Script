@@ -1,14 +1,17 @@
 package com.monsoonscript.keyboard.settings
 
+import android.app.AlertDialog
 import android.content.Context
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.Drawable
+import android.text.InputType
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Switch
@@ -143,6 +146,42 @@ internal class SettingsUi(private val context: Context) {
             addView(sw)
             setOnClickListener { sw.toggle() }
         }
+    }
+
+    /** A row for the Int preference [key] (an index into [options]): the summary shows the current choice, a tap opens a list to pick another. */
+    fun choiceRow(title: String, key: String, options: List<String>, default: Int): View {
+        val prefs = Prefs.of(context)
+        fun current(): Int = prefs.getInt(key, default).coerceIn(0, options.size - 1)
+        val labels = texts(title, options[current()])
+        val summary = labels.getChildAt(1) as TextView
+        return row().apply {
+            addView(labels, weighted())
+            setOnClickListener {
+                AlertDialog.Builder(context)
+                    .setTitle(title)
+                    .setSingleChoiceItems(options.toTypedArray(), current()) { dialog, which ->
+                        prefs.edit().putInt(key, which).apply()
+                        summary.text = options[which]
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton(android.R.string.cancel, null)
+                    .show()
+            }
+        }
+    }
+
+    /** A text field for trying the keyboard right on the settings page. */
+    fun tryField(hint: String): View = LinearLayout(context).apply {
+        setPadding(dp(20), dp(4), dp(20), dp(8))
+        addView(EditText(context).apply {
+            this.hint = hint
+            textSize = 17f
+            setTextColor(primary)
+            setHintTextColor(secondary)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            minLines = 3
+            gravity = Gravity.TOP or Gravity.START
+        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     }
 
     /** A row that opens another page. */

@@ -8,9 +8,12 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Typeface
 import android.graphics.RectF
+import android.media.AudioManager
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.os.VibrationEffect
+import android.os.Vibrator
 import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
@@ -201,6 +204,74 @@ class KeyboardView(context: Context) : View(context) {
             if (width > 0) computeLayout(width)
             cancelAll()
         }
+    }
+
+    // ---- typing feel (G1.4): set by the IME from the settings; the touch code only reads these fields and allocates nothing
+
+    private var vibration = VIB_NORMAL
+    private var keySound = false
+    private var longPressMs = LONG_PRESS_MS
+    private var tapEffect: VibrationEffect? = null
+    private var longEffect: VibrationEffect? = null
+    private val vibrator: Vibrator? by lazy { context.getSystemService(Vibrator::class.java) }
+    private val audio: AudioManager? by lazy { context.getSystemService(AudioManager::class.java) }
+
+    /**
+     * [vibration]: 0 Off, 1 Light, 2 Normal (Android's own keyboard tap, the behaviour before the setting existed), 3 Strong. Light and Strong
+     * drive the vibration motor directly (short pulses, amplitude when the motor supports it). [keySound] plays Android's key click (it follows
+     * the system "touch sounds" switch). [longPressMs] is the hold time of a long press.
+     */
+    fun setTypingFeel(vibration: Int, keySound: Boolean, longPressMs: Long) {
+        this.vibration = vibration.coerceIn(VIB_OFF, VIB_STRONG)
+        this.keySound = keySound
+        this.longPressMs = longPressMs
+        tapEffect = null
+        longEffect = null
+        if (this.vibration == VIB_LIGHT || this.vibration == VIB_STRONG) {
+            val light = this.vibration == VIB_LIGHT
+            val amplitude = vibrator?.hasAmplitudeControl() == true
+            tapEffect = pulse(if (light) 10L else 30L, if (light) 60 else 255, amplitude)
+            longEffect = pulse(if (light) 16L else 45L, if (light) 90 else 255, amplitude)
+        }
+    }
+
+    private fun pulse(ms: Long, amplitude: Int, hasAmplitude: Boolean): VibrationEffect =
+        VibrationEffect.createOneShot(ms, if (hasAmplitude) amplitude else VibrationEffect.DEFAULT_AMPLITUDE)
+
+    private fun tap() {
+        when (vibration) {
+            VIB_OFF -> Unit
+            VIB_NORMAL -> performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            else -> buzz(tapEffect)
+        }
+    }
+
+    private fun longTap() {
+        when (vibration) {
+            VIB_OFF -> Unit
+            VIB_NORMAL -> performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            else -> buzz(longEffect)
+        }
+    }
+
+    private fun buzz(effect: VibrationEffect?) {
+        if (effect == null) return
+        try {
+            vibrator?.vibrate(effect)
+        } catch (e: SecurityException) {
+            // no vibrate permission: stay silent, typing must never fail because of feedback
+        }
+    }
+
+    private fun click(code: Int) {
+        if (!keySound) return
+        val effect = when (code) {
+            Codes.SPACE -> AudioManager.FX_KEYPRESS_SPACEBAR
+            Codes.BACKSPACE -> AudioManager.FX_KEYPRESS_DELETE
+            Codes.ENTER -> AudioManager.FX_KEYPRESS_RETURN
+            else -> AudioManager.FX_KEYPRESS_STANDARD
+        }
+        audio?.playSoundEffect(effect)
     }
 
     /** Called by the IME after it checked the editor's auto-capitalization mode. Never overrides caps lock. */
@@ -633,13 +704,13 @@ class KeyboardView(context: Context) : View(context) {
         ptrArrow[slot] = inArrow
         ptrSug[slot] = if (inSug) sugIndexAt(x) else if (inArrow) ARROW_SLOT else -1
         if (inArrow) {
-            performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+            tap()
             invalidate()
             return
         }
         if (inSug) {
             if (ptrSug[slot] >= 0) {
-                performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                tap()
                 invalidate()
             }
             return
@@ -648,13 +719,14 @@ class KeyboardView(context: Context) : View(context) {
         val k = keys[page][idx]
         downX[slot] = x
         swipeArmed[slot] = spaceSwipeEnabled && k.code == Codes.SPACE
-        performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+        tap()
+        click(k.code)
         invalidate()
         if (k.code == Codes.BACKSPACE) {
             listener?.onBackspace()
             uiHandler.postDelayed(repeatRunnable[slot], REPEAT_START_MS)
         } else if (hasLongPress(k)) {
-            uiHandler.postDelayed(longPressRunnable[slot], LONG_PRESS_MS)
+            uiHandler.postDelayed(longPressRunnable[slot], longPressMs)
         }
     }
 
@@ -682,7 +754,7 @@ class KeyboardView(context: Context) : View(context) {
             swipeArmed[slot] = false
             cancelTimers(slot)
             ptrLong[slot] = true
-            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            longTap()
             listener?.onLanguageToggle()
             invalidate()
             return
@@ -696,7 +768,7 @@ class KeyboardView(context: Context) : View(context) {
         cancelTimers(slot)
         ptrKey[slot] = idx
         invalidate()
-        if (idx >= 0 && hasLongPress(keys[page][idx])) uiHandler.postDelayed(longPressRunnable[slot], LONG_PRESS_MS)
+        if (idx >= 0 && hasLongPress(keys[page][idx])) uiHandler.postDelayed(longPressRunnable[slot], longPressMs)
     }
 
     private fun up(id: Int) {
@@ -740,14 +812,14 @@ class KeyboardView(context: Context) : View(context) {
         val k = keys[page][idx]
         if (k.code == Codes.GLOBE) {
             ptrLong[slot] = true
-            performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+            longTap()
             listener?.onGlobeLong()
             invalidate()
             return
         }
         val hint = k.hint ?: return
         ptrLong[slot] = true
-        performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+        longTap()
         listener?.onText(hint)
         invalidate()
     }
@@ -822,6 +894,10 @@ class KeyboardView(context: Context) : View(context) {
         const val SHIFT_ONCE = 1
         const val SHIFT_LOCKED = 2
         const val LONG_PRESS_MS = 300L
+        const val VIB_OFF = 0 // the vibration levels match Prefs.VIBRATION
+        const val VIB_LIGHT = 1
+        const val VIB_NORMAL = 2
+        const val VIB_STRONG = 3
         const val REPEAT_START_MS = 400L
         const val REPEAT_MS = 50L
         const val REPEAT_FAST_MS = 30L

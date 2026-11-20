@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- No permissions on purpose. INTERNET is allowed by DECISIONS D10 but is added only when a network feature exists. -->
+    <!-- Only VIBRATE (normal permission, no prompt; D55) for the vibration strength setting. INTERNET is allowed by DECISIONS D10 but is added only when a network feature exists. -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:allowBackup="false"
@@ -36,7 +37,8 @@
         <activity
             android:name=".settings.SettingsPageActivity"
             android:exported="false"
-            android:label="@string/app_name" />
+            android:label="@string/app_name"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
 
         <activity
             android:name=".settings.LicensesActivity"

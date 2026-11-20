@@ -12,27 +12,28 @@ G1 Settings pages [~]  (T10 = G1.1 + G1.2, L2.5 = G1.2)
   G1.2 [x] SetupActivity = main list (status, 2 setup steps, rows Typing / Suggestions / About and licenses); `SettingsPageActivity` (extra `page`) holds the three pages;
            `LicensesActivity` shows assets/licenses/{app,avro,prediction-data}.txt. Owner-tested OK (2026-11-19).
   G1.3 [~] Suggestion toggles pushed in 3 commits (e08984c prefs/switches/PredictionWorker, 78e7a92 MonsoonIme, then docs); claude-l warned. NOT compiled (no local compiler): check CI for the newest commit. Owner answered #9: Avro choices stay unaffected (D57). Owner saw the new switches on the Suggestions page (2026-11-20); the behaviour checklist below is not reported yet.
-  G1.4 [ ] Typing feel: vibration Off/Light/Normal/Strong (declare VIBRATE, D55), key sound on/off, long-press delay Short/Normal/Long; "try it" text field on the page
+  G1.4 [~] Typing feel pushed (Prefs, KeyboardView.setTypingFeel, choiceRow + tryField in SettingsUi, Typing page, VIBRATE in the manifest). NOT compiled by me: check CI. Light/Strong strengths and the 220/450 ms delays are guesses, tune after the owner's report.
   G1.5 [ ] Appearance: theme (system/light/dark), number row switch, height sliders portrait + landscape, key-gap slider (limits so keys never overlap or get too small), live preview (a real KeyboardView); then add the "Appearance" row to SetupActivity
   G1.6 [ ] (low priority) hold-hint bubble for top-row digits: show the digit while held, type it on release
 
 ## Next action
-0. FIRST: `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt`. If the newest commit failed, read only `--- errors ---` and fix (likely a Kotlin typo in MonsoonIme/PredictionWorker/Prefs); if green, give the owner the checklist below and continue.
-G1.4 Typing feel: Prefs keys vibration (Off/Light/Normal/Strong), key sound, long-press delay; declare VIBRATE in AndroidManifest (D55); choice-row helper in `settings/SettingsUi.kt`; "try it" text field on the Typing page; read the values in `applyPrefs()`/KeyboardView (find the current haptic and long-press code first). Warn claude-e if KeyboardView key handling changes.
-Chat-session tooling: no git credentials in the sandbox. Clone anonymously, edit, then push with the GitHub connector's `push_files` (full file contents; JSON-escape backslashes), and check with `git fetch origin main && git diff origin/main` that main equals the local files (also catches typos).
-How to add a setting: `Prefs` key + `ui.switchRow(title, summary, key, default)` (or navRow/buttonRow/infoRow/note in `SettingsUi`), then read it in `applyPrefs()`.
+0. FIRST: `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt`. If the newest commit failed, read only `--- errors ---` and fix; if green, give the owner the checklist below.
+G1.5 Appearance: Prefs keys theme (system/light/dark), number row, portrait + landscape height, key gap; `KeyboardView` palette/sizes read them (find `desiredHeight`, `refreshTheme`, palette code first; claude-e's emoji panel uses `kb.palette` and `desiredHeight()`, keep both working); live preview = a real KeyboardView on the Appearance page; add the "Appearance" row to SetupActivity. Warn claude-e (number row touches layouts) before changing `layout/`.
+Chat-session tooling: the sandbox has no git login. Either the GitHub connector's `push_files` (full file contents, JSON-escape backslashes) or a token the owner pastes in the chat (use it only for one push command via `git -c http.extraheader=...`, never save it in files, memory or git config; tell the owner to revoke it afterwards). Check with `git fetch origin main && git diff origin/main` that main equals the local files.
+How to add a setting: `Prefs` key + `ui.switchRow(...)` / `ui.choiceRow(title, key, options, default)` (or navRow/buttonRow/infoRow/note/tryField in `SettingsUi`), then read it in `applyPrefs()`.
 
 ## Half-done files / known bugs
-ARCHITECTURE.md is up to date for G1.3.
+ARCHITECTURE.md is up to date for G1.3 and G1.4.
 Not compiled locally (CI only). Appearance row is deliberately absent until G1.5. Hand-offs kept: language has ONE entry point `MonsoonIme.setLanguage`, saved by enum NAME, unknown falls back to EN.
-Shared files I touch: MonsoonIme, KeyboardView (palette, sizes, later), AndroidManifest (VIBRATE in G1.4), strings.xml; warn claude-e (layouts, number row) and claude-l (strip/prediction toggles) when I change them.
+Shared files I touch: MonsoonIme, KeyboardView (palette, sizes, later), AndroidManifest (VIBRATE added in G1.4), strings.xml; warn claude-e (layouts, number row) and claude-l (strip/prediction toggles) when I change them.
 
-## Test checklist for my latest build (owner) - G1.3 suggestion toggles (UNTESTED, compile unconfirmed until CI says so)
-1. Settings > Suggestions: new section "Suggestion strip" with three switches (all ON by default) above "Personal words".
-2. "Show word suggestions" off: typing English or Banglish shows no completions or next words in the strip (icon row stays). Bangla Avro typing still shows its own dictionary choices. On again: suggestions return.
-3. "Next-word suggestions" off: after a space the strip shows nothing; while a word is being typed completions still show.
-4. "Show my typed word first" off: while typing the first choice is a completion, not your typed word (one more suggestion shown). On: your typed word is first and bold.
-5. "Learn from my typing" still works with the strip off (type new words, turn the strip back on, they appear later).
+## Test checklist for my latest build (owner) - G1.4 typing feel (UNTESTED, compile unconfirmed until CI says so)
+Also still open from G1.3: the five switch checks (Suggestions page) were not reported yet.
+1. Settings > Typing: new "Typing feel" section (Vibration on key press, Sound on key press, Long-press delay) and a "Try it" box at the bottom; tapping the box opens the keyboard and the page stays usable.
+2. Vibration: Normal feels like before this update. Off: no buzz at all. Light: a clearly weaker tick than Normal. Strong: a clearly stronger buzz. Check letters, backspace, a suggestion tap and a long press (hold a top-row key).
+3. Sound on key press: on = key click (only if Android's Touch sounds are on in its sound settings); off = silent (default).
+4. Long-press delay: Short fires the digit/globe hold sooner, Long later, Normal as before (about 0.3 s). Changing a choice applies at once, no restart.
+5. Nothing else changed: typing, shift, backspace repeat, space-bar swipe still work.
 
 - [claude-e -> claude-g] 2026-11-19 E2.3: LicensesActivity.FILES got a 4th entry "licenses/emoji.txt" (Unicode data + Noto font credits); app/build.gradle.kts got `noCompress += "ttf"` next to "mslm". Keep both when you edit those files. Later E2 work (picker) will also touch MonsoonIme, KeyboardView and strings.xml; I will warn again with the functions.
 

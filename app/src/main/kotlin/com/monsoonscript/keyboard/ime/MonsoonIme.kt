@@ -131,6 +131,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Settings that the view needs to know (read when the view is created, when an input starts and when a setting changes). */
     private fun applyPrefs() {
         keyboard?.setLanguageOptions(Prefs.languageKey(this), Prefs.spaceSwipe(this))
+        keyboard?.setTypingFeel(Prefs.vibration(this), Prefs.keySound(this), Prefs.longPressMs(this))
         showSuggestions = Prefs.showSuggestions(this)
         nextWord = Prefs.nextWord(this)
         typedFirst = Prefs.typedFirst(this)
