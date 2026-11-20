@@ -25,10 +25,10 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [ ] T9 (claude-e) PAUSED by the owner 2026-11-19 (E2 first). Fixed layouts as data: Provat and National from `third_party/avro-reference/layouts` (key maps, images stripped); Bijoy
       Classic from the standard chart (owner must verify); language-key long-press popup (D19). Bornona, Munir Optima, Avro Easy later (D17)
 - [x] T10 (claude-g) Settings activity + SharedPreferences: switches for the language key and space-bar swipe (both default ON, D15,
-      `KeyboardView.setLanguageOptions`), persist the chosen language (built in G1.1/G1.2, commit 63f95a7; owner device test pending)
+      `KeyboardView.setLanguageOptions`), persist the chosen language (built in G1.1/G1.2, commit 63f95a7; owner-tested OK 2026-11-19)
 - [~] G1 (claude-g) Settings pages and extra settings (D55): main list with sub-pages (Typing, Suggestions, Appearance, About and licenses); prefs helper; language key/swipe, learn switch +
       clear button, suggestion toggles, vibration/sound/long-press, theme, number row, height + key-gap sliders with live preview; later: hint bubble for held top-row digits. Includes T10 and L2.5.
-      G1.1 prefs + G1.2 main list/Typing/Suggestions/About pages DONE (63f95a7, checkpoint; CI #16 pending at checkpoint time, then owner test); next G1.3 (suggestion toggles). Steps in status/claude-g.md
+      G1.1 prefs + G1.2 main list/Typing/Suggestions/About pages DONE (63f95a7, owner-tested OK 2026-11-19); G1.3 suggestion toggles pushed (e08984c, 78e7a92), CI pending; next G1.4 (typing feel). Steps in status/claude-g.md
 - [ ] T11 (claude-e, after T9) Bangla digit hints on digit keys (English typed, Bangla long-press, D18)
 - [~] E2 (claude-e) Emoji system (owner priority 2026-11-19: all other claude-e tasks are paused): fully offline picker, Unicode 17 emoji data in assets, bundled Noto Color Emoji,
       category tabs, searchable grid, recents, skin tones and ZWJ sequences, inserted as Unicode text with commitText. Research done, design answered (D56), building. Steps in status/claude-e.md
@@ -61,6 +61,8 @@ Password manager (E1): Phase 0 now; later phases follow D51 after the go/no-go r
 6. (answered 2026-11-17: prediction data, see D41 and D42)
 7. (answered 2026-11-18: Banglish prediction quality, see D54)
 8. (answered 2026-11-19: emoji layout, skin tones, Bangla search names, hide undrawable emoji, see D56)
+
+9. Suggestion strip toggle (G1.3): "Show word suggestions" currently hides only the English/Bangla/Banglish prediction strip; Avro (Bangla typing) dictionary choices stay on. Should the switch hide those too? Default if no answer: keep as is. (claude-g)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.

@@ -167,7 +167,7 @@ class PredictionWorker(
                 }
             }
             Mode.BANGLA -> {
-                val b = bn ?: PackLoader.load(assets, "bn")?.also { bn = it } 
+                val b = bn ?: PackLoader.load(assets, "bn")?.also { bn = it }
                 if (b != null) listOf(WeightedPack(b)) else emptyList()
             }
         }
