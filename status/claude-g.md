@@ -12,7 +12,7 @@ G1 Settings pages [~]  (T10 = G1.1 + G1.2, L2.5 = G1.2)
   G1.2 [x] SetupActivity = main list (status, 2 setup steps, rows Typing / Suggestions / About and licenses); `SettingsPageActivity` (extra `page`) holds the three pages;
            `LicensesActivity` shows assets/licenses/{app,avro,prediction-data}.txt. Owner-tested OK (2026-11-19).
   G1.3 [~] Suggestion toggles pushed in 3 commits (e08984c prefs/switches/PredictionWorker, 78e7a92 MonsoonIme, then docs); claude-l warned. NOT compiled (no local compiler): check CI for the newest commit. Owner answered #9: Avro choices stay unaffected (D57). Owner saw the new switches on the Suggestions page (2026-11-20); the behaviour checklist below is not reported yet.
-  G1.4 [~] Typing feel pushed (Prefs, KeyboardView.setTypingFeel, choiceRow + tryField in SettingsUi, Typing page, VIBRATE in the manifest). CI #23 (2b499bf) green, build + tests. Light/Strong strengths and the 220/450 ms delays are guesses, tune after the owner's report.
+  G1.4 [~] Typing feel pushed (owner: delay OK; vibration Light/Strong retuned 2026-11-20, sound button added) (Prefs, KeyboardView.setTypingFeel, choiceRow + tryField in SettingsUi, Typing page, VIBRATE in the manifest). CI #23 (2b499bf) green, build + tests. Light/Strong strengths and the 220/450 ms delays are guesses, tune after the owner's report.
   G1.5 [~] Appearance pushed: Appearance page with a live preview (theme Follow phone/Light/Dark, number row, height sliders portrait/landscape 70-130%, key gap 0-6 dp), SetupActivity row, `KeyboardView.setAppearance`. CI #24 (20464dd) green, build + tests. Owner chose to test G1.4 and G1.5 together.
   G1.6 [~] Hold-hint bubble pushed: holding a hint key (top-row digits) past the long-press delay shows the digit in the key bubble and types it when the finger is lifted (before: typed at the moment of the long press, no preview). Owner asked for it 2026-11-20 to test everything at once.
 
@@ -27,19 +27,13 @@ ARCHITECTURE.md is up to date for G1.3 and G1.4.
 Not compiled locally (CI only). Hand-offs kept: language has ONE entry point `MonsoonIme.setLanguage`, saved by enum NAME, unknown falls back to EN.
 Shared files I touch: MonsoonIme, KeyboardView (palette, sizes, later), AndroidManifest (VIBRATE added in G1.4), strings.xml; warn claude-e (layouts, number row) and claude-l (strip/prediction toggles) when I change them.
 
-## Test checklist for my latest build (owner) - G1.3 to G1.6 together (CI #25 green; UNTESTED on a device)
-G1.3 suggestion switches (Settings > Suggestions): a. Show word suggestions off = no completions or next words (icon row stays), Bangla Avro spelling choices still show. b. Next-word suggestions off = nothing after a space, completions still show while typing. c. Show my typed word first off = first choice while typing is a completion. d. Learn from my typing still works with the strip off.
-G1.4 typing feel (Settings > Typing): 1. new "Typing feel" section + "Try it" box. 2. Vibration Off / Light / Normal (like before) / Strong on letters, backspace, suggestion tap, long press. 3. Sound on key press (needs Android Touch sounds on; off by default). 4. Long-press delay Short / Normal / Long applies at once. 5. Typing, shift, backspace repeat, space swipe unchanged.
-G1.5 Appearance (new row on the main list, between Suggestions and About):
-6. The page shows a keyboard preview on top. Touching it does nothing and the page still scrolls.
-7. Theme: Follow the phone / Light / Dark change the preview at once; in a real text field the keyboard (and the navigation-bar area under it) follows the choice. "Follow the phone" behaves as before.
-8. Number row on: a digits row 1 to 0 appears above the letters in the preview and in a text field; the small digit hints on q w e r t y u i o p are gone. On the ?123 symbols pages the keyboard keeps the same total height (taller keys).
-9. Height sliders: the portrait slider changes the preview when the phone is upright, the landscape one when it is sideways; 100% looks like before; very tall settings stop growing at about two thirds of the screen. Open a text field after changing: the keyboard has the new height.
-10. Space between keys: 0 = keys touching, 6 = wide gaps, 3 = as before; keys stay tappable.
-11. Emoji panel (the emoji key): still opens at the same height as the keys after a height or number-row change.
-G1.6 hold-hint bubble:
-12. Hold a top-row letter (q w e r t y u i o p) past the long-press delay: the key bubble switches from the letter to its digit and you feel the long-press tick; nothing is typed yet. Lift the finger: the digit is typed. A quick tap still types the letter. With the number row on, holding does nothing special.
-13. Hold q, then slide the finger to another key and lift: the digit of q is typed (the hold stays armed). Holding the globe key still opens the keyboard picker at once.
+## Test checklist for my latest build (owner) - re-test after the owner's first report (UNTESTED on a device)
+Owner reported 2026-11-20: hold-hint digit bubble OK, long-press delay OK, Appearance preview + theme + height sliders + key gap OK (number row not mentioned yet, asked to confirm). Vibration was wrong: Normal strong as before, Strong weaker than Normal, Light not felt. Key sound only works while Android's Touch sounds is on (its separate keyboard tone option is for the phone's own keyboard).
+Changed: Light = 25 ms pulse, Strong = 80 ms pulse (default strength, long press 40/130 ms), Typing page got an "Open Android sound settings" button and a clearer sound note.
+1. Vibration: Light is felt and clearly weaker than Normal; Strong clearly stronger than Normal; Off silent. If still off, say which and I will change the two numbers (or add a strength slider).
+2. Typing > "Open Android sound settings" opens Android's sound page (it cannot jump to the exact switch); with Touch sounds on, "Sound on key press" clicks.
+3. Number row (Appearance): digits row appears above the letters, top-row digit hints gone; symbols pages keep the same total height.
+4. Emoji panel is NOT a setting: only check that the emoji key opens the panel at the same height as the keyboard after changing the height sliders or the number row.
 
 - [claude-e -> claude-g] 2026-11-19 E2.3: LicensesActivity.FILES got a 4th entry "licenses/emoji.txt" (Unicode data + Noto font credits); app/build.gradle.kts got `noCompress += "ttf"` next to "mslm". Keep both when you edit those files. Later E2 work (picker) will also touch MonsoonIme, KeyboardView and strings.xml; I will warn again with the functions.
 

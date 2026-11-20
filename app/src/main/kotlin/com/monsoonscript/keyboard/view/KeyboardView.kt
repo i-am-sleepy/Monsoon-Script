@@ -314,7 +314,7 @@ class KeyboardView(context: Context) : View(context) {
 
     /**
      * [vibration]: 0 Off, 1 Light, 2 Normal (Android's own keyboard tap, the behaviour before the setting existed), 3 Strong. Light and Strong
-     * drive the vibration motor directly (short pulses, amplitude when the motor supports it). [keySound] plays Android's key click (it follows
+     * drive the vibration motor directly (a short and a long pulse). [keySound] plays Android's key click (it follows
      * the system "touch sounds" switch). [longPressMs] is the hold time of a long press.
      */
     fun setTypingFeel(vibration: Int, keySound: Boolean, longPressMs: Long) {
@@ -325,14 +325,14 @@ class KeyboardView(context: Context) : View(context) {
         longEffect = null
         if (this.vibration == VIB_LIGHT || this.vibration == VIB_STRONG) {
             val light = this.vibration == VIB_LIGHT
-            val amplitude = vibrator?.hasAmplitudeControl() == true
-            tapEffect = pulse(if (light) 10L else 30L, if (light) 60 else 255, amplitude)
-            longEffect = pulse(if (light) 16L else 45L, if (light) 90 else 255, amplitude)
+            // Only the length differs (device default strength). The first values (10/30 ms at reduced amplitude) were too faint to feel, and
+            // Strong felt weaker than Android's own tap on the owner's phone (report 2026-11-20); tune these two lines if it is still off.
+            tapEffect = pulse(if (light) 25L else 80L)
+            longEffect = pulse(if (light) 40L else 130L)
         }
     }
 
-    private fun pulse(ms: Long, amplitude: Int, hasAmplitude: Boolean): VibrationEffect =
-        VibrationEffect.createOneShot(ms, if (hasAmplitude) amplitude else VibrationEffect.DEFAULT_AMPLITUDE)
+    private fun pulse(ms: Long): VibrationEffect = VibrationEffect.createOneShot(ms, VibrationEffect.DEFAULT_AMPLITUDE)
 
     private fun tap() {
         when (vibration) {

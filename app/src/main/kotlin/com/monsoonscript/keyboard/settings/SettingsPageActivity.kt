@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
 import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.FrameLayout
@@ -49,12 +50,26 @@ class SettingsPageActivity : Activity() {
             page.content.add(choiceRow(getString(R.string.settings_vibration), Prefs.VIBRATION, levels, Prefs.VIB_NORMAL))
             page.content.add(note(getString(R.string.settings_vibration_note)))
             page.content.add(switchRow(getString(R.string.settings_key_sound), getString(R.string.settings_key_sound_summary), Prefs.KEY_SOUND, false))
+            page.content.add(buttonRow(getString(R.string.settings_sound_settings), getString(R.string.settings_sound_settings_summary)) { openSoundSettings() })
             val delays = listOf(R.string.settings_press_short, R.string.settings_press_normal, R.string.settings_press_long).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.settings_long_press), Prefs.LONG_PRESS, delays, Prefs.LONG_PRESS_NORMAL))
             page.content.add(header(getString(R.string.settings_try_header)))
             page.content.add(tryField(getString(R.string.settings_try_hint)))
         }
         return page
+    }
+
+    /** Android's sound settings (no phone lets an app jump straight to the "touch sounds" switch); the general settings if that page is missing. */
+    private fun openSoundSettings() {
+        try {
+            startActivity(Intent(Settings.ACTION_SOUND_SETTINGS))
+        } catch (e: RuntimeException) {
+            try {
+                startActivity(Intent(Settings.ACTION_SETTINGS))
+            } catch (e2: RuntimeException) {
+                Toast.makeText(this, R.string.settings_sound_settings_failed, Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     private fun suggestions(ui: SettingsUi): SettingsUi.Page {
