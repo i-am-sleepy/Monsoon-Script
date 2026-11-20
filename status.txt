@@ -1,0 +1,71 @@
+job: emulator (instrumented spike test, API 34 x86_64)
+result: success
+upstream: KeePassDX 4.5.8
+run: #12 https://github.com/i-am-sleepy/Monsoon-Script/actions/runs/44657525316
+commit: 8b6ace16a7c0da84f1873885a5273744a5f90779
+time: 2026-11-20T02:06:26Z
+--- test results ---
+
+--- errors ---
+
+--- tail ---
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:checkReleaseAarMetadata
+> Task :app:processReleaseNavigationResources
+> Task :app:compileReleaseNavigationResources FROM-CACHE
+> Task :app:generateReleaseResValues FROM-CACHE
+> Task :app:mapReleaseSourceSetPaths
+> Task :app:generateReleaseResources
+> Task :app:packageReleaseResources
+> Task :app:mergeReleaseResources
+> Task :app:createReleaseCompatibleScreenManifests
+> Task :app:extractDeepLinksRelease
+> Task :app:parseReleaseLocalResources
+> Task :app:processReleaseMainManifest
+> Task :app:processReleaseManifest
+> Task :app:javaPreCompileRelease FROM-CACHE
+> Task :app:mergeReleaseArtProfile
+> Task :app:processReleaseManifestForPackage
+> Task :app:extractProguardFiles
+> Task :app:mergeReleaseStartupProfile
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:processReleaseResources
+> Task :app:extractReleaseVersionControlInfo
+> Task :app:mergeReleaseJniLibFolders
+> Task :app:validateSigningRelease
+> Task :app:mergeReleaseNativeLibs
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+
+> Task :app:stripReleaseDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libaes.so, libargon2.so. Run with --info option to learn more.
+
+> Task :app:compressReleaseAssets
+> Task :app:compileReleaseKotlin
+> Task :app:compileReleaseJavaWithJavac NO-SOURCE
+> Task :app:expandReleaseArtProfileWildcards
+> Task :app:mergeReleaseGeneratedProguardFiles
+> Task :app:processReleaseJavaRes
+> Task :app:mergeReleaseJavaResource
+> Task :app:minifyReleaseWithR8
+> Task :app:compileReleaseArtProfile
+> Task :app:convertShrunkResourcesToBinaryRelease
+> Task :app:optimizeReleaseResources
+> Task :app:packageRelease
+> Task :app:createReleaseApkListingFileRedirect
+
+> Task :app:installRelease
+[EmulatorConsole]: Failed to start Emulator console for 5554
+Installing APK 'app-release.apk' on 'emulator-5554 - 14' for :app:release
+Installed on 1 device.
+
+> Task :app:smokeRelease
+SMOKE broadcast: Broadcasting: Intent { flg=0x400020 cmp=com.monsoonscript.keyboard/com.monsoonscript.vault.VaultSmokeReceiver } | Broadcast completed: result=0
+SMOKE release build result: ok aes-kdf/AESRijndael ok: 1102 bytes, argon2id/AESRijndael ok: 1253 bytes, argon2id/Twofish ok: 1269 bytes, argon2id/ChaCha20 ok: 1248 bytes
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/emu-1795140044908.json
+
+BUILD SUCCESSFUL in 5m 49s
+218 actionable tasks: 180 executed, 38 from cache
