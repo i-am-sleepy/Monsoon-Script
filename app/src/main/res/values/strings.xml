@@ -22,6 +22,13 @@
     <string name="settings_language_key_summary">Show the EN / বাং key in the top row of icons</string>
     <string name="settings_space_swipe">Swipe the space bar to switch language</string>
     <string name="settings_space_swipe_summary">Slide your finger along the space bar</string>
+    <string name="settings_strip_header">Suggestion strip</string>
+    <string name="settings_show_suggestions">Show word suggestions</string>
+    <string name="settings_show_suggestions_summary">Completions and next words above the keys. Bangla (Avro) typing keeps its own word choices.</string>
+    <string name="settings_next_word">Next-word suggestions</string>
+    <string name="settings_next_word_summary">Suggest the next word after a space.</string>
+    <string name="settings_typed_first">Show my typed word first</string>
+    <string name="settings_typed_first_summary">While typing, the first choice is the word as you typed it; off shows one more suggestion instead.</string>
     <string name="settings_personal_header">Personal words</string>
     <string name="settings_learn">Learn from my typing</string>
     <string name="settings_learn_summary">Remembers the words you type, on this phone only. Never in password, e-mail or web address fields.</string>

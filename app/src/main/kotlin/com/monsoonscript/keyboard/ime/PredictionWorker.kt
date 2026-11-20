@@ -36,7 +36,7 @@ class PredictionWorker(
 
     private class Request(
         val seq: Int, val mode: Mode, val typed: String, val prefix: String,
-        val w1: String?, val w2: String?, val capitalizeStart: Boolean,
+        val w1: String?, val w2: String?, val capitalizeStart: Boolean, val typedFirst: Boolean,
     )
 
     private val appContext = context.applicationContext
@@ -60,11 +60,14 @@ class PredictionWorker(
 
     /**
      * [typed] is the word in progress exactly as in the editor (for capitals), [prefix] the same in lookup form, [w1]/[w2] the two words
-     * before it (lookup form, null when unknown), [capitalizeStart] true when the next word begins a sentence.
+     * before it (lookup form, null when unknown), [capitalizeStart] true when the next word begins a sentence, [typedFirst] true to put
+     * the word as typed first in the list while a word is in progress (settings, G1.3).
      */
-    fun request(seq: Int, mode: Mode, typed: String, prefix: String, w1: String?, w2: String?, capitalizeStart: Boolean) {
+    fun request(
+        seq: Int, mode: Mode, typed: String, prefix: String, w1: String?, w2: String?, capitalizeStart: Boolean, typedFirst: Boolean = true,
+    ) {
         val h = handler ?: start()
-        if (pending.getAndSet(Request(seq, mode, typed, prefix, w1, w2, capitalizeStart)) == null) h.post(drain)
+        if (pending.getAndSet(Request(seq, mode, typed, prefix, w1, w2, capitalizeStart, typedFirst)) == null) h.post(drain)
     }
 
     /** The owner finished typing [word] after [prev] (null at a sentence start). Both in `TextNorm.key` form. Saved a few seconds later. */
@@ -164,16 +167,17 @@ class PredictionWorker(
                 }
             }
             Mode.BANGLA -> {
-                val b = bn ?: PackLoader.load(assets, "bn")?.also { bn = it }
+                val b = bn ?: PackLoader.load(assets, "bn")?.also { bn = it } 
                 if (b != null) listOf(WeightedPack(b)) else emptyList()
             }
         }
         if (packs.isEmpty()) return emptyList()
         val typing = r.prefix.isNotEmpty()
-        val keys = predictor.predict(packs, r.prefix, r.w1, r.w2, if (typing) RESULTS - 1 else RESULTS)
+        val withTyped = typing && r.typedFirst
+        val keys = predictor.predict(packs, r.prefix, r.w1, r.w2, if (withTyped) RESULTS - 1 else RESULTS)
         val words = keys.map { TextNorm.matchCase(r.typed, it, r.capitalizeStart) }
         // While a word is typed its first choice is the word as typed (D54, like Gboard): tapping it just adds the space. Nothing to offer = no strip.
-        return if (typing && words.isNotEmpty()) listOf(r.typed) + words else words
+        return if (withTyped && words.isNotEmpty()) listOf(r.typed) + words else words
     }
 
     /** Banglish -> Bangla links for Banglish next-word suggestions (D54), loaded on the first Banglish context. Worker thread. */

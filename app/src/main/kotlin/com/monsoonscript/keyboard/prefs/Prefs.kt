@@ -20,6 +20,11 @@ object Prefs {
     const val LANGUAGE_KEY = "language_key" // default on (D15)
     const val SPACE_SWIPE = "space_swipe" // default on (D15)
 
+    // suggestion strip (G1.3): all default on
+    const val SHOW_SUGGESTIONS = "suggest_show"
+    const val NEXT_WORD = "suggest_next_word"
+    const val TYPED_FIRST = "suggest_typed_first"
+
     // suggestions and learning (D42)
     const val LEARN = "learn_enabled" // default on
     const val CLEAR_EPOCH = "learn_clear_epoch" // bumped by "Clear learned words"
@@ -29,6 +34,12 @@ object Prefs {
     fun languageKey(context: Context): Boolean = of(context).getBoolean(LANGUAGE_KEY, true)
 
     fun spaceSwipe(context: Context): Boolean = of(context).getBoolean(SPACE_SWIPE, true)
+
+    fun showSuggestions(context: Context): Boolean = of(context).getBoolean(SHOW_SUGGESTIONS, true)
+
+    fun nextWord(context: Context): Boolean = of(context).getBoolean(NEXT_WORD, true)
+
+    fun typedFirst(context: Context): Boolean = of(context).getBoolean(TYPED_FIRST, true)
 
     /** The language the keyboard was last left in; English when nothing or an unknown name is saved. */
     fun language(context: Context): Language = byName(of(context).getString(LANGUAGE, null), Language.ENGLISH)
