@@ -122,8 +122,8 @@ Strip icons for clipboard and mic are drawn but do nothing yet. Everything else 
 
 ## Build and CI
 - No local Android build is possible in the cloud sandbox (Maven and Gradle hosts are blocked). CI is the compiler.
-- Pinned: Gradle 8.10.2 (via setup-gradle, no wrapper), AGP 8.7.3, Kotlin 2.0.21, JDK 17, compileSdk 35, targetSdk 34, minSdk 26.
-- Workflow `.github/workflows/build.yml`: runs `testDebugUnitTest` (JUnit 4, pure JVM tests), then `assembleRelease`, on push to main
+- Pinned: Gradle 8.14.2 (via setup-gradle, no wrapper), AGP 8.13.2, Kotlin 2.0.21, JDK 17, compileSdk 35 (app; the KeePassDX engine modules use 36), targetSdk 34, minSdk 26.
+- Workflow `.github/workflows/build.yml`: runs `:app:testDebugUnitTest` (JUnit 4, pure JVM tests), then `:app:assembleRelease`, on push to main
   (md/docs/third_party-only pushes skip it). Failing tests stop the APK from being published; ci-status shows `tests:` and the failures.
 - Local trick for pure-Kotlin engines: Gradle's own lib folder has a Kotlin 2.0.21 compiler, JUnit and hamcrest, so engine code can be
   compiled and tested in the sandbox without Maven (`java -cp /opt/gradle/lib/kotlin-compiler-embeddable-2.0.21.jar:... K2JVMCompiler`,
@@ -132,6 +132,16 @@ Strip icons for clipboard and mic are drawn but do nothing yet. Everything else 
 - APK (rolling pre-release): https://github.com/i-am-sleepy/Monsoon-Script/releases/download/latest/MonsoonScript.apk
 - Signing: release key from GitHub Secrets (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD); without them it
   falls back to a temporary debug key. versionCode = GitHub run number.
+
+### Password manager engine (E1, D26/D44/D45/D46/D47/D64; plan and results: docs/PASSWORD_MANAGER.md, docs/PASSWORD_MANAGER_PHASE0.md)
+- `third_party/keepassdx`: KeePassDX as a git SUBMODULE (shallow), pinned to release tag 4.5.8, NEVER edited. A fresh clone needs `git submodule update --init --depth 1`; without it everything else still builds
+  (`settings.gradle.kts` includes `:vault`, `:crypto`, `:database` only when `third_party/keepassdx/gradle/libs.versions.toml` exists). Upstream's version catalog is imported as `libs` (Kotlin overridden to ours).
+- `vault/` (`com.monsoonscript.vault`): our adapter. `VaultEngine.kt` is the ONLY file that talks to the engine (D26); it will grow into the thin vault interface and run in the `:vault` process (D44). `consumer-rules.pro` holds
+  the shrinker rules the engine needs (each fixed a real failure). Tests: 14 emulator tests in `vault/src/androidTest` (all ciphers and key derivations, content, RFC 6238, merge, vaults made by pykeepass and real KeePassXC,
+  fixtures as base64 text in `assets/fixtures/`). Not a dependency of `:app` yet, so the APK is unchanged until Phase 1.
+- `.github/workflows/engine.yml`: only when `vault/**`, the submodule pointer, `.gitmodules`, the root Gradle files or the workflow itself change: engine unit tests, then the emulator tests (API 34 x86_64, KVM). Result on main:
+  branch `ci-status-engine`, file `last-build.txt`. Branch runs are read through the Actions page/API.
+- Updating KeePassDX = moving the submodule pointer to a newer RELEASE tag (never a random commit), on a test branch; `docs/UPSTREAM_COPIES.md` lists any KeePassDX code we copied (D46). A weekly watcher workflow (D48) is not built yet.
 
 ## Layout (planned)
 ```

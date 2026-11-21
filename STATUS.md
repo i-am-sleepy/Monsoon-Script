@@ -31,11 +31,10 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       clear button, suggestion toggles, vibration/sound/long-press, theme, number row, height + key-gap sliders with live preview; later: hint bubble for held top-row digits. Includes T10 and L2.5.
       G1.1 prefs + G1.2 main list/Typing/Suggestions/About pages DONE (63f95a7, owner-tested OK 2026-11-19); G1.3 suggestion toggles done (CI green, owner saw the switches 2026-11-20); G1.4 typing feel pushed (2b499bf, CI #23 green) G1.5 Appearance (20464dd, CI #24 green) and G1.6 hold-hint bubble pushed (73307d4, CI #25 green); owner tests G1.3 to G1.6 together; G1.7 optional built-in key click added after the owner's report (CI #28 green); G1.8 emoji key on the bottom row + keyboard button in the emoji panel pushed on the owner's request (447a1f9, CI #31 green). Steps in status/claude-g.md
 - [x] T11 (claude-l) Bangla digits (D18, D61). TAKEN OVER from claude-e on the owner's order 2026-11-21 (claude-e: remove it from your list). Built as a Settings > Typing choice "Digits in Bangla mode: English / Bangla" that swaps typed digit and hint on every digit key; pushed in 65133d1, CI #29 green, owner-tested OK (2026-11-21)
-- [~] E2 (claude-e) Emoji system (owner priority 2026-11-19: all other claude-e tasks are paused): fully offline picker, Unicode 17 emoji data in assets, bundled Noto Color Emoji,
-      category tabs, searchable grid, recents, skin tones and ZWJ sequences, inserted as Unicode text with commitText. Research done, design answered (D56), building. Steps in status/claude-e.md
-- [~] E1 (claude-e) PAUSED by the owner 2026-11-19 (E2 first). Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). Design SIGNED OFF (D53, 2026-11-18).
-      Phase 0 feasibility check is DONE on the side branch `e1-feasibility` (green run #12): GO recommended, +2.2 MB APK (+1.5 MB with ARM-only), 14 emulator tests incl. real KeePassXC and pykeepass vaults,
-      shrunk release build works after two fixes. Nothing from Phase 0 is on main. Results and the merge checklist: docs/PASSWORD_MANAGER_PHASE0.md. Waiting for the owner's go decision (Needs user #5); Phase 1 only after E2.
+- [x] E2 (claude-e) Emoji system: DONE FOR NOW (owner 2026-11-21: it works; more improvements are postponed). Offline picker, Unicode 17 data, bundled Noto Color Emoji, search in English and Bangla, recents, skin tones (D56). Ideas not built: see status/claude-e.md
+- [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). RESUMED 2026-11-21 (owner: GO, integrate to main, D64). Design SIGNED OFF (D53).
+      Phase 0 DONE (docs/PASSWORD_MANAGER_PHASE0.md); the engine FOUNDATION is on main (D64): submodule pinned to KeePassDX 4.5.8, `:vault` adapter + 14 emulator tests, engine workflow, AGP 8.13.2 / Gradle 8.14.2.
+      The app does not use it yet (APK unchanged). Next: Phase 1 (D51) = core vault in the app (create/open/unlock, entries and folders, auto-lock, safe saving); steps in status/claude-e.md
 - [~] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
       (uni/bi/trigram + learned usage), compact binary tables, async. Built: engine + data (L2.3), English/Bangla strip, arrow, learning (L2.4, CI green up to #13); owner device test OK (2026-11-18); L2.5 (settings switch, clear button, licenses screen) is done by claude-g in G1.2 (63f95a7); steps in status/claude-l.md
 - [x] L3 (claude-l) Banglish prediction quality (D54, owner-tested OK 2026-11-18, CI #15): bridge from Banglish words to the Bangla pair data for next-word, lean Banglish for 1-3 letter prefixes, typed word as first strip choice, no repeat of the word just typed. Steps in status/claude-l.md
@@ -60,9 +59,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 2. When Bijoy Classic is built (T9): ask the owner to verify the key map. (claude-e)
 3. (answered 2026-11-17: whole app is GPL-3.0, see D25. The LICENSE file comes after the E1 feasibility check.)
 4. When the first network feature appears: also ship an offline-only APK flavor with no INTERNET permission? (see D10) (any Claude)
-5. Password manager (E1) Phase 0 is DONE and green (the owner added the workflow file on 2026-11-18). Waiting for the owner: (a) GO for Phase 1 (D51), to start after E2; (b) how the engine
-   enters main: CI fetches the pinned KeePassDX release (one line in build.yml) or a real git submodule. Either way `.github/workflows/build.yml` must be edited (Gradle 8.14.2, SDK/NDK step, narrower
-   `paths-ignore`), which claude-e's tool cannot do: the owner (paste) or a Claude Code session. Exact checklist: docs/PASSWORD_MANAGER_PHASE0.md. (claude-e)
+5. (answered 2026-11-21: E1 GO and how the engine enters main, see D64)
 6. (answered 2026-11-17: prediction data, see D41 and D42)
 7. (answered 2026-11-18: Banglish prediction quality, see D54)
 8. (answered 2026-11-19: emoji layout, skin tones, Bangla search names, hide undrawable emoji, see D56)

@@ -34,6 +34,8 @@ ask the owner one short question ("which name am I?") before touching anything. 
 - **Git safety.** `git pull --rebase origin main` before every push, never force-push. A rebase conflict in a file you do not own: keep both
   sides' lines. You edit only your own `status/claude-X.md` (plus appended Warnings elsewhere) and your own task lines in STATUS.md.
 - CI state lives only on the `ci-status` branch, not in STATUS.md.
+- Password-manager engine (E1): KeePassDX is the git submodule `third_party/keepassdx` (never edit it). Plain keyboard work needs nothing from it. Its tests run in `.github/workflows/engine.yml` only when engine files change;
+  result on the branch `ci-status-engine` (`git fetch origin ci-status-engine && git show FETCH_HEAD:last-build.txt`). See ARCHITECTURE.md "Password manager engine".
 
 ## While working
 - Commit straight to `main` in small steps and push after every finished step. Never end a turn with unpushed work.

@@ -1,0 +1,106 @@
+name: Engine tests (KeePassDX)
+
+# E1 (D26, D47, D48). Builds the KeePassDX engine modules from the pinned git submodule third_party/keepassdx and tests them:
+# the engine's own unit tests, then our emulator tests (vault/src/androidTest: create/save/reload with every cipher and key
+# derivation, content, RFC 6238 one-time codes, merge, and vaults made by pykeepass and by real KeePassXC).
+# Runs only when engine-related files change (the keyboard build in build.yml is not slowed down). It never publishes a release.
+# Result file on main: branch `ci-status-engine`, file last-build.txt (like `ci-status`).
+
+on:
+  push:
+    branches: [main, e1-integrate]   # e1-integrate: temporary, for testing the integration
+    paths:
+      - 'vault/**'
+      - 'third_party/keepassdx'
+      - '.gitmodules'
+      - 'settings.gradle.kts'
+      - 'build.gradle.kts'
+      - '.github/workflows/engine.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: engine-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  engine:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.14.2'
+
+      - name: Android SDK pieces (platform 36, NDK, CMake)
+        continue-on-error: true
+        run: |
+          yes | sdkmanager --licenses > /dev/null || true
+          sdkmanager "platforms;android-36" "ndk;25.2.9519653" "cmake;3.22.1" | tail -n 5
+
+      - name: Engine unit tests (upstream's own JVM tests)
+        id: utests
+        run: |
+          set -o pipefail
+          gradle --stacktrace :database:testDebugUnitTest 2>&1 | tee utest.log
+
+      - name: Enable KVM (hardware acceleration for the emulator)
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Emulator tests (native crypto, KDBX round trips, third-party vaults)
+        id: emu
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          arch: x86_64
+          target: default
+          disable-animations: true
+          script: gradle --stacktrace :vault:connectedDebugAndroidTest > emu.log 2>&1
+
+      - name: Publish engine status
+        if: always() && github.ref == 'refs/heads/main'
+        env:
+          UTESTS: ${{ steps.utests.outcome }}
+          EMU: ${{ steps.emu.outcome }}
+        run: |
+          d="$RUNNER_TEMP/engine-status"; mkdir -p "$d"
+          {
+            if [ "$UTESTS" = "success" ] && [ "$EMU" = "success" ]; then echo "result: success"; else echo "result: FAILED"; fi
+            echo "engine unit tests: ${UTESTS:-not-run}"
+            echo "emulator tests: ${EMU:-not-run}"
+            echo "run: #${{ github.run_number }} ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "commit: $GITHUB_SHA"
+            echo "engine pin: $(git -C third_party/keepassdx describe --tags 2>/dev/null || echo unknown)"
+            echo "time: $(date -u +%FT%TZ)"
+            if [ "$UTESTS" != "success" ] && [ -f utest.log ]; then
+              echo; echo "--- unit test failures ---"
+              grep -nE "FAILED|AssertionError|^e: |What went wrong" -A3 utest.log | head -60 || true
+              echo; echo "--- unit test tail ---"; tail -n 25 utest.log
+            fi
+            if [ -f emu.log ]; then
+              echo; echo "--- emulator errors ---"
+              grep -nE "^e: |FAILED|AssertionError|UnsatisfiedLink|What went wrong|Exception" -A4 emu.log | head -80 || true
+              echo; echo "--- emulator tail ---"; tail -n 40 emu.log
+            fi
+          } > "$d/last-build.txt"
+          cd "$d"
+          git init -q -b ci-status-engine
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add last-build.txt
+          git commit -qm "Engine status for $GITHUB_SHA"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" ci-status-engine

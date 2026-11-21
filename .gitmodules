@@ -1,0 +1,4 @@
+[submodule "third_party/keepassdx"]
+	path = third_party/keepassdx
+	url = https://github.com/Kunzisoft/KeePassDX.git
+	shallow = true

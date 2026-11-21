@@ -1,0 +1,35 @@
+package com.monsoonscript.vault
+
+import androidx.test.platform.app.InstrumentationRegistry
+import com.kunzisoft.encrypt.NativeLib
+import com.kunzisoft.keepass.database.crypto.EncryptionAlgorithm
+import com.kunzisoft.keepass.database.crypto.kdf.KdfFactory
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+/** Runs on an emulator in CI (e1-feasibility workflow): proves the native crypto loads and both KDF families work. */
+class VaultEngineTest {
+    private val dir get() = InstrumentationRegistry.getInstrumentation().targetContext.cacheDir
+
+    @Test
+    fun nativeCryptoLibrariesLoad() {
+        assertTrue("native crypto library did not load", NativeLib.loaded())
+    }
+
+    @Test
+    fun createSaveLoadWithAesKdf() {
+        assertTrue(VaultEngine.roundTrip(dir, KdfFactory.aesKdf, "aes-kdf").contains("ok"))
+    }
+
+    @Test
+    fun createSaveLoadWithArgon2id() {
+        assertTrue(VaultEngine.roundTrip(dir, KdfFactory.argon2idKdf, "argon2id").contains("ok"))
+    }
+
+    @Test
+    fun createSaveLoadWithEveryCipher() {
+        for (cipher in EncryptionAlgorithm.values()) {
+            assertTrue(VaultEngine.roundTrip(dir, KdfFactory.argon2idKdf, "argon2id", cipher).contains("ok"))
+        }
+    }
+}
