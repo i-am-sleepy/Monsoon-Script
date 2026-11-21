@@ -48,6 +48,12 @@ class SettingsPageActivity : Activity() {
             val digits = listOf(R.string.settings_digits_english, R.string.settings_digits_bangla).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.settings_digits), Prefs.DIGITS, digits, 0))
             page.content.add(note(getString(R.string.settings_digits_note)))
+            page.content.add(header(getString(R.string.settings_behavior_header)))
+            page.content.add(switchRow(getString(R.string.settings_auto_show), getString(R.string.settings_auto_show_summary), Prefs.AUTO_SHOW, true))
+            page.content.add(note(getString(R.string.settings_auto_show_note)))
+            val volume = listOf(R.string.settings_volume_off, R.string.settings_volume_up_left, R.string.settings_volume_up_right).map { getString(it) }
+            page.content.add(choiceRow(getString(R.string.settings_volume_cursor), Prefs.VOLUME_CURSOR, volume, Prefs.VOLUME_OFF))
+            page.content.add(note(getString(R.string.settings_volume_cursor_note)))
             page.content.add(header(getString(R.string.settings_feel_header)))
             val levels = listOf(R.string.settings_vib_off, R.string.settings_vib_light, R.string.settings_vib_normal, R.string.settings_vib_strong).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.settings_vibration), Prefs.VIBRATION, levels, Prefs.VIB_NORMAL))

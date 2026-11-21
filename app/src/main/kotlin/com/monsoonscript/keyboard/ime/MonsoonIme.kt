@@ -14,6 +14,7 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
+import android.view.inputmethod.InputMethod
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
 import com.monsoonscript.keyboard.emoji.EmojiLoader
@@ -33,8 +34,9 @@ import java.io.IOException
 /**
  * The keyboard service.
  *
- * Hardware keyboards: this class deliberately does NOT override onKeyDown/onKeyUp (and there is no fullscreen
- * extract UI), so physical key events always go straight to the app, untouched. Whether the on-screen keyboard shows
+ * Hardware keyboards: the only key events this class looks at are the volume keys, and only while the owner switched on
+ * "Volume buttons move the cursor" (G2) with the keyboard on screen; every other key goes to super, so physical key events
+ * reach the app untouched (and there is no fullscreen extract UI). Whether the on-screen keyboard shows
  * while a physical keyboard is connected is left to Android's own policy (the system "show on-screen keyboard"
  * setting), exactly like Gboard. See ARCHITECTURE.md, "Hardware keyboard rules".
  *
@@ -90,6 +92,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     private val predicting: Boolean get() = predictionAllowed
 
+    /** A next-word / completion answer will follow a drop right away; only then may the strip hold the old candidates (G4). */
+    private val answerFollows: Boolean get() = predictionAllowed && showSuggestions
+
     /**
      * Strip settings (G1.3), cached by [applyPrefs]. They only decide what the strip shows: [predicting] (the word tracker, and with it
      * learning) is not touched, so turning the strip off does not stop "Learn from my typing". Avro dictionary choices are not affected.
@@ -97,6 +102,18 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private var showSuggestions = true
     private var nextWord = true
     private var typedFirst = true
+
+    /** Typing settings (G2, G3), cached by [applyPrefs]; [autoShow] is also read before the view exists, so [onCreate] sets it too. */
+    private var autoShow = true
+    private var volumeCursor = Prefs.VOLUME_OFF
+
+    /**
+     * The strip still paints candidates that were already dropped (G4): right after a space, a tapped word or a language switch the
+     * next answer is a few frames away, and clearing at once would flash the icon row in between. They are not tappable meanwhile
+     * ([suggestions] is empty); [heldClear] ends the hold if no answer comes.
+     */
+    private var stripHeld = false
+    private val heldClear = Runnable { if (stripHeld) setSuggestions(emptyList()) }
 
     /**
      * Finished words are remembered (on the phone only, D42) when the owner left "Learn from my typing" on and the field allows it:
@@ -141,6 +158,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         showSuggestions = Prefs.showSuggestions(this)
         nextWord = Prefs.nextWord(this)
         typedFirst = Prefs.typedFirst(this)
+        autoShow = Prefs.autoShow(this)
+        volumeCursor = Prefs.volumeCursor(this)
         if (!showSuggestions && composer?.isComposing != true) dropSuggestions() // switched off: clear what is shown, never an Avro word in progress
     }
 
@@ -148,6 +167,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         super.onCreate()
         language = Prefs.language(this) // where the keyboard was left (saved by name, unknown = English)
         lastBangla = Prefs.lastBangla(this)
+        autoShow = Prefs.autoShow(this) // asked before the keyboard view exists
+        volumeCursor = Prefs.volumeCursor(this)
         Prefs.of(this).registerOnSharedPreferenceChangeListener(prefsListener)
     }
 
@@ -171,6 +192,51 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** No full-screen extract UI in landscape (Gboard does not either). */
     override fun onEvaluateFullscreenMode(): Boolean = false
+
+    /**
+     * G3: with "Open the keyboard automatically" off, only a request that comes from the user (a tap on the field, which the app passes on as
+     * an explicit show) opens the keyboard; the implicit ones Android makes when a window or field just got focus are refused. A rotation
+     * re-asks with the original flags and is let through, so an open keyboard stays open. Apps that ask for the keyboard "explicitly" on
+     * their own cannot be told from a tap and still open it.
+     */
+    override fun onShowInputRequested(flags: Int, configChange: Boolean): Boolean {
+        if (!autoShow && !configChange && (flags and InputMethod.SHOW_EXPLICIT) == 0) return false
+        return super.onShowInputRequested(flags, configChange)
+    }
+
+    // ---- volume buttons move the cursor (G2): the IME sees key events before the app while the keyboard is up
+
+    /** True when this volume key is ours: the setting is on, the keyboard is on screen over a real editor, and no emoji search is typing. */
+    private fun volumeKeyIsOurs(keyCode: Int): Boolean {
+        if (volumeCursor == Prefs.VOLUME_OFF) return false
+        if (keyCode != KeyEvent.KEYCODE_VOLUME_UP && keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) return false
+        if (!isInputViewShown || emojiSearch) return false
+        val info = currentInputEditorInfo ?: return false
+        return currentInputConnection != null && info.inputType != InputType.TYPE_NULL
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
+        if (volumeKeyIsOurs(keyCode)) {
+            // Holding the button repeats this call, which moves the cursor again and again. Up = left unless the setting says otherwise.
+            val up = keyCode == KeyEvent.KEYCODE_VOLUME_UP
+            moveCursor(left = if (volumeCursor == Prefs.VOLUME_UP_LEFT) up else !up)
+            return true
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    /** The release of a volume key whose press moved the cursor must not reach the app or the volume panel either. */
+    override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
+        if (volumeKeyIsOurs(keyCode)) return true
+        return super.onKeyUp(keyCode, event)
+    }
+
+    /** One step left or right, as the app's own arrow keys would do it (clusters, right-to-left text). A Bangla word in progress is finished first. */
+    private fun moveCursor(left: Boolean) {
+        commitComposingIfAny()
+        sendDownUpKeyEvents(if (left) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT)
+        lastEditAt = 0L // the selection change that follows is a real move, not an echo: [onUpdateSelection] reads the editor again
+    }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
@@ -355,12 +421,25 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         setSuggestions(out)
     }
 
-    /** The word ended (or was abandoned): no candidates and no pending search. */
-    private fun dropSuggestions() {
+    /**
+     * The word ended (or was abandoned): no candidates and no pending search. With [keepShown] (only where a new request follows at once:
+     * after a space or punctuation, a tapped suggestion, a language switch) the strip keeps painting the old candidates until the answer
+     * replaces them (G4), at most [HELD_MS]; a tap on them does nothing meanwhile.
+     */
+    private fun dropSuggestions(keepShown: Boolean = false) {
         worker?.cancel()
         predWorker?.cancel()
         predSeq++ // an answer still on its way is stale now
-        if (suggestions.isNotEmpty()) setSuggestions(emptyList())
+        val showing = suggestions.isNotEmpty() || stripHeld
+        val kb = keyboard
+        if (keepShown && kb != null && showing) {
+            suggestions = emptyList()
+            stripHeld = true
+            kb.removeCallbacks(heldClear)
+            kb.postDelayed(heldClear, HELD_MS)
+            return
+        }
+        if (showing) setSuggestions(emptyList())
     }
 
     // ---- prediction (English layout)
@@ -371,14 +450,20 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun resyncAndPredict() {
-        if (!predicting || composer?.isComposing == true) return
+        if (!predicting || composer?.isComposing == true) {
+            if (stripHeld && composer?.isComposing != true) dropSuggestions() // no answer is coming: end the hold at once
+            return
+        }
         resyncTracker()
         requestPrediction()
     }
 
     /** Ask the worker for completions of the word in progress, or for the next word when none is started. */
     private fun requestPrediction() {
-        if (!predicting || !showSuggestions) return
+        if (!predicting || !showSuggestions) {
+            if (stripHeld) dropSuggestions() // nothing will answer: end the hold at once
+            return
+        }
         if (composer?.isComposing == true) return // the Avro dictionary words own the strip while a word is composed
         val prefix = tracker.prefix
         val w1 = tracker.w1
@@ -431,12 +516,16 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun setSuggestions(list: List<String>) {
+        if (stripHeld) { // a real answer (or the end of the hold) replaces the held candidates
+            stripHeld = false
+            keyboard?.removeCallbacks(heldClear)
+        }
         suggestions = list
         keyboard?.setSuggestions(list)
     }
 
     /** What is shown is already the final Bangla text, so finishing just makes it normal (not underlined) text. */
-    private fun commitComposingIfAny() {
+    private fun commitComposingIfAny(keepStrip: Boolean = false) {
         val comp = composer ?: return
         if (!comp.isComposing) return
         if (emojiSearch) { // the word belongs to the search query, not to the editor
@@ -446,7 +535,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val shown = comp.text()
         currentInputConnection?.finishComposingText()
         comp.clear()
-        dropSuggestions()
+        dropSuggestions(keepStrip)
         lastEditAt = SystemClock.uptimeMillis()
         if (predicting) tracker.appendAll(shown) // plain text now: the word in progress for the tracker, finished by whatever comes next
     }
@@ -475,7 +564,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
                 return
             }
             if (comp.isComposing) {
-                commitComposingIfAny()
+                commitComposingIfAny(keepStrip = answerFollows) // the next-word request follows below
                 if (text == ".") { // a full stop right after a Bangla word is the dari
                     ic.commitText(DARI, 1)
                     lastEditAt = SystemClock.uptimeMillis()
@@ -499,7 +588,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** A strip suggestion was tapped (D23): it replaces the underlined word and a space follows. */
     override fun onSuggestion(word: String) {
-        if (emojiSearch) return
+        if (emojiSearch || suggestions.isEmpty()) return // empty = the strip only still paints the old words (G4)
         val ic = currentInputConnection ?: return
         val comp = composer
         if (comp == null || !comp.isComposing) {
@@ -508,7 +597,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
         ic.commitText("$word ", 1) // one call: replaces the composing region, then the space
         comp.clear()
-        dropSuggestions()
+        dropSuggestions(keepShown = answerFollows) // the next-word request follows below
         lastEditAt = SystemClock.uptimeMillis()
         if (predicting) {
             tracker.appendAll("$word ") // finished: learned, and the context for the next-word predictions
@@ -603,9 +692,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     private fun switchLanguage(target: Language) {
         if (target == language) return
-        commitComposingIfAny()
+        commitComposingIfAny(keepStrip = answerFollows)
         setLanguage(target)
-        dropSuggestions()
+        dropSuggestions(keepShown = answerFollows) // the new language's answer replaces the old candidates without the icon row flashing in between (G4)
         resyncAndPredict() // English: read what is in the field now (the Bangla text was not tracked)
     }
 
@@ -809,6 +898,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         const val DARI = "।"
         const val RESYNC_CHARS = 80
         const val EMOJI_PRELOAD_MS = 3000L
+        const val HELD_MS = 400L // how long the strip may keep painting dropped candidates while the next answer is computed (G4)
         const val MAX_QUERY = 40
     }
 }
