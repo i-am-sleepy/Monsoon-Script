@@ -15,7 +15,7 @@ G1 Settings pages [~]  (T10 = G1.1 + G1.2, L2.5 = G1.2)
   G1.4 [~] Typing feel pushed (owner: delay OK; vibration Light/Strong retuned 2026-11-20, sound button added) (Prefs, KeyboardView.setTypingFeel, choiceRow + tryField in SettingsUi, Typing page, VIBRATE in the manifest). CI #23 (2b499bf) green, build + tests. Light/Strong strengths and the 220/450 ms delays are guesses, tune after the owner's report.
   G1.5 [~] Appearance pushed: Appearance page with a live preview (theme Follow phone/Light/Dark, number row, height sliders portrait/landscape 70-130%, key gap 0-6 dp), SetupActivity row, `KeyboardView.setAppearance`. CI #24 (20464dd) green, build + tests. Owner chose to test G1.4 and G1.5 together.
   G1.6 [~] Hold-hint bubble pushed: holding a hint key (top-row digits) past the long-press delay shows the digit in the key bubble and types it when the finger is lifted (before: typed at the moment of the long press, no preview). Owner asked for it 2026-11-20 to test everything at once.
-  G1.8 [~] Emoji key + keyboard button (owner request 2026-11-20): a smiley key right of ?123/ABC on every layout (Appearance > Emoji key, default on) and a keyboard button right of the emoji search bar that does what ABC does.
+  G1.8 [~] Emoji key + keyboard button (CI #31 447a1f9 green, owner request 2026-11-20): a smiley key right of ?123/ABC on every layout (Appearance > Emoji key, default on) and a keyboard button right of the emoji search bar that does what ABC does.
 
 ## Next action
 0. FIRST: `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt`. If the newest commit failed, read only `--- errors ---` and fix; if green, give the owner the checklist below (G1.3 to G1.6 are all waiting for the owner's device test).
