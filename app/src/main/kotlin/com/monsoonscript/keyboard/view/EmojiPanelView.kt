@@ -88,6 +88,14 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
         addCircle(.42f, .42f, .27f, Path.Direction.CW)
         moveTo(.62f, .62f); lineTo(.9f, .9f)
     }
+    private val iconKeyboard = Path().apply {
+        addRoundRect(RectF(.06f, .2f, .94f, .8f), .1f, .1f, Path.Direction.CW)
+        addCircle(.24f, .4f, .018f, Path.Direction.CW)
+        addCircle(.41f, .4f, .018f, Path.Direction.CW)
+        addCircle(.59f, .4f, .018f, Path.Direction.CW)
+        addCircle(.76f, .4f, .018f, Path.Direction.CW)
+        moveTo(.28f, .62f); lineTo(.72f, .62f)
+    }
     private val iconBack = Path().apply {
         moveTo(.86f, .5f); lineTo(.16f, .5f)
         moveTo(.46f, .2f); lineTo(.16f, .5f); lineTo(.46f, .8f)
@@ -193,6 +201,7 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
     private var headerBase = 0f
     private var labelBase = 0f
     private val sideW = dp(48f)
+    private val kbBtnW = dp(52f) // the zone at the right end of the search bar row taken by the keyboard button (G1.8)
     private var tabW = 0f
     private val headerH = dp(30f)
 
@@ -211,6 +220,7 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
     private var pressedHit = -1L
     private var bottomKey = KEY_NONE
     private var topPressed = false
+    private var kbPressed = false // the keyboard button next to the search bar is held
     private var repeatCount = 0
     private val longPressRunnable = Runnable { onLongPress() }
     private val repeatRunnable = object : Runnable {
@@ -472,7 +482,7 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
         fillPaint.color = pal.bg
         c.drawRect(0f, y0, w, y0 + barH, fillPaint)
         val left = dp(10f)
-        val right = w - dp(10f)
+        val right = if (typing) w - dp(10f) else w - kbBtnW // not typing: the keyboard button sits right of the bar
         rect.set(left, y0 + dp(5f), right, y0 + barH - dp(5f))
         fillPaint.color = if (topPressed) pal.keyPressed else pal.key
         c.drawRoundRect(rect, rect.height() / 2f, rect.height() / 2f, fillPaint)
@@ -501,6 +511,13 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
         if (typing) {
             fillPaint.color = pal.accent
             c.drawRect(caretX + dp(1f), cy - dp(10f), caretX + dp(2.5f), cy + dp(10f), fillPaint)
+        } else {
+            // the keyboard button: same job as ABC in the bottom bar, back to the typing keys
+            val br = rect.height() / 2f
+            val bx = w - dp(10f) - br
+            fillPaint.color = if (kbPressed) pal.keyPressed else pal.key
+            c.drawCircle(bx, cy, br, fillPaint)
+            drawIcon(c, iconKeyboard, bx, cy, dp(22f), pal.text)
         }
     }
 
@@ -642,7 +659,8 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
         when {
             py < barH -> {
                 region = R_TOP
-                topPressed = true
+                kbPressed = px > width - kbBtnW
+                topPressed = !kbPressed
             }
             py >= height - barH -> {
                 region = R_BOTTOM
@@ -755,6 +773,7 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
         pressedHit = -1L
         bottomKey = KEY_NONE
         topPressed = false
+        kbPressed = false
         invalidate()
     }
 
@@ -800,7 +819,12 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
 
     private fun topTap(px: Float) {
         performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-        if (query.isNotEmpty() && px > width - dp(52f)) listener?.onSearchClear() else listener?.onSearchTap()
+        val barEnd = width - kbBtnW // the search bar ends where the keyboard button begins
+        when {
+            px > barEnd -> listener?.onClose() // the keyboard button: the same as ABC
+            query.isNotEmpty() && px > barEnd - dp(52f) -> listener?.onSearchClear()
+            else -> listener?.onSearchTap()
+        }
     }
 
     private fun queryBarTap(px: Float) {

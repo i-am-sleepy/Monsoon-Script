@@ -24,6 +24,7 @@ object Prefs {
     // appearance (G1.5)
     const val THEME = "appearance_theme" // Int: 0 follow the phone, 1 light, 2 dark
     const val NUMBER_ROW = "appearance_number_row" // default off
+    const val EMOJI_KEY = "appearance_emoji_key" // default on: a smiley key right of ?123 / ABC
     const val HEIGHT_PORTRAIT = "appearance_height_portrait" // percent of the standard key height
     const val HEIGHT_LANDSCAPE = "appearance_height_landscape"
     const val KEY_GAP = "appearance_key_gap" // dp between keys
@@ -65,6 +66,8 @@ object Prefs {
     fun theme(context: Context): Int = of(context).getInt(THEME, 0).coerceIn(0, 2)
 
     fun numberRow(context: Context): Boolean = of(context).getBoolean(NUMBER_ROW, false)
+
+    fun emojiKey(context: Context): Boolean = of(context).getBoolean(EMOJI_KEY, true)
 
     fun heightPortrait(context: Context): Int = of(context).getInt(HEIGHT_PORTRAIT, HEIGHT_DEFAULT).coerceIn(HEIGHT_MIN, HEIGHT_MAX)
 

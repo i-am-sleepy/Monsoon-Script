@@ -15,6 +15,7 @@ G1 Settings pages [~]  (T10 = G1.1 + G1.2, L2.5 = G1.2)
   G1.4 [~] Typing feel pushed (owner: delay OK; vibration Light/Strong retuned 2026-11-20, sound button added) (Prefs, KeyboardView.setTypingFeel, choiceRow + tryField in SettingsUi, Typing page, VIBRATE in the manifest). CI #23 (2b499bf) green, build + tests. Light/Strong strengths and the 220/450 ms delays are guesses, tune after the owner's report.
   G1.5 [~] Appearance pushed: Appearance page with a live preview (theme Follow phone/Light/Dark, number row, height sliders portrait/landscape 70-130%, key gap 0-6 dp), SetupActivity row, `KeyboardView.setAppearance`. CI #24 (20464dd) green, build + tests. Owner chose to test G1.4 and G1.5 together.
   G1.6 [~] Hold-hint bubble pushed: holding a hint key (top-row digits) past the long-press delay shows the digit in the key bubble and types it when the finger is lifted (before: typed at the moment of the long press, no preview). Owner asked for it 2026-11-20 to test everything at once.
+  G1.8 [~] Emoji key + keyboard button (owner request 2026-11-20): a smiley key right of ?123/ABC on every layout (Appearance > Emoji key, default on) and a keyboard button right of the emoji search bar that does what ABC does.
 
 ## Next action
 0. FIRST: `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt`. If the newest commit failed, read only `--- errors ---` and fix; if green, give the owner the checklist below (G1.3 to G1.6 are all waiting for the owner's device test).
@@ -33,6 +34,8 @@ Changed: Light = 25 ms pulse, Strong = 80 ms pulse (default strength, long press
 1. Vibration: Light is felt and clearly weaker than Normal; Strong clearly stronger than Normal; Off silent. If still off, say which and I will change the two numbers (or add a strength slider).
 2. Typing > "Open Android sound settings" opens Android's sound page (it cannot jump to the exact switch); with Touch sounds on, "Sound on key press" clicks.
 3. Number row (Appearance): digits row appears above the letters, top-row digit hints gone; symbols pages keep the same total height.
+6. NEW (G1.8) Emoji key: Settings > Appearance > "Emoji key" (on by default). On: a smiley key right of ?123 (and of ABC on the symbol pages) on English, Probhat and National; the space bar is one key narrower; tapping it opens the emoji panel. Off: the old bottom row. The preview shows it.
+7. NEW (G1.8) Open the emoji panel: next to the "Search emoji" bar there is a round keyboard-icon button; tapping it goes back to the typing keys, same as ABC in the bottom bar. (While typing a search the bar is full width, no button.) Tell me if you wanted "Aa" or another icon instead of the keyboard drawing.
 5. NEW (G1.7) Typing > "Click sound": Android's click (as before) or Built-in click. Turn on "Sound on key press", choose Built-in click: every key clicks WITHOUT Touch sounds being on in Android; space/enter and backspace sound a little different; silent in silent/vibrate mode; the volume follows the phone's sound volume. If the first click after changing the setting is missing, tell me (the sounds load in the background).
 4. Emoji panel is NOT a setting: only check that the emoji key opens the panel at the same height as the keyboard after changing the height sliders or the number row.
 

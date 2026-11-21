@@ -133,7 +133,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         keyboard?.setLanguageOptions(Prefs.languageKey(this), Prefs.spaceSwipe(this))
         keyboard?.setBanglaDigits(Prefs.banglaDigits(this))
         keyboard?.let { kb ->
-            kb.setAppearance(Prefs.theme(this), Prefs.numberRow(this), Prefs.heightPortrait(this), Prefs.heightLandscape(this), Prefs.keyGap(this))
+            kb.setAppearance(Prefs.theme(this), Prefs.numberRow(this), Prefs.emojiKey(this), Prefs.heightPortrait(this), Prefs.heightLandscape(this), Prefs.keyGap(this))
             applySystemBars() // the theme setting can change the keyboard color
             emojiPanel?.setPalette(kb.palette)
         }

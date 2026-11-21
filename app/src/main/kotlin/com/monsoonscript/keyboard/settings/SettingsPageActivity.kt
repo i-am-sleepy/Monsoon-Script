@@ -110,6 +110,7 @@ class SettingsPageActivity : Activity() {
             val themes = listOf(R.string.settings_theme_system, R.string.settings_theme_light, R.string.settings_theme_dark).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.settings_theme), Prefs.THEME, themes, 0))
             page.content.add(switchRow(getString(R.string.settings_number_row), getString(R.string.settings_number_row_summary), Prefs.NUMBER_ROW, false))
+            page.content.add(switchRow(getString(R.string.settings_emoji_key), getString(R.string.settings_emoji_key_summary), Prefs.EMOJI_KEY, true))
             page.content.add(header(getString(R.string.settings_size_header)))
             val percent = { v: Int -> getString(R.string.settings_percent, v) }
             page.content.add(sliderRow(getString(R.string.settings_height_portrait), Prefs.HEIGHT_PORTRAIT, Prefs.HEIGHT_MIN, Prefs.HEIGHT_MAX, Prefs.HEIGHT_DEFAULT, percent))
@@ -120,7 +121,7 @@ class SettingsPageActivity : Activity() {
     }
 
     private fun applyPreview() {
-        preview?.setAppearance(Prefs.theme(this), Prefs.numberRow(this), Prefs.heightPortrait(this), Prefs.heightLandscape(this), Prefs.keyGap(this))
+        preview?.setAppearance(Prefs.theme(this), Prefs.numberRow(this), Prefs.emojiKey(this), Prefs.heightPortrait(this), Prefs.heightLandscape(this), Prefs.keyGap(this))
     }
 
     override fun onResume() {

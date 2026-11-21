@@ -87,6 +87,28 @@ object Layouts {
     /** The optional number row (G1.5, a setting): KeyboardView puts it above the rows of the letters page. */
     val numberRow: Array<Key> = arrayOf(c("1"), c("2"), c("3"), c("4"), c("5"), c("6"), c("7"), c("8"), c("9"), c("0"))
 
+    /** The smiley key of the bottom row (G1.8, a setting). */
+    private val emojiKey = Key(Codes.EMOJI, "", 1f, Kind.SPECIAL)
+
+    /**
+     * [rows] with the emoji key put right of the ?123 / ABC key of the bottom row, its width taken from the space bar. Rows whose last row does
+     * not start with that key or has no wide space bar come back unchanged.
+     */
+    fun withEmojiKey(rows: Array<Array<Key>>): Array<Array<Key>> {
+        val last = rows.lastOrNull() ?: return rows
+        val first = last.firstOrNull() ?: return rows
+        val s = last.indexOfFirst { it.kind == Kind.SPACE }
+        val switchKey = first.code == Codes.SYMBOLS || first.code == Codes.LETTERS || first.code == Codes.SYMBOLS2
+        if (s < 0 || last[s].weight < 2.5f || !switchKey) return rows
+        val out = ArrayList<Key>(last.size + 1)
+        out.add(first)
+        out.add(emojiKey)
+        for (i in 1 until last.size) out.add(if (i == s) space(last[i].weight - 1f) else last[i])
+        val result = rows.copyOf()
+        result[result.size - 1] = out.toTypedArray()
+        return result
+    }
+
     // ---- fixed Bangla layouts (L4, D58-D60): the PC key tables are in AvroLayoutTables, this is how they sit on a phone
 
     /**

@@ -67,6 +67,7 @@ class KeyboardView(context: Context) : View(context) {
     private var themeMode = THEME_SYSTEM
     private var numberRow = false
     private var banglaDigits = false // T11 / D61: in the Bangla layouts the digit keys type ০..৯ and keep 0..9 as the long-press hint
+    private var emojiKey = true
     private var heightPortrait = 100
     private var heightLandscape = 100
     private var keyGapDp = 3
@@ -213,15 +214,16 @@ class KeyboardView(context: Context) : View(context) {
     fun desiredHeight(): Int = (stripHeight() + currentRowH() * rowSlots() + padTop + padBottom).toInt()
 
     /**
-     * [theme]: 0 follow the phone, 1 light, 2 dark. [numberRow] adds the digits row above the letters (the symbol pages keep the same total
+     * [theme]: 0 follow the phone, 1 light, 2 dark. [emojiKey] puts a smiley key right of ?123 / ABC on every page. [numberRow] adds the digits row above the letters (the symbol pages keep the same total
      * height with taller keys). [heightPortrait] / [heightLandscape] are percent of the standard key height, [keyGapDp] the space between keys.
      */
-    fun setAppearance(theme: Int, numberRow: Boolean, heightPortrait: Int, heightLandscape: Int, keyGapDp: Int) {
-        if (theme == themeMode && numberRow == this.numberRow && heightPortrait == this.heightPortrait &&
+    fun setAppearance(theme: Int, numberRow: Boolean, emojiKey: Boolean, heightPortrait: Int, heightLandscape: Int, keyGapDp: Int) {
+        if (theme == themeMode && numberRow == this.numberRow && emojiKey == this.emojiKey && heightPortrait == this.heightPortrait &&
             heightLandscape == this.heightLandscape && keyGapDp == this.keyGapDp
         ) return
         themeMode = theme
         this.numberRow = numberRow
+        this.emojiKey = emojiKey
         this.heightPortrait = heightPortrait
         this.heightLandscape = heightLandscape
         this.keyGapDp = keyGapDp
@@ -258,7 +260,8 @@ class KeyboardView(context: Context) : View(context) {
 
     /** The rows of page [p]; the letters page gets the number row on top when it is on. */
     private fun rowsOf(p: Int): Array<Array<Key>> {
-        val rows = Layouts.pages(language)[p] // the letters page follows the language (Probhat, National), the symbol pages are shared
+        var rows = Layouts.pages(language)[p] // the letters page follows the language (Probhat, National), the symbol pages are shared
+        if (emojiKey) rows = Layouts.withEmojiKey(rows)
         return if (numberRow && p == Layouts.PAGE_LETTERS) arrayOf(Layouts.numberRow) + rows else rows
     }
 
@@ -762,8 +765,24 @@ class KeyboardView(context: Context) : View(context) {
                 drawIcon(c, iconBackspaceX, cx, cy, rowH * 0.46f, false, pal.text)
             }
             Codes.ENTER -> drawIcon(c, iconEnter, cx, cy, rowH * 0.44f, false, pal.onAccent)
+            Codes.EMOJI -> drawSmiley(c, cx, cy, rowH * 0.42f, pal.text)
             else -> c.drawText(k.label, cx, cy + labelBase, labelPaint)
         }
+    }
+
+    /** The smiley of the bottom-row emoji key (the strip's emoji icon is the same drawing). */
+    private fun drawSmiley(c: Canvas, cx: Float, cy: Float, size: Float, color: Int) {
+        iconPaint.color = color
+        iconPaint.style = Paint.Style.STROKE
+        c.save()
+        c.translate(cx - size / 2, cy - size / 2)
+        c.scale(size, size)
+        c.drawCircle(.5f, .5f, .4f, iconPaint)
+        c.drawArc(.3f, .34f, .7f, .72f, 20f, 140f, false, iconPaint)
+        iconPaint.style = Paint.Style.FILL
+        c.drawCircle(.37f, .42f, .045f, iconPaint)
+        c.drawCircle(.63f, .42f, .045f, iconPaint)
+        c.restore()
     }
 
     private fun drawIcon(c: Canvas, path: Path, cx: Float, cy: Float, size: Float, fill: Boolean, color: Int) {

@@ -26,6 +26,8 @@
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_number_row">Number row</string>
     <string name="settings_number_row_summary">Digits 1 to 0 in a row above the letters. The small digit hints on the top letters are hidden then.</string>
+    <string name="settings_emoji_key">Emoji key</string>
+    <string name="settings_emoji_key_summary">A smiley key right of ?123 / ABC on every layout. The emoji icon in the top row stays.</string>
     <string name="settings_size_header">Size</string>
     <string name="settings_height_portrait">Keyboard height, phone upright</string>
     <string name="settings_height_landscape">Keyboard height, phone sideways</string>
