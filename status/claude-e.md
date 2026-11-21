@@ -6,10 +6,10 @@ T9 and T11 were taken over by claude-l (L4-L6); only T9.3 Bijoy Classic (+ the o
 (none; the older ones are condensed under "Shared code facts" below)
 
 ## Tasks and steps
-E3 Clipboard [?] Owner rule for this task: ask him every implementation decision first and give my suggestions first; then build. Waiting for his answers (STATUS Needs user #12).
+E3 Clipboard [~] Owner rule for this task: ask him every implementation decision first and give my suggestions first; then build. Answered (D65): 4 tabs History/Pinned/Folders/Shortcuts + gear; cards in 2-column (default) AND 1-column with a toggle; shortcuts = strip suggestion + panel list, no auto-expand; never record password fields / sensitive-flag clips / vault copies, no guessing.
   E3.1 [x] Read spec + repo. Facts: strip icon `Codes.CLIPBOARD` is drawn but does nothing (`KeyboardView` `else -> Unit` near the strip tap handler); ARCHITECTURE.md plans a `clipboard/` package;
            D43 = a copied secret is never saved in the history and is cleared after 30 s; Android only lets the active keyboard read the clipboard, so history records only while Monsoon is the active keyboard.
-  E3.2 [~] Questions asked (4th bottom tab, card layout, text-shortcut trigger, never-record rules). Suggestions sent: SQLite (framework, no new library) in the app-private folder, build order below. Record the answers as D65+.
+  E3.2 [x] Questions answered, recorded as D65 (SQLite from the framework, defaults, build order below stand: the owner did not object).
   E3.3 [ ] Store: pure Kotlin `clipboard/` (ClipItem, ClipStore: limit 50-500, dedupe, auto-delete, pin, folders, search) over SQLite + JUnit tests.
   E3.4 [ ] Capture in MonsoonIme: clip listener; skip password/hidden fields, ClipDescription.EXTRA_IS_SENSITIVE (Android 13+) and our own vault copies (D43).
   E3.5 [ ] Keyboard panel `view/ClipboardPanelView` (Canvas, same pattern as EmojiPanelView): toolbar, chips, cards, 3-dot menu, multi-select, search; opened by the strip icon.
@@ -25,7 +25,7 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D65) and update the docs.
 
 ## Next step
-Read the owner's answers to Needs user #12, record them in DECISIONS.md, then E3.3 (store + tests). First check `git show FETCH_HEAD:last-build.txt` on ci-status: the first main build after the E1 merge (9330477) must be green.
+E3.3 (store + tests). Main build for the E1 merge (9330477) is green (Build APK run 44850243358); the engine-tests run was still going when I last looked (check `ci-status-engine`).
 Cleanup after that build is green: remove the temporary `e1-integrate` trigger from build.yml (a push there starts a new main build, so do it with other code).
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)

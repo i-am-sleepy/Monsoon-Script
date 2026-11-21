@@ -35,8 +35,8 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). CHECKPOINT 2026-11-21 (owner: pause E1, build the clipboard E3 now). Design SIGNED OFF (D53).
       Phase 0 DONE (docs/PASSWORD_MANAGER_PHASE0.md); the engine FOUNDATION is on main (merge 9330477, D64): submodule pinned to KeePassDX 4.5.8, `:vault` adapter + 14 emulator tests, engine workflow, AGP 8.13.2 / Gradle 8.14.2.
       The app does not use it yet (APK unchanged). Resume with Phase 1 (D51) = core vault in the app (create/open/unlock, entries and folders, auto-lock, safe saving); steps in status/claude-e.md
-- [?] E3 (claude-e) Clipboard (owner spec 2026-11-21 in docs/CLIPBOARD_SPEC.md): keyboard panel on the existing strip clipboard icon, history store, search, pinned, folders, multi-select, text shortcuts (user-made),
-      app screens + settings page, local-only, password fields / KeePassDX secrets never recorded (D43). Waiting for the owner's answers (Needs user #12), then building. Steps in status/claude-e.md
+- [~] E3 (claude-e) Clipboard (owner spec 2026-11-21 in docs/CLIPBOARD_SPEC.md, design answered D65): keyboard panel on the existing strip clipboard icon, history store, search, pinned, folders, multi-select, text shortcuts (user-made),
+      app screens (History / Pinned / Folders / Shortcuts) + settings page, local-only, password fields / KeePassDX secrets never recorded (D43). Building: store first. Steps in status/claude-e.md
 - [~] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
       (uni/bi/trigram + learned usage), compact binary tables, async. Built: engine + data (L2.3), English/Bangla strip, arrow, learning (L2.4, CI green up to #13); owner device test OK (2026-11-18); L2.5 (settings switch, clear button, licenses screen) is done by claude-g in G1.2 (63f95a7); steps in status/claude-l.md
 - [x] L3 (claude-l) Banglish prediction quality (D54, owner-tested OK 2026-11-18, CI #15): bridge from Banglish words to the Bangla pair data for next-word, lean Banglish for 1-3 letter prefixes, typed word as first strip choice, no repeat of the word just typed. Steps in status/claude-l.md
@@ -69,7 +69,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 9. (answered 2026-11-20: the "Show word suggestions" switch does not touch Avro spelling choices, see D57)
 10. (answered 2026-11-20: Probhat/National phone design, see D58-D60)
 11. (answered 2026-11-21: Bangla digits as a setting, hints only in Bangla layouts, see D61-D63)
-12. Clipboard E3 design questions asked 2026-11-21 (4th bottom tab, card layout, text-shortcut trigger, what is never recorded); answers go to DECISIONS.md. (claude-e)
+12. (answered 2026-11-21: clipboard 4th tab, card layout toggle, shortcut trigger, what is never recorded, see D65)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.

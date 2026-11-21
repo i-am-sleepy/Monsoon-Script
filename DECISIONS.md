@@ -183,3 +183,11 @@
   (the app keeps compileSdk 35 and targetSdk 34, the engine modules use 36); `build.yml` runs only `:app` tasks, has a per-branch concurrency group and publishes the release and ci-status only from main;
   new `.github/workflows/engine.yml` runs only when engine files change (upstream unit tests + emulator tests; result on the branch `ci-status-engine`). The app does NOT depend on `:vault` yet, so the APK does not
   grow until Phase 1. `-dontobfuscate` (a Phase 0 diagnosis aid) is not used on main.
+- D65 2026-11-21 Clipboard E3 (owner spec: docs/CLIPBOARD_SPEC.md; he asked to be asked every implementation decision first, with my suggestions first). Answered: (1) app screens have FOUR bottom tabs
+  History / Pinned / Folders / Shortcuts, clipboard settings open from a gear icon at the top; (2) keyboard cards come in BOTH layouts with a toggle: two columns (default, Gboard style) and a single column;
+  (3) text shortcuts (user-made only, no presets): typing a trigger (e.g. ;em) shows the matching shortcut in the suggestion strip, tap to insert; shortcuts are also listed in the clipboard panel; nothing is
+  expanded automatically; (4) never recorded: password/hidden fields, clips marked sensitive (ClipDescription.EXTRA_IS_SENSITIVE, Android 13+, which KeePassDX and other managers set) and everything our own vault
+  copies (D43); no guessing of card numbers or one-time codes. Suggestions he did not object to (so they stand): history is recorded only while Monsoon is the active keyboard (Android limit, same as Gboard);
+  SQLite from the framework in the app-private folder, local only, no new library; images as private files + thumbnails; defaults history ON, 100 items, no auto-delete, pinned and foldered items exempt from
+  deletion and from the limit; the panel replaces the keys at the same height like the emoji panel and opens from the strip's clipboard icon; build order store -> capture -> panel -> app screens + settings ->
+  shortcuts -> images -> biometric lock + backup (encrypted backup only as a hook for later).
