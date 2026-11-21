@@ -32,6 +32,8 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       G1.1 prefs + G1.2 main list/Typing/Suggestions/About pages DONE (63f95a7, owner-tested OK 2026-11-19); G1.3 suggestion toggles done (CI green, owner saw the switches 2026-11-20); G1.4 typing feel pushed (2b499bf, CI #23 green) G1.5 Appearance (20464dd, CI #24 green) and G1.6 hold-hint bubble pushed (73307d4, CI #25 green); owner tests G1.3 to G1.6 together; G1.7 optional built-in key click added after the owner's report (CI #28 green); G1.8 emoji key on the bottom row + keyboard button in the emoji panel pushed on the owner's request (447a1f9, CI #31 green). Steps in status/claude-g.md
 - [x] G2-G4 (claude-g, owner-tested 2026-11-21: volume keys okay, auto-open turned off as expected, no flashes so far) Typing page: "Volume buttons move the cursor" (G2), "Open the keyboard automatically" off = only a tap opens it (G3);
       the strip no longer flashes the icon row on a language switch or after a space (G4). Pushed (4e3ff3a, ee09d9b), CI #36 green. Reopen G4 if a flash shows up. Details in status/claude-g.md.
+- [?] G5 (claude-g) Voice typing (owner request 2026-11-21): mic icon in the strip (D13); method 1 = Google's online recognizer (Gboard/Ridmik way), method 2 = optional offline model download
+      (English Parakeet, Bangla moonshine-base-bn); language follows the active layout, no detection; best accuracy balanced with speed. DESIGN TALK FIRST, no code until the owner answers (Needs user #13). Findings and draft steps in status/claude-g.md
 - [x] T11 (claude-l) Bangla digits (D18, D61). TAKEN OVER from claude-e on the owner's order 2026-11-21 (claude-e: remove it from your list). Built as a Settings > Typing choice "Digits in Bangla mode: English / Bangla" that swaps typed digit and hint on every digit key; pushed in 65133d1, CI #29 green, owner-tested OK (2026-11-21)
 - [x] E2 (claude-e) Emoji system: DONE FOR NOW (owner 2026-11-21: it works; more improvements are postponed). Offline picker, Unicode 17 data, bundled Noto Color Emoji, search in English and Bangla, recents, skin tones (D56). Ideas not built: see status/claude-e.md
 - [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). CHECKPOINT 2026-11-21 (owner: pause E1, build the clipboard E3 now). Design SIGNED OFF (D53).
@@ -72,6 +74,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 10. (answered 2026-11-20: Probhat/National phone design, see D58-D60)
 11. (answered 2026-11-21: Bangla digits as a setting, hints only in Bangla layouts, see D61-D63)
 12. (answered 2026-11-21: clipboard 4th tab, card layout toggle, shortcut trigger, what is never recorded, see D65)
+13. Voice typing (G5, claude-g): asked in chat 2026-11-21, awaiting answers: where the offline runtime lives (APK or downloaded), how the model gets onto the phone (INTERNET permission; this is the first network feature, so it settles #4), voice panel behaviour, engine choice per language. More questions follow after these.
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.
