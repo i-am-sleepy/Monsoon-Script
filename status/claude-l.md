@@ -1,10 +1,24 @@
 # claude-l notes (only claude-l edits this file; others only append lines under "Warnings")
-Updated: 2026-11-21, session 6. Done: L5 + L6 + T11 (owner feedback after the L4 test), all owner-tested; before that L4 (Probhat + National layouts, owner order); before that prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
+Updated: 2026-11-22, session 7. Done: L7 (read-only trace of the features nobody works on, owner request; nothing built). Before that: L5 + L6 + T11 (owner feedback after the L4 test), all owner-tested; L4 (Probhat + National layouts, owner order); prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
 
 ## Tasks and steps
+L7 Trace of features nobody works on [x] (owner request 2026-11-22; read-only: no code was built or changed)
+  L7.1 [x] Read CLAUDE.md, STATUS.md, all four notes files, docs/REQUIREMENTS.md, ARCHITECTURE.md, layout/Layouts.kt, the commit list. CI #41 (94c1857) green. GitHub code search is NOT indexed for this repo (a control search found nothing): read files instead.
+  L7.2 [x] Compared the Ridmik inventory + roadmap with the board and the code. Result below. The owner is asked which group to start first (STATUS Needs user #15).
+  UNOWNED, no task line and no code (as of 2026-11-22):
+   a) Edit panel: arrows, Select, Select all, Copy, Paste, Home, End (roadmap v0.6).  b) Number pad page + its toolbar button (v0.6).
+   c) Space-bar cursor drag with delay/speed settings (v0.6; clashes with the space-bar language swipe D15, so ask first) and a cursor-move key on ?123 page 2 (only Tab is there).
+   d) One-handed mode (v0.5).  e) Split keyboard, also for foldables (v0.5).  f) Themes: only follow phone / light / dark exist, no palettes or theme store (v0.5).
+   g) Auto-correction and typo fixes (v0.4: strip suggestions and next-word exist, nothing fixes a typo). Offensive words are only filtered out of the prediction data at pack time, there is no "block offensive words" switch.
+   h) Ridmik settings not built: hide long-press hints, key popup dismiss delay, key sound volume (ours follows the system), large number row, emoji key for physical Alt (hardware, next to claude-s's T6).
+   i) Toolbar: the strip has globe, language, emoji, clipboard, mic only; Ridmik also has themes, number pad and a "more" button.
+   j) Not features: no LICENSE file in the repo (GPL-3.0 decided in D25; it only exists as step E1.13e of the paused E1), launcher icon is a placeholder (STATUS Known notes), v0.7 polish/perf has no task, STATUS Needs user #1 (accent / haptic / sound placeholders) never confirmed.
+  CLAIMED BUT IDLE (only the owner reassigns, D22; do not rescue): T6 hardware-keyboard Bangla (claude-s: notes say "not started" 2026-11-17, no [claude-s] commit found); T9.3 Bijoy + Bornona / Munir Optima / Avro Easy (claude-e, paused); E1 password manager (claude-e, paused by the owner).
+  COVERED: E3 clipboard rest (claude-e, E3.7-E3.9), G5 voice typing (claude-g, G5.2-G5.6).
+  STALE NOTES seen (their owners fix them): claude-g's STATUS G5 line and notes say G5.3a is not pushed, but 94c1857 is on main with CI #41 green (the owner can test hold-to-talk now); ARCHITECTURE.md still says the mic icon does nothing; STATUS "Known notes" still says the language-pill long press does nothing (L4 built it).
 L4 প্রভাত (Probhat) + জাতীয় (National) layouts [~] (owner order 2026-11-20, taken over from claude-e's T9.1/T9.2/T9.4; Bijoy stays with claude-e)
   Source facts: `third_party/avro-reference/layouts/{Probhat,National (Jatiya)}.avrolayout` = XML, 4 layers per PC key (Normal, Shift, AltGr, ShiftAltGr), tags `Key_<K>_<Layer>`; ignore `Num*` tags;
   `&apos; &quot; &amp; &lt; &gt;` inside the CDATA are literal text and must be unescaped. National fits the 10/9/7 QWERTY grid (all signs on letters, independent vowels on AltGr);
@@ -72,6 +86,7 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
 
 ## Next step
 Nothing open. L4, L5, L6, T11 are owner-tested OK (2026-11-21). Do not start new features without the owner's go-ahead. Others' open items: claude-e Bijoy (T9.3), claude-s hardware-key translation (T6, should also decide whether a physical 1-0 follows `Prefs.banglaDigits()`).
+L7 is done (2026-11-22): wait for the owner's pick from the UNOWNED list above (STATUS Needs user #15). Start none of it before the answer, then ask that feature's design questions first (CLAUDE.md). Auto-correction would sit in my own code (Predictor / PredictionWorker); E3.7 of claude-e will also add a strip candidate, so warn each other before touching the strip.
 
 ## Half-done files / known bugs
 None known. Not verified on a device yet: everything in L2.4 (Android code is only compiled by CI). Things to watch in the owner's report: strip arrow touch handling, English tap-to-complete
