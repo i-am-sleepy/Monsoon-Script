@@ -2,7 +2,7 @@ name: Build APK
 
 on:
   push:
-    branches: [main, e1-integrate]   # e1-integrate: temporary, for testing the Gradle upgrade; it never publishes (see the if: lines)
+    branches: [main]
     paths-ignore:
       - '**.md'
       - 'docs/**'

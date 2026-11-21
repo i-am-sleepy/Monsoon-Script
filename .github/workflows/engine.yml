@@ -8,7 +8,7 @@ name: Engine tests (KeePassDX)
 
 on:
   push:
-    branches: [main, e1-integrate]   # e1-integrate: temporary, for testing the integration
+    branches: [main]
     paths:
       - 'vault/**'
       - 'third_party/keepassdx'

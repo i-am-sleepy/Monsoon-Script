@@ -11,7 +11,7 @@ E3 Clipboard [~] Owner rule for this task: ask him every implementation decision
            D43 = a copied secret is never saved in the history and is cleared after 30 s; Android only lets the active keyboard read the clipboard, so history records only while Monsoon is the active keyboard.
   E3.2 [x] Questions answered, recorded as D65 (SQLite from the framework, defaults, build order below stand: the owner did not object).
   E3.3 [x] Store: pure Kotlin `clipboard/ClipModels|ClipDb|ClipStore` (limit on loose clips, dedupe, auto-delete, pin, folders, search, shortcuts) + `SqliteClipDb` (Android, background writes); 21 JUnit tests pass locally (kc.sh trick); pushed, CI to check.
-  E3.4 [ ] Capture in MonsoonIme: clip listener; skip password/hidden fields, ClipDescription.EXTRA_IS_SENSITIVE (Android 13+) and our own vault copies (D43).
+  E3.4 [x] Capture: `ClipPrefs` (file monsoon_clipboard), `ClipHub` (one shared store, loads DB in background), `ClipCapture` (listener; skips sensitive flag, our own `EXTRA_NO_HISTORY` marker for the vault (D43), password/incognito fields); hooks in MonsoonIme (onCreate/onStartInputView/onFinishInput/onDestroy). Pushed, CI to check. NOTE for E1: the vault must put `ClipCapture.EXTRA_NO_HISTORY` (and the Android 13 sensitive flag) on every secret it copies.
   E3.5 [ ] Keyboard panel `view/ClipboardPanelView` (Canvas, same pattern as EmojiPanelView): toolbar, chips, cards, 3-dot menu, multi-select, search; opened by the strip icon.
   E3.6 [ ] App: Clipboard screens (bottom nav) + settings page in plain Views; this touches claude-g's SetupActivity/SettingsPageActivity: append a Warning to status/claude-g.md first.
   E3.7 [ ] Text shortcuts (user-made only). E3.8 [ ] Images (stored as private files, pasted with commitContent). E3.9 [ ] Biometric lock + export/import (encrypted backup = hook only, later).
@@ -26,7 +26,7 @@ After every owner answer: add a D-line to DECISIONS.md (re-read it first; next f
 
 ## Next step
 E3.4 (capture: ClipHub + ClipPrefs, listener in MonsoonIme). Main build for the E1 merge (9330477) is green (Build APK run 44850243358); the engine-tests run was still going when I last looked (check `ci-status-engine`).
-Cleanup after that build is green: remove the temporary `e1-integrate` trigger from build.yml (a push there starts a new main build, so do it with other code).
+(The temporary `e1-integrate` trigger is removed from build.yml and engine.yml, done with the E3.4 push.)
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
 - Switch languages only through `MonsoonIme.setLanguage`. The strip has an arrow and shows suggestions instead of the icons (D23, D41: `Kind.STRIP` keys are hidden while suggestions show).

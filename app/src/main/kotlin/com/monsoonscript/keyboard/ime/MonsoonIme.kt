@@ -17,6 +17,8 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethod
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
+import com.monsoonscript.keyboard.clipboard.ClipCapture
+import com.monsoonscript.keyboard.clipboard.ClipHub
 import com.monsoonscript.keyboard.emoji.EmojiLoader
 import com.monsoonscript.keyboard.emoji.EmojiStore
 import com.monsoonscript.keyboard.emoji.PrefsTextStore
@@ -136,6 +138,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Recents are not kept in password fields or when the app asks for no personalized learning (incognito). */
     private var emojiRecents = true
 
+    // ---- clipboard history (E3, D65): records what is copied while this keyboard is the active one; never in password / incognito fields
+    private var clipHub: ClipHub? = null
+    private var clipCapture: ClipCapture? = null
+
     init {
         tracker.onWord = { prev, word -> learnWord(prev, word) }
     }
@@ -170,6 +176,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         autoShow = Prefs.autoShow(this) // asked before the keyboard view exists
         volumeCursor = Prefs.volumeCursor(this)
         Prefs.of(this).registerOnSharedPreferenceChangeListener(prefsListener)
+        val hub = ClipHub.get(this)
+        clipHub = hub
+        hub.start()
+        clipCapture = ClipCapture(this, hub).also { it.start() }
     }
 
     override fun onCreateInputView(): View {
@@ -262,6 +272,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val noLearning = ((info?.imeOptions ?: 0) and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
         learnAllowed = predictionAllowed && !noLearning && LearnSettings.enabled(this)
         emojiRecents = !noLearning && !isPasswordField(inputType)
+        clipCapture?.fieldAllowed = emojiRecents // nothing copied while a password / incognito field has the keyboard is saved (D65)
+        clipHub?.store?.purge() // apply the limit and auto-delete age
         tracker.reset(null)
         hasSelection = false
         val v = keyboard ?: return
@@ -290,7 +302,15 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         closeEmoji()
     }
 
+    /** The field is gone: clips copied in other apps from now on are recorded again. */
+    override fun onFinishInput() {
+        super.onFinishInput()
+        clipCapture?.fieldAllowed = true
+    }
+
     override fun onDestroy() {
+        clipCapture?.stop()
+        clipCapture = null
         Prefs.of(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
         worker?.stop()
         worker = null
