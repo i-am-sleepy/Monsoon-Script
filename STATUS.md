@@ -49,6 +49,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [x] L5 (claude-l) Vowel-sign keys drawn without the dotted circle (D62, owner request after the L4 test). Pushed in 65133d1, CI #29 green, owner-tested OK (2026-11-21). Steps in status/claude-l.md
 - [x] L6 (claude-l) The signs left out of L4 (॥ ৲ ৴-৹ ৺ ৄ ৢ ৣ ঽ) as long-press hints on the ?123 pages, Bangla layouts only (D63). Pushed in 65133d1, CI #29 green, owner-tested OK (2026-11-21). Steps in status/claude-l.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
+- [x] L7 (claude-l) Trace of the features nobody works on (owner request 2026-11-22, read-only, nothing built): the unowned list, the idle claims (T6, T9.3, E1) and stale notes are in status/claude-l.md (L7). Waiting for the owner's pick, see Needs user #15
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
 - Language switching has ONE entry point: `MonsoonIme.setLanguage(l: Language)`. The pill, space-bar swipe and claude-s's Ctrl+Space call it; nobody adds a second path.
@@ -76,6 +77,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 12. (answered 2026-11-21: clipboard 4th tab, card layout toggle, shortcut trigger, what is never recorded, see D65)
 13. (answered 2026-11-21: voice typing design: code in the APK, model download + import, mic hold/tap panel, engine per language, Voice test page, build order, see D66)
 14. Voice typing (G5, claude-g): the owner still has to confirm the exact English Parakeet file (my guess: Parakeet TDT-CTC 110M int8, about 100 MB). (claude-g)
+15. Which of the unowned features should claude-l build first? Full list in status/claude-l.md (L7); groups: auto-correction and typo fixes, edit panel + number pad, space-bar cursor drag + missing settings, one-handed + split keyboard. (claude-l)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.
