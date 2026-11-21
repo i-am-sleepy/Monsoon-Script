@@ -32,9 +32,11 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       G1.1 prefs + G1.2 main list/Typing/Suggestions/About pages DONE (63f95a7, owner-tested OK 2026-11-19); G1.3 suggestion toggles done (CI green, owner saw the switches 2026-11-20); G1.4 typing feel pushed (2b499bf, CI #23 green) G1.5 Appearance (20464dd, CI #24 green) and G1.6 hold-hint bubble pushed (73307d4, CI #25 green); owner tests G1.3 to G1.6 together; G1.7 optional built-in key click added after the owner's report (CI #28 green); G1.8 emoji key on the bottom row + keyboard button in the emoji panel pushed on the owner's request (447a1f9, CI #31 green). Steps in status/claude-g.md
 - [x] T11 (claude-l) Bangla digits (D18, D61). TAKEN OVER from claude-e on the owner's order 2026-11-21 (claude-e: remove it from your list). Built as a Settings > Typing choice "Digits in Bangla mode: English / Bangla" that swaps typed digit and hint on every digit key; pushed in 65133d1, CI #29 green, owner-tested OK (2026-11-21)
 - [x] E2 (claude-e) Emoji system: DONE FOR NOW (owner 2026-11-21: it works; more improvements are postponed). Offline picker, Unicode 17 data, bundled Noto Color Emoji, search in English and Bangla, recents, skin tones (D56). Ideas not built: see status/claude-e.md
-- [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). RESUMED 2026-11-21 (owner: GO, integrate to main, D64). Design SIGNED OFF (D53).
-      Phase 0 DONE (docs/PASSWORD_MANAGER_PHASE0.md); the engine FOUNDATION is on main (D64): submodule pinned to KeePassDX 4.5.8, `:vault` adapter + 14 emulator tests, engine workflow, AGP 8.13.2 / Gradle 8.14.2.
-      The app does not use it yet (APK unchanged). Next: Phase 1 (D51) = core vault in the app (create/open/unlock, entries and folders, auto-lock, safe saving); steps in status/claude-e.md
+- [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). CHECKPOINT 2026-11-21 (owner: pause E1, build the clipboard E3 now). Design SIGNED OFF (D53).
+      Phase 0 DONE (docs/PASSWORD_MANAGER_PHASE0.md); the engine FOUNDATION is on main (merge 9330477, D64): submodule pinned to KeePassDX 4.5.8, `:vault` adapter + 14 emulator tests, engine workflow, AGP 8.13.2 / Gradle 8.14.2.
+      The app does not use it yet (APK unchanged). Resume with Phase 1 (D51) = core vault in the app (create/open/unlock, entries and folders, auto-lock, safe saving); steps in status/claude-e.md
+- [?] E3 (claude-e) Clipboard (owner spec 2026-11-21 in docs/CLIPBOARD_SPEC.md): keyboard panel on the existing strip clipboard icon, history store, search, pinned, folders, multi-select, text shortcuts (user-made),
+      app screens + settings page, local-only, password fields / KeePassDX secrets never recorded (D43). Waiting for the owner's answers (Needs user #12), then building. Steps in status/claude-e.md
 - [~] L2 (claude-l) Offline prediction for English / Bangla / Banglish from WM Keyboard Data (wasi-master/wmkeyboard-data): prefix autocomplete + next-word
       (uni/bi/trigram + learned usage), compact binary tables, async. Built: engine + data (L2.3), English/Bangla strip, arrow, learning (L2.4, CI green up to #13); owner device test OK (2026-11-18); L2.5 (settings switch, clear button, licenses screen) is done by claude-g in G1.2 (63f95a7); steps in status/claude-l.md
 - [x] L3 (claude-l) Banglish prediction quality (D54, owner-tested OK 2026-11-18, CI #15): bridge from Banglish words to the Bangla pair data for next-word, lean Banglish for 1-3 letter prefixes, typed word as first strip choice, no repeat of the word just typed. Steps in status/claude-l.md
@@ -67,6 +69,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 9. (answered 2026-11-20: the "Show word suggestions" switch does not touch Avro spelling choices, see D57)
 10. (answered 2026-11-20: Probhat/National phone design, see D58-D60)
 11. (answered 2026-11-21: Bangla digits as a setting, hints only in Bangla layouts, see D61-D63)
+12. Clipboard E3 design questions asked 2026-11-21 (4th bottom tab, card layout, text-shortcut trigger, what is never recorded); answers go to DECISIONS.md. (claude-e)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.

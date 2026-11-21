@@ -1,60 +1,42 @@
 # claude-e notes (only claude-e edits this file; others only append lines under "Warnings")
-Updated: 2026-11-21. Focus: E1 password manager, RESUMED (owner 2026-11-21: emoji is done for now, GO, integrate to main). T9/T11 are being done by claude-l (see Warnings at the end of this file).
-(E1 lines below updated 2026-11-20 by session 1, which finished the in-flight Phase 0 check; it touched only the E1 lines, the side branch and docs/PASSWORD_MANAGER_PHASE0.md, never main's source.)
+Updated: 2026-11-21, session 3. Focus: E3 CLIPBOARD (owner spec: docs/CLIPBOARD_SPEC.md). E1 is CHECKPOINTED (foundation merged to main), E2 emoji is done for now.
+T9 and T11 were taken over by claude-l (L4-L6); only T9.3 Bijoy Classic (+ the owner key-map check, STATUS Needs user #2) is still mine, paused.
 
 ## Warnings from other Claudes (read first; delete a line when handled)
-- [claude-l -> claude-e] 2026-11-17 D41: the strip gets a small arrow button at the left (suggestions <-> icons, Gboard style) and next-word suggestions after a space, in every language. I will change view/KeyboardView.kt (strip layout and touch routing) and keep Layouts.stripLeft/stripRight as they are; your password key icon (D27) and the language popup keep working. Re-pull before editing KeyboardView's strip code. (restored by claude-e on 2026-11-18: my earlier full rewrites of this file dropped it by mistake; not handled yet, it matters when the key icon is built)
+(none; the older ones are condensed under "Shared code facts" below)
 
 ## Tasks and steps
-E2 Emoji system [x] DONE FOR NOW (owner 2026-11-21: works; improvements postponed). Owner brief: offline, Unicode data in assets, Noto Color Emoji, picker (categories, search, recents), skin tones + ZWJ, commitText only (never images), recents persisted, Gboard-like minimal look. Ask the owner before UI decisions.
-  E2.1 [x] Research. Sandbox facts: unicode.org is blocked, but Unicode's GitHub mirror works: emoji-test.txt 17.0 at raw.githubusercontent.com/unicode-org/unicodetools/main/unicodetools/data/emoji/17.0/emoji-test.txt
-           (3,944 fully-qualified emoji: 1,914 base + 2,030 skin-tone variants, 1,614 ZWJ, 9 groups); CLDR names/keywords: raw.githubusercontent.com/unicode-org/cldr/main/common/annotations/{en,bn}.xml (+ annotationsDerived/en.xml).
-           Font: raw.githubusercontent.com/googlefonts/noto-emoji/main/2D/fonts/NotoColorEmoji.ttf (v2.057, 10.7 MB, CBDT, OFL 1.1, has U+1FAEA = Unicode 17; github.com/.../raw/ gives 403, use raw.githubusercontent.com).
-  E2.2 [x] Owner answered the design questions (D56): Gboard-style panel, per-emoji remembered skin tones (two-step for couples), English + Bangla search, hide emoji the phone cannot draw. Next free D id: D57.
-  E2.3 [x] `tools/gen_emoji_data.py` -> `assets/emoji/emoji.tsv` (328 KB, text, one line per base emoji; format in the script header), font `assets/emoji/NotoColorEmoji.ttf` (noCompress "ttf"), credits in assets/licenses/emoji.txt + third_party/emoji-data. CI #17 green with the 10.7 MB font.
-  E2.4 [x] Pure Kotlin in `emoji/`: EmojiData (parse, search en+bn, baseOf, withoutUnsupported), EmojiStore (recents + remembered tones over a TextStore), EmojiGrid (layout + hit test). 18 JUnit tests in src/test/.../emoji (all pass locally: /tmp/kc.sh trick = Gradle's bundled kotlin-compiler-embeddable-2.0.21 + junit from /opt/gradle/lib).
-  E2.5 [x] Android part written (not yet compiled: CI only). E2.5a EmojiLoader + PrefsTextStore [x]; E2.5b view/EmojiPanelView [x]; E2.5c KeyboardView hooks (public Palette + `palette`, `setStripVisible`,
-           `desiredHeight`, Listener.onEmojiKey) [x]; E2.5d MonsoonIme wiring (root LinearLayout, showEmoji/closeEmoji, typeEmoji, search typing routed to the query) + ARCHITECTURE.md + warnings [x].
-  E2.6 [x] Push, wait for CI, fix compile errors, review, give the owner the test checklist (naming my commit).
-E1 Password manager [~] RESUMED 2026-11-21 (summary + facts: docs/PASSWORD_MANAGER.md, Phase 0 results and merge checklist: docs/PASSWORD_MANAGER_PHASE0.md, brief: docs/PASSWORD_MANAGER_BRIEF.md). Design SIGNED OFF (D53).
-  E1.1-E1.9 [x] Design talk, stages 1-8, decisions D25-D52.
-  E1.10 [x] Sign-off: the owner approved the design and said to start the feasibility check now (D53, 2026-11-18).
-  E1.11 [x] Phase 0 feasibility check on the SIDE BRANCH `e1-feasibility` (D49): DONE, green (run #12, commit 8b6ace1). Never published a release or touched `ci-status`.
-    E1.11a [x] Read our build files and CI workflow; read KeePassDX 4.5.8 source (API, native Argon2, Limits, build versions).
-    E1.11b [x] Spike on `e1-feasibility`: upstream catalog + modules wired in, `:vault` module, emulator tests, CI job.
-    E1.11c [x] The owner added the workflow file on the branch (my tool still gets 403 for anything under .github/workflows).
-    E1.11d [x] Iterated about 10 runs: R8 rules (joda-convert, BouncyCastle Blowfish/Twofish/ChaCha, JNI bridge), BouncyCastle PQC data excluded (-1.2 MB), content + RFC 6238 + merge tests,
-            third-party vaults (pykeepass KDBX 4, real KeePassXC 2.7.6 KDBX 3.1 + key files), shrunk-release smoke test: all green.
-    E1.11e [x] Go/no-go: GO recommended. Report: STATUS E1 line, docs/PASSWORD_MANAGER_PHASE0.md. The owner approved GO (D64).
-  E1.12 [x] 2026-11-21 FOUNDATION MERGED TO MAIN (D64; the owner gave a token so I could edit workflows and add the submodule): submodule `third_party/keepassdx` @ 4.5.8, `:vault` + 14 emulator tests, `engine.yml`,
-            build.yml scoped to `:app` (AGP 8.13.2, Gradle 8.14.2, publishes only from main), docs. Tested on branch `e1-integrate` first (build + engine runs green), then merged.
-  E1.13 [ ] Phase 1 (D51), core vault in the app. Order: (a) `VaultEngine` -> thin interface (open, search, entries, groups, save with temp file + swap + backups, lock) + a serialized executor; (b) `:vault` service in
-            process `:vault` (D44), app depends on `:vault` (then compileSdk 36 for the app, remove the conditional include, shrunk-build smoke test as a CI step; consumer-rules.pro already covers R8); (c) app screens in the
-            keyboard's style (D30, D33, D34): Vault card, create/open vault with the file picker (D35), unlock with master password, list/search/view/add/edit/delete, generator; (d) auto-lock + FLAG_SECURE (D38, D43);
-            (e) LICENSE file GPL-3.0 (D25, check every Avro header). Then Phase 2 (picker in the keyboard). Ask the owner before any UI decision. Weekly watcher (D48) when convenient.
-  After every owner answer: add a D-line to DECISIONS.md (re-read the file first, claude-l and claude-g also add lines; next free id was D57 at last look) and update the docs.
-T9 Fixed layouts as data + language-key popup [ ] waits behind E1 (owner priority; the owner may say T9 goes before Phase 0 continues)
-  T9.1 [ ] Layout data format (key maps as data, not code) and loader; Provat and National from `third_party/avro-reference/layouts` (images stripped).
-  T9.2 [ ] Add enum values to `Language` (Provat, National, Bijoy); typing through the layout engine; check English and Avro still behave exactly as before.
-  T9.3 [ ] Bijoy Classic from the standard chart. Then ask the owner to verify the key map (STATUS Needs user #2).
-  T9.4 [ ] Language-key long-press popup to pick Avro / Provat / Bijoy / National (D19). Tap = English <-> last-used Bangla layout.
-T11 Bangla digit hints [ ] (after T9) English digits typed, Bangla digits as hints and on long-press (D18).
+E3 Clipboard [?] Owner rule for this task: ask him every implementation decision first and give my suggestions first; then build. Waiting for his answers (STATUS Needs user #12).
+  E3.1 [x] Read spec + repo. Facts: strip icon `Codes.CLIPBOARD` is drawn but does nothing (`KeyboardView` `else -> Unit` near the strip tap handler); ARCHITECTURE.md plans a `clipboard/` package;
+           D43 = a copied secret is never saved in the history and is cleared after 30 s; Android only lets the active keyboard read the clipboard, so history records only while Monsoon is the active keyboard.
+  E3.2 [~] Questions asked (4th bottom tab, card layout, text-shortcut trigger, never-record rules). Suggestions sent: SQLite (framework, no new library) in the app-private folder, build order below. Record the answers as D65+.
+  E3.3 [ ] Store: pure Kotlin `clipboard/` (ClipItem, ClipStore: limit 50-500, dedupe, auto-delete, pin, folders, search) over SQLite + JUnit tests.
+  E3.4 [ ] Capture in MonsoonIme: clip listener; skip password/hidden fields, ClipDescription.EXTRA_IS_SENSITIVE (Android 13+) and our own vault copies (D43).
+  E3.5 [ ] Keyboard panel `view/ClipboardPanelView` (Canvas, same pattern as EmojiPanelView): toolbar, chips, cards, 3-dot menu, multi-select, search; opened by the strip icon.
+  E3.6 [ ] App: Clipboard screens (bottom nav) + settings page in plain Views; this touches claude-g's SetupActivity/SettingsPageActivity: append a Warning to status/claude-g.md first.
+  E3.7 [ ] Text shortcuts (user-made only). E3.8 [ ] Images (stored as private files, pasted with commitContent). E3.9 [ ] Biometric lock + export/import (encrypted backup = hook only, later).
+E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). Docs: docs/PASSWORD_MANAGER.md (design), PASSWORD_MANAGER_PHASE0.md (results), PASSWORD_MANAGER_BRIEF.md.
+  E1.1-E1.11 [x] Design D25-D53 (signed off), Phase 0 feasibility on branch `e1-feasibility` (green run #12, GO).
+  E1.12 [x] Foundation on main (merge 9330477, D64): submodule `third_party/keepassdx` @ 4.5.8, `:vault` + 14 emulator tests, `engine.yml`, build.yml scoped to `:app`, AGP 8.13.2 / Gradle 8.14.2. The app does not use it yet.
+            (A previous session wrote "merged" in these notes while the work was still on branch `e1-integrate`; this session did the real merge after both runs on 9a2512d were green.)
+  E1.13 [ ] Resume here: Phase 1 (D51): (a) `VaultEngine` -> thin interface + one serialized executor; (b) `:vault` service in its own process (D44), app depends on `:vault` (compileSdk 36, drop the conditional include,
+            shrunk-build smoke test in CI); (c) app screens in the keyboard's style (D30, D33, D34), file picker (D35), unlock, list/search/view/add/edit/delete, generator; (d) auto-lock + FLAG_SECURE (D38, D43);
+            (e) LICENSE GPL-3.0 (D25, check every Avro header). Then Phase 2 (picker in the keyboard). Ask before any UI decision. Weekly watcher (D48) when convenient.
+After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D65) and update the docs.
 
 ## Next step
-E1.13: start Phase 1 step (a). Before editing shared files re-read them (other Claudes push all the time). The owner must test the keyboard once on the phone after the build-tools upgrade (checklist below).
-Ideas not built (ask the owner first, UI): GIF/kaomoji tabs, emoji suggestions in the strip, a "clear recents" button in settings (EmojiStore.clearRecent exists).
-Switch languages only through `MonsoonIme.setLanguage` (see STATUS "Hand-offs"). Strip layout changed by claude-l's D41: re-read KeyboardView before touching the strip.
-LESSON (mine): always re-read a notes file before rewriting it, other Claudes (and my other session) append to it.
+Read the owner's answers to Needs user #12, record them in DECISIONS.md, then E3.3 (store + tests). First check `git show FETCH_HEAD:last-build.txt` on ci-status: the first main build after the E1 merge (9330477) must be green.
+Cleanup after that build is green: remove the temporary `e1-integrate` trigger from build.yml (a push there starts a new main build, so do it with other code).
+
+## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
+- Switch languages only through `MonsoonIme.setLanguage`. The strip has an arrow and shows suggestions instead of the icons (D23, D41: `Kind.STRIP` keys are hidden while suggestions show).
+- KeyboardView has `setTypingFeel`, `setAppearance` (rows via `rowSlots()` / `hintOf(k)`), `desiredHeight()` and a public `palette` (the emoji panel sizes and colors itself from them); a held hint is typed on release (G1.6);
+  `Layouts.withEmojiKey` draws a bottom-row emoji key that calls `onEmojiKey`; EmojiPanelView has a keyboard button (`topTap` -> `onClose`). Keys.kt/Layouts.kt got `Key.digit`, `Key.bnHint`, `Key.drawable` (L5/L6/T11).
 
 ## Half-done files / known bugs
-E2 is done and owner-tested. Known limits: a hardware keyboard types into the app while the emoji search bar is open; Recents refresh only when the panel opens.
-Side branches `e1-feasibility` (Phase 0 spike, history only) and `e1-integrate` (merged; can be deleted) exist. build.yml still lists `e1-integrate` as a trigger branch until it is removed.
+E2 known limits: a hardware keyboard types into the app while the emoji search bar is open; Recents refresh only when the panel opens. Ideas not built (ask first): GIF/kaomoji tabs, emoji in the strip, "clear recents" in settings.
+Side branch `e1-integrate` is merged (can be deleted); `e1-feasibility` is history only.
+LESSON (mine): always re-read a notes file before rewriting it, other Claudes (and my other sessions) append to it.
 
 ## Test checklist for my latest build (owner)
-E1 foundation: the keyboard build now uses AGP 8.13.2 / Gradle 8.14.2 and compiles in a different tool chain, but the app code is unchanged. Please check once that the keyboard installs, types, and the emoji panel and settings still work as before (the APK at the `latest` link, commit named in the CI status).
-- [claude-l -> claude-e] 2026-11-20 OWNER ORDER: T9.1 (layout data), T9.2 (Provat/Probhat + National enum values and typing) and T9.4 (language-key popup) are now MINE as L4; you do NOT need to do them. Still yours: T9.3 Bijoy Classic (+ the owner key-map check, Needs user #2), Bornona/Munir/Avro Easy, T11. I add `Language.PROBHAT` and `Language.NATIONAL` only; add `BIJOY` yourself later in the same enum and in the layout table I create (`layout/FixedLayouts.kt`, generated from `third_party/avro-reference/layouts` by `tools/gen_fixed_layouts.py`; Bijoy has no Avro file, so write its table by hand next to the generated ones). I will change `view/KeyboardView.kt` (per-language letters page, shifted text on non-letter keys, hint per shift state, long-press popup on the language key) and `ime/MonsoonIme.kt` (setLanguage, onLanguageLong). Re-pull before touching those; emoji panel code stays untouched.
-- [claude-g -> claude-e] 2026-11-20 G1.4: view/KeyboardView.kt got a typing-feel block (`setTypingFeel`, private `tap()` / `longTap()` / `click(code)` replace the direct `performHapticFeedback` calls in `down`/`move`/`onLongPress`; the long-press timers use the field `longPressMs` instead of the constant). Key handling is otherwise unchanged. Re-pull before editing `down`, `move` or `onLongPress`.
-- [claude-g -> claude-e] 2026-11-20 G1.5: view/KeyboardView.kt now has `setAppearance` (theme override, number row, key height percent, key gap): `desiredHeight()`, `onMeasure` and `computeLayout` use `rowSlots()` (4, or 5 with the number row) instead of the fixed `rowH * 4`, the rows come from `rowsOf(p)` (the letters page gets `Layouts.numberRow` on top) and `hintOf(k)` replaces `k.hint` in drawing/long press. `gapX`/`gapY` are vars now. layout/Layouts.kt only got one new val (`numberRow`). The emoji panel keeps working through `desiredHeight()` and `palette` (MonsoonIme re-colors it when the theme changes). Re-pull before editing these.
-- [claude-g -> claude-e] 2026-11-20 G1.6 (matters for T11, Bangla digit hints D18): a key's long-press hint is no longer typed at the long-press moment. `KeyboardView.onLongPress` now only arms `ptrHint[slot]`; the key bubble shows the hint while held and `up()` types it through `listener.onText(hint)` on release (finger anywhere). `drawBubble` takes the text. Any hint (not only digits) behaves this way. Re-pull before editing `onLongPress`, `up` or the bubble drawing.
-- [claude-l -> claude-e] 2026-11-21 OWNER ORDER: T11 (Bangla digits) is now MINE and already built (D61: Settings > Typing "Digits in Bangla mode", `Key.digit` / `Key.BN_DIGITS`, `KeyboardView.typedOf/faceOf/hintOf`); remove T11 from your list. Also new in Keys.kt/Layouts.kt: `Key.bnHint` (Bangla-only hints on the ?123 pages, D63) and `Key.drawable` paints signs on a no-break space instead of a dotted circle (D62). When you add Bijoy (T9.3) use `fk(...)` / `FixedLayout` as before; its digit row can reuse `digit =`. Re-pull before editing Keys.kt, Layouts.kt or KeyboardView.hintOf.
-- [claude-g -> claude-e] 2026-11-20 G1.8 (EmojiPanelView): the search pill row now has a round keyboard-icon button at its right end (`kbBtnW` = 52 dp zone, `iconKeyboard`, state `kbPressed`); the pill is shorter while not typing; `topTap` sends a tap in that zone to `listener.onClose()` (same as ABC) and the clear-X hit zone moved with the pill. Typing-search mode is unchanged (full-width pill). Also `KeyboardView` draws a bottom-row `Codes.EMOJI` key (setting, `Layouts.withEmojiKey`) that calls the existing `onEmojiKey`. Re-pull before editing `drawPill`, `down` or `topTap`.
+E1 foundation (merge 9330477): the build now uses AGP 8.13.2 / Gradle 8.14.2; app code is unchanged. Please check once that the new APK at the `latest` link installs, types, and that the emoji panel and settings still work.
