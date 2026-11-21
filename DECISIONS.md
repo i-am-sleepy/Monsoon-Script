@@ -90,7 +90,7 @@
     all suggestions; the arrow is the way back to the icons. With no suggestions (empty field, password) the strip is the icon row as today, without the arrow.
   - Size tier "Standard" (about 6 MB in the APK): 150k English words, 150k Bangla words, all Banglish words, all pair lists.
 - D42 2026-11-17 Prediction (L2, claude-l), more owner answers:
-  - Bangla form: predicted and learned Bangla words are committed in the precomposed form (য় = U+09DF, ড় = U+09DC, ঢ় = U+09DD) exactly like Avro. The packer converts
+  - Bangla form: predicted and learned Bangla words are committed in the precomposed form (য় = U+09DF, ড় = U+09DC, ঢ় = U+09DD) exactly like Avro. The packer converts
     the dataset's two-code-point form; lookups normalize the typed text the same way.
   - Learning is ON by default, local only (never leaves the phone). Never learns in password, e-mail or URL fields, nor where the app sets
     "no personalized learning" or "no suggestions". Settings (claude-g) get a "Learn from my typing" switch and a "Clear learned words" button.
@@ -191,3 +191,11 @@
   SQLite from the framework in the app-private folder, local only, no new library; images as private files + thumbnails; defaults history ON, 100 items, no auto-delete, pinned and foldered items exempt from
   deletion and from the limit; the panel replaces the keys at the same height like the emoji panel and opens from the strip's clipboard icon; build order store -> capture -> panel -> app screens + settings ->
   shortcuts -> images -> biometric lock + backup (encrypted backup only as a hook for later).
+- D66 2026-11-21 Voice typing (G5, claude-g; the owner asked to be asked every decision first; spec: docs/VOICE_TYPING_SPEC.md). Answered: (1) the offline engine's code (runtime) is in the APK, arm64 only, its real size is measured in CI and
+  reported; (2) the local model arrives by in-app download plus import from a file, so the INTERNET permission is added (D10's Offline mode hard-blocks the download); ONE APK, no offline-only flavor, which settles STATUS Needs user #4;
+  (3) the strip's mic key (D13): LONG-PRESS = record while held, on release transcribe and type the text at the cursor; TAP = open a panel that replaces the keys at the same height, with an editable text box (tapping the box brings
+  the keys back below it, like the emoji search in D56; what is typed there never reaches the app until Insert); recording in the panel stops on a pause and the mic is tapped again to add more; (4) the engine is chosen PER LANGUAGE
+  (English, Bangla), Google's online recognizer by default, a local model only after it is installed and chosen; (5) a hidden "Voice test" page in Settings runs one recording through every installed engine and shows text and time;
+  (6) build order: Google voice + mic key + panel first, then Settings > Voice and the Voice test page, then the local models (Bangla CI go/no-go test, English Parakeet, own process D44 style). Assumed because the owner did not
+  object: sliding off the mic while holding cancels; Insert closes the panel; Google locales English + Bangla (Bangladesh); model download Wi-Fi only by default, resumable, SHA-256 pinned, with a Delete button; Offline mode also
+  switches the Google engine off (audio goes to Google) and a one-time notice is shown before its first use; RECORD_AUDIO is asked on the first mic use through a see-through screen (as D37).
