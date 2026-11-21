@@ -1,10 +1,16 @@
 # claude-l notes (only claude-l edits this file; others only append lines under "Warnings")
-Updated: 2026-11-22, session 7. Done: L7 (read-only trace of the features nobody works on, owner request; nothing built). Before that: L5 + L6 + T11 (owner feedback after the L4 test), all owner-tested; L4 (Probhat + National layouts, owner order); prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
+Updated: 2026-11-22, session 7. Doing: L8 auto-correction and typo fixes (owner pick; design questions asked, nothing built yet). Done: L7 (read-only trace of the features nobody works on). Before that: L5 + L6 + T11 (owner feedback after the L4 test), all owner-tested; L4 (Probhat + National layouts, owner order); prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
 
 ## Tasks and steps
+L8 Auto-correction and typo fixes [~] (owner pick 2026-11-22 from the L7 list; ask first, Needs user #16)
+  L8.1 [x] Read Predictor / PredictionWorker / TextNorm and the MonsoonIme hooks (onText, acceptPrediction, onBackspace). Push access: the owner pasted a fine-grained token in chat; it is used only as a one-off `git -c http.extraheader` (clone in /home/claude/ms), never written to a file or git config; tell the owner to revoke it when done.
+  L8.2 [~] Design questions to the owner: default behaviour (auto-fix + undo / suggest only / off), which layouts (English first), how the strip shows a fix. After the answers: D68 in DECISIONS.md.
+       My plan: pure-Kotlin `predict/Corrector` (edit-distance 1-2 candidates found by lookup in the pack word list, keyboard-neighbour costs, ranked by frequency + context + learned words; only for words that no pack and no learned list knows, so Banglish is never "fixed"),
+       a `PredictionWorker` request for it, Backspace right after a fix = undo + never fix that word again, a Prefs key + row in Settings > Suggestions (warn claude-g first), ARCHITECTURE.md section.
+  L8.3 [ ] Corrector + JUnit tests on the real packs (run locally, kc.sh trick). L8.4 [ ] IME hook + undo + strip. L8.5 [ ] Settings row. L8.6 [ ] CI green, owner checklist.
 L7 Trace of features nobody works on [x] (owner request 2026-11-22; read-only: no code was built or changed)
   L7.1 [x] Read CLAUDE.md, STATUS.md, all four notes files, docs/REQUIREMENTS.md, ARCHITECTURE.md, layout/Layouts.kt, the commit list. CI #41 (94c1857) green. GitHub code search is NOT indexed for this repo (a control search found nothing): read files instead.
   L7.2 [x] Compared the Ridmik inventory + roadmap with the board and the code. Result below. The owner is asked which group to start first (STATUS Needs user #15).
@@ -86,7 +92,7 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
 
 ## Next step
 Nothing open. L4, L5, L6, T11 are owner-tested OK (2026-11-21). Do not start new features without the owner's go-ahead. Others' open items: claude-e Bijoy (T9.3), claude-s hardware-key translation (T6, should also decide whether a physical 1-0 follows `Prefs.banglaDigits()`).
-L7 is done (2026-11-22): wait for the owner's pick from the UNOWNED list above (STATUS Needs user #15). Start none of it before the answer, then ask that feature's design questions first (CLAUDE.md). Auto-correction would sit in my own code (Predictor / PredictionWorker); E3.7 of claude-e will also add a strip candidate, so warn each other before touching the strip.
+L7 is done. The owner picked auto-correction (2026-11-22): L8 above. Ask is open (Needs user #16); build nothing until it is answered. E3.7 of claude-e will also add a strip candidate: warn each other before touching the strip.
 
 ## Half-done files / known bugs
 None known. Not verified on a device yet: everything in L2.4 (Android code is only compiled by CI). Things to watch in the owner's report: strip arrow touch handling, English tap-to-complete
