@@ -52,6 +52,15 @@ class KeyboardView(context: Context) : View(context) {
 
         /** The clipboard key in the strip was tapped (E3): the IME swaps the keys for the clipboard panel. */
         fun onClipboardKey() {}
+
+        /** The mic key in the strip was tapped (G5, D66). */
+        fun onMicTap() {}
+
+        /** A long press on the mic key (G5): recording runs until [onMicHoldEnd]. */
+        fun onMicHoldStart() {}
+
+        /** The finger left the mic key after a long press; [cancel] = it slid away from the key or the touch was cancelled, so nothing is typed. */
+        fun onMicHoldEnd(cancel: Boolean) {}
     }
 
     var listener: Listener? = null
@@ -117,6 +126,10 @@ class KeyboardView(context: Context) : View(context) {
     private val ptrId = IntArray(MAX_PTR) { -1 }
     private val ptrKey = IntArray(MAX_PTR) { -1 }
     private val ptrLong = BooleanArray(MAX_PTR)
+    private var micSlot = -1 // the pointer that holds the mic key after a long press (G5): recording lasts as long as it stays down
+    private var micOutside = false // that finger slid away from the key: releasing now cancels
+    private var micActive = false // the microphone is open: the icon turns into an accent circle
+    private val micRect = RectF()
     private val ptrHint = BooleanArray(MAX_PTR) // a long press armed the key's hint: its bubble shows the hint, which is typed on release (G1.6)
     private val downX = FloatArray(MAX_PTR)
     private val swipeArmed = BooleanArray(MAX_PTR)
@@ -464,7 +477,19 @@ class KeyboardView(context: Context) : View(context) {
         invalidate() // a finger already down on a slot keeps its press: the tap delivers whatever the slot shows on release
     }
 
+    /** The IME says the microphone opened or closed (G5). */
+    fun setMicActive(on: Boolean) {
+        if (micActive == on) return
+        micActive = on
+        invalidate()
+    }
+
     fun cancelAll() {
+        if (micSlot >= 0) { // a missed UP or a panel opening: the recording is dropped
+            micSlot = -1
+            micOutside = false
+            listener?.onMicHoldEnd(true)
+        }
         for (s in 0 until MAX_PTR) {
             cancelTimers(s)
             ptrId[s] = -1
@@ -803,12 +828,16 @@ class KeyboardView(context: Context) : View(context) {
             drawLanguagePill(c, r, pressed)
             return
         }
-        if (pressed) {
+        val recording = k.code == Codes.MIC && micActive
+        if (recording) {
+            fillPaint.color = if (micOutside) pal.special else pal.accent
+            c.drawCircle(r.centerX(), r.centerY(), stripH * 0.44f, fillPaint)
+        } else if (pressed) {
             fillPaint.color = pal.specialPressed
             c.drawCircle(r.centerX(), r.centerY(), stripH * 0.42f, fillPaint)
         }
         val size = dp(24f)
-        iconPaint.color = pal.text
+        iconPaint.color = if (recording && !micOutside) pal.onAccent else pal.text
         iconPaint.style = Paint.Style.STROKE
         c.save()
         c.translate(r.centerX() - size / 2, r.centerY() - size / 2)
@@ -1017,6 +1046,19 @@ class KeyboardView(context: Context) : View(context) {
 
     private fun move(id: Int, x: Float, y: Float) {
         val slot = slotOf(id)
+        if (slot >= 0 && slot == micSlot) { // holding the mic key: sliding well away from it cancels the recording (G5)
+            val i = ptrKey[slot]
+            if (i >= 0 && page < rects.size) {
+                micRect.set(rects[page][i])
+                micRect.inset(-dp(MIC_SLOP_DP), -dp(MIC_SLOP_DP))
+                val out = !micRect.contains(x, y)
+                if (out != micOutside) {
+                    micOutside = out
+                    invalidate()
+                }
+            }
+            return
+        }
         if (slot < 0 || ptrLong[slot]) return
         if (ptrArrow[slot]) { // sliding off the arrow cancels the toggle
             val on = if (y >= 0f && y < stripH && x < padX + arrowW) ARROW_SLOT else -1
@@ -1074,6 +1116,13 @@ class KeyboardView(context: Context) : View(context) {
         ptrArrow[slot] = false
         ptrSug[slot] = -1
         invalidate()
+        if (slot == micSlot) { // the mic key was held: the recording ends here
+            val cancel = micOutside
+            micSlot = -1
+            micOutside = false
+            listener?.onMicHoldEnd(cancel)
+            return
+        }
         if (wasHint) { // the finger was lifted while the hint bubble showed: type the hint now (G1.6)
             if (idx >= 0 && page < keys.size) {
                 val k = keys[page][idx]
@@ -1124,6 +1173,15 @@ class KeyboardView(context: Context) : View(context) {
             openLanguagePopup(anchor)
             return
         }
+        if (k.code == Codes.MIC) { // hold to talk (G5, D66): the recording lasts until the finger is lifted
+            ptrLong[slot] = true
+            micSlot = slot
+            micOutside = false
+            longTap()
+            invalidate()
+            listener?.onMicHoldStart()
+            return
+        }
         if (hintOf(k) == null) return
         ptrLong[slot] = true
         ptrHint[slot] = true // the hint is typed when the finger is lifted; until then its bubble shows it
@@ -1131,7 +1189,7 @@ class KeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
-    private fun hasLongPress(k: Key): Boolean = hintOf(k) != null || k.code == Codes.GLOBE || k.code == Codes.LANG
+    private fun hasLongPress(k: Key): Boolean = hintOf(k) != null || k.code == Codes.GLOBE || k.code == Codes.LANG || k.code == Codes.MIC
 
     private fun onRepeat(slot: Int) {
         val idx = ptrKey[slot]
@@ -1161,7 +1219,8 @@ class KeyboardView(context: Context) : View(context) {
             Codes.LANG -> listener?.onLanguageToggle()
             Codes.EMOJI -> listener?.onEmojiKey()
             Codes.CLIPBOARD -> listener?.onClipboardKey()
-            else -> Unit // mic: not built yet
+            Codes.MIC -> listener?.onMicTap()
+            else -> Unit
         }
     }
 
@@ -1220,6 +1279,7 @@ class KeyboardView(context: Context) : View(context) {
         const val REPEAT_FAST_MS = 30L
         const val DOUBLE_TAP_MS = 350L
         const val SWIPE_DP = 64f
+        const val MIC_SLOP_DP = 36f // how far a held mic key may be left before releasing cancels (G5)
         const val SUG_SLOTS = 3
         const val ARROW_SLOT = 100 // ptrSug value while a finger is on the strip arrow
 

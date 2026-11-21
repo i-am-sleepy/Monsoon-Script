@@ -3,6 +3,15 @@
 
     <!-- Only VIBRATE (normal permission, no prompt; D55) for the vibration strength setting. INTERNET is allowed by DECISIONS D10 but is added only when a network feature exists. -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Voice typing (G5, D66): runtime permission, asked on the first use of the mic key by the see-through VoicePermissionActivity. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+
+    <!-- Android 11+: without this the keyboard cannot see the phone's speech service and SpeechRecognizer.isRecognitionAvailable lies. -->
+    <queries>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+    </queries>
 
     <application
         android:allowBackup="false"
@@ -58,6 +67,13 @@
             android:label="@string/clip_edit_title"
             android:taskAffinity=""
             android:windowSoftInputMode="adjustResize|stateVisible" />
+
+        <activity
+            android:name=".voice.VoicePermissionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
         <activity
             android:name=".settings.LicensesActivity"

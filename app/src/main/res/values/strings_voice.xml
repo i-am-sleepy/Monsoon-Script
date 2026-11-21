@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="voice_notice_title">Voice typing</string>
+    <string name="voice_notice_text">Voice typing uses your phone\'s speech service, normally Google\'s. While you speak, your voice is sent to Google to be turned into text. Nothing you type is ever sent. The next step asks for the microphone permission.</string>
+    <string name="voice_notice_ok">Continue</string>
+    <string name="voice_perm_granted">Microphone allowed. Hold the mic key and speak.</string>
+    <string name="voice_perm_denied">Voice typing needs the microphone permission.</string>
+    <string name="voice_hint_hold">Hold the mic key and speak</string>
+    <string name="voice_err_network">Voice typing needs an internet connection</string>
+    <string name="voice_err_unavailable">No speech service found on this phone. Install or enable Google\'s speech services.</string>
+    <string name="voice_err_language">This language is not available for voice typing on this phone</string>
+    <string name="voice_err_busy">Voice typing is busy, try again in a moment</string>
+    <string name="voice_err_permission">Voice typing needs the microphone permission</string>
+    <string name="voice_err_no_speech">Did not hear anything</string>
+    <string name="voice_err_other">Voice typing did not work, try again</string>
+</resources>

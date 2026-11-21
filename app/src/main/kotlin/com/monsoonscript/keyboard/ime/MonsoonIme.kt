@@ -18,6 +18,8 @@ import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputMethod
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
+import android.widget.Toast
+import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.clipboard.ClipCapture
 import com.monsoonscript.keyboard.clipboard.ClipEditActivity
 import com.monsoonscript.keyboard.clipboard.ClipHub
@@ -37,6 +39,8 @@ import com.monsoonscript.keyboard.view.ClipboardPanelView
 import com.monsoonscript.keyboard.view.EmojiPanelView
 import com.monsoonscript.keyboard.view.KeyboardView
 import com.monsoonscript.keyboard.view.SearchablePanel
+import com.monsoonscript.keyboard.voice.VoiceInput
+import com.monsoonscript.keyboard.voice.VoiceLang
 import java.io.IOException
 
 /**
@@ -314,6 +318,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         dropSuggestions()
         predWorker?.flush() // save what was learned
         keyboard?.cancelAll()
+        voice?.cancel()
         closePanels()
     }
 
@@ -331,6 +336,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         worker = null
         predWorker?.stop()
         predWorker = null
+        voice?.cancel()
+        voice = null
         super.onDestroy()
     }
 
@@ -731,6 +738,50 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         setLanguage(target)
         dropSuggestions(keepShown = answerFollows) // the new language's answer replaces the old candidates without the icon row flashing in between (G4)
         resyncAndPredict() // English: read what is in the field now (the Bangla text was not tracked)
+    }
+
+    // ---- voice typing (G5, D66; spec docs/VOICE_TYPING_SPEC.md): hold the mic key to dictate
+
+    private var voice: VoiceInput? = null
+
+    private val voiceHost = object : VoiceInput.Host {
+        override fun voiceText(text: String) = typeVoiceText(text)
+
+        override fun voiceListening(on: Boolean) {
+            keyboard?.setMicActive(on)
+        }
+    }
+
+    private fun ensureVoice(): VoiceInput = voice ?: VoiceInput(this, voiceHost).also { voice = it }
+
+    /** The language to listen for follows the active layout, it is never detected (D66). */
+    private fun voiceLang() = if (language.isBangla) VoiceLang.BANGLA else VoiceLang.ENGLISH
+
+    override fun onMicTap() {
+        Toast.makeText(this, R.string.voice_hint_hold, Toast.LENGTH_SHORT).show() // the tap panel comes in the next G5 step
+    }
+
+    override fun onMicHoldStart() {
+        commitComposingIfAny()
+        ensureVoice().holdStart(voiceLang())
+    }
+
+    override fun onMicHoldEnd(cancel: Boolean) {
+        voice?.holdEnd(cancel)
+    }
+
+    /** Finished speech goes into the editor at the cursor as plain text, with a space in front when it follows a word. */
+    private fun typeVoiceText(text: String) {
+        val ic = currentInputConnection ?: return
+        if (panelSearch) return // the keys belong to a panel's search bar, not to the editor
+        commitComposingIfAny()
+        val before = ic.getTextBeforeCursor(1, 0)
+        val last = if (before.isNullOrEmpty()) ' ' else before[before.length - 1]
+        val lead = if (Character.isLetterOrDigit(last) || last in ".,!?;:\u0964") " " else ""
+        ic.commitText(lead + text, 1)
+        lastEditAt = SystemClock.uptimeMillis()
+        if (predicting) resyncTracker()
+        refreshAutoCaps()
     }
 
     // ---- emoji panel (E2, D56)

@@ -52,6 +52,9 @@ object Prefs {
     const val VIB_NORMAL = 2
     const val LONG_PRESS_NORMAL = 1
 
+    // voice typing (G5, D66)
+    const val VOICE_NOTICE_OK = "voice_notice_ok" // the one-time notice about Google's speech service was accepted
+
     // suggestion strip (G1.3): all default on
     const val SHOW_SUGGESTIONS = "suggest_show"
     const val NEXT_WORD = "suggest_next_word"
