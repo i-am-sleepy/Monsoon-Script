@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_behavior_header">Keyboard behavior</string>
+    <string name="settings_auto_show">Open the keyboard automatically</string>
+    <string name="settings_auto_show_summary">Off: the keyboard opens only when you tap a text field</string>
+    <string name="settings_auto_show_note">When it is off, pages and apps that focus a text field by themselves no longer pop the keyboard up. Some apps ask for it as if you had tapped and may still open it. Back hides it as usual; tap the field to bring it back.</string>
+    <string name="settings_volume_cursor">Volume buttons move the cursor</string>
+    <string name="settings_volume_off">Off</string>
+    <string name="settings_volume_up_left">Up = left, down = right</string>
+    <string name="settings_volume_up_right">Up = right, down = left</string>
+    <string name="settings_volume_cursor_note">While the keyboard is open, the volume buttons move the cursor one step (hold to repeat) instead of changing the volume. Closing the keyboard gives the buttons back.</string>
+</resources>

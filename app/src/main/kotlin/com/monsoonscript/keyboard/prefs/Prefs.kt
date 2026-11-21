@@ -21,6 +21,13 @@ object Prefs {
     const val SPACE_SWIPE = "space_swipe" // default on (D15)
     const val DIGITS = "typing_digits" // Int: 0 English digits typed in the Bangla layouts (default, D18), 1 Bangla digits (T11, D61)
 
+    // keyboard behavior (G2, G3)
+    const val AUTO_SHOW = "typing_auto_show" // default on: Android may open the keyboard by itself when a field gets focus
+    const val VOLUME_CURSOR = "typing_volume_cursor" // Int: 0 Off (default), 1 volume up = left / down = right, 2 up = right / down = left
+    const val VOLUME_OFF = 0
+    const val VOLUME_UP_LEFT = 1
+    const val VOLUME_UP_RIGHT = 2
+
     // appearance (G1.5)
     const val THEME = "appearance_theme" // Int: 0 follow the phone, 1 light, 2 dark
     const val NUMBER_ROW = "appearance_number_row" // default off
@@ -62,6 +69,11 @@ object Prefs {
 
     /** True when the digit keys of the Bangla layouts type ০..৯ and keep 0..9 as the long-press hint (D61). */
     fun banglaDigits(context: Context): Boolean = of(context).getInt(DIGITS, 0) == 1
+
+    /** False = the keyboard opens only when the owner taps a field (G3). */
+    fun autoShow(context: Context): Boolean = of(context).getBoolean(AUTO_SHOW, true)
+
+    fun volumeCursor(context: Context): Int = of(context).getInt(VOLUME_CURSOR, VOLUME_OFF).coerceIn(VOLUME_OFF, VOLUME_UP_RIGHT)
 
     fun theme(context: Context): Int = of(context).getInt(THEME, 0).coerceIn(0, 2)
 
