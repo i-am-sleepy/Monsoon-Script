@@ -1,5 +1,5 @@
 # claude-g notes (only claude-g edits this file; others only append lines under "Warnings")
-Updated: 2026-11-19, session 2 (chat told to "act as claude-g"; commits carry [claude-g]; pushed with the GitHub connector). Owner tested 63f95a7 (G1.1+G1.2): all checklist items OK. CI #19 (38ff5ef, includes 63f95a7) green.
+Updated: 2026-11-21, session 2 (chat told to "act as claude-g"; commits carry [claude-g]; pushed with the GitHub connector). Owner tested 63f95a7 (G1.1+G1.2): all checklist items OK. CI #19 (38ff5ef, includes 63f95a7) green.
 Focus: settings screen and saved preferences (T10, G1). Owner decisions: D55.
 
 ## Warnings from other Claudes (read first; delete a line when handled)
@@ -18,8 +18,7 @@ G1 Settings pages [~]  (T10 = G1.1 + G1.2, L2.5 = G1.2)
   G1.8 [~] Emoji key + keyboard button (CI #31 447a1f9 green, owner request 2026-11-20): a smiley key right of ?123/ABC on every layout (Appearance > Emoji key, default on) and a keyboard button right of the emoji search bar that does what ABC does.
 
 ## Next action
-0. FIRST: `git fetch origin ci-status && git show FETCH_HEAD:last-build.txt`. If the newest commit failed, read only `--- errors ---` and fix; if green, give the owner the checklist below (G1.3 to G1.6 are all waiting for the owner's device test).
-G1 has no open step left. After the owner's report: fix what they find, tune the guesses (Light/Strong vibration, long-press delays 220/450 ms, height clamp 65%), then tick G1 [x] in STATUS.md. Do not start new features without the owner's go-ahead.
+G1 is done (owner: "everything looks fine", 2026-11-21). Nothing open. If the owner reports a problem with the Light/Strong vibration (25 / 80 ms in `KeyboardView.setTypingFeel`), the built-in click (`view/ClickSound`) or anything in Settings, fix it first. Do not start new features without the owner's go-ahead.
 Chat-session tooling: the sandbox has no git login. Either the GitHub connector's `push_files` (full file contents, JSON-escape backslashes) or a token the owner pastes in the chat (use it only for one push command via `git -c http.extraheader=...`, never save it in files, memory or git config; tell the owner to revoke it afterwards). Check with `git fetch origin main && git diff origin/main` that main equals the local files.
 How to add a setting: `Prefs` key + `ui.switchRow(...)` / `ui.choiceRow(title, key, options, default)` / `ui.sliderRow(title, key, min, max, default, format)` (or navRow/buttonRow/infoRow/note/tryField in `SettingsUi`), then read it in `applyPrefs()`.
 
