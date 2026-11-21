@@ -176,3 +176,10 @@
 - D63 2026-11-21 Rare signs on the ?123 pages (L6, owner request; the owner chose "Bangla layouts only"): the signs D58/D59 left out are now long-press hints (`Key.bnHint`) shown and typed only in Avro, Probhat and
   National, never in English. ৳ -> ৲ (page 1); page 2: | -> ॥, • -> ৺, the six keys after Tab £ $ ¥ ^ ° _ -> ৴ ৵ ৶ ৷ ৸ ৹ (Unicode order), and on the right end of the third row \ -> ঽ, < -> ৄ, > -> ৢ, … -> ৣ.
   `FixedLayoutsTest` now demands that EVERY Bangla character of Probhat and National is typable (no left-out list any more).
+- D64 2026-11-21 E1 GO and integration into main (owner: "check status and integrate to main branch", and he handed claude-e a fine-grained GitHub token, which is how the workflow files and the git
+  submodule could be created; the token is not stored anywhere in the repo and should be revoked once E1 setup is done). This settles STATUS Needs user #5: GO for Phase 1 (D51), engine enters main as designed in D47.
+  Merged foundation: git submodule `third_party/keepassdx` pinned to release tag 4.5.8 and never edited; `:vault` (our adapter `VaultEngine`, 14 emulator tests, consumer shrinker rules in `vault/consumer-rules.pro`)
+  plus upstream `:crypto` and `:database` are part of the Gradle build ONLY when the submodule is checked out (a plain checkout builds the keyboard exactly as before); AGP 8.13.2 + Gradle 8.14.2 for the whole build
+  (the app keeps compileSdk 35 and targetSdk 34, the engine modules use 36); `build.yml` runs only `:app` tasks, has a per-branch concurrency group and publishes the release and ci-status only from main;
+  new `.github/workflows/engine.yml` runs only when engine files change (upstream unit tests + emulator tests; result on the branch `ci-status-engine`). The app does NOT depend on `:vault` yet, so the APK does not
+  grow until Phase 1. `-dontobfuscate` (a Phase 0 diagnosis aid) is not used on main.

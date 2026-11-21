@@ -3,7 +3,10 @@
 Started 2026-11-18 after the owner's sign-off (D53). Ran on the side branch `e1-feasibility` (D49). NOTHING from Phase 0 is on main.
 Spike pin: KeePassDX 4.5.8 (published Oct 31; the unstable 4.5.7 is skipped). Final green run: #12, commit 8b6ace1 (branch `e1-feasibility`).
 
-## RESULT: GO (recommended; the owner decides, see STATUS Needs user #5)
+## MERGED INTO MAIN on 2026-11-21 (D64): submodule pinned to 4.5.8, `:vault` adapter + the 14 emulator tests, `engine.yml`, AGP 8.13.2 / Gradle 8.14.2. The checklist at the end of this file is DONE except the
+## items that need Phase 1 (the app depends on `:vault`, the `:vault` process, weekly update watcher, LICENSE file). Branch `e1-feasibility` is kept only as history.
+
+## RESULT: GO (the owner approved: D64)
 Every item the design listed as "NOT yet verified" for the engine is now verified, except the few listed under "Not verified yet" below.
 
 ### What was proven (all in OUR build and on an Android 14 x86_64 emulator, KeePassDX 4.5.8 used UNEDITED)
