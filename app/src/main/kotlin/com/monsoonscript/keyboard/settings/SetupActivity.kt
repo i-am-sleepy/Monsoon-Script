@@ -7,10 +7,11 @@ import android.provider.Settings
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import com.monsoonscript.keyboard.R
+import com.monsoonscript.keyboard.clipboard.app.ClipboardActivity
 
 /**
  * The main screen (and the keyboard's settings entry): setup status and the two setup steps on top, then the list of settings pages (D55):
- * Typing, Suggestions, About and licenses. Appearance joins when its settings exist (G1.5). Each row opens [SettingsPageActivity].
+ * Typing, Suggestions, Appearance, Clipboard (E3.6: its own page with tabs, [ClipboardActivity]) and About. Each other row opens [SettingsPageActivity].
  */
 class SetupActivity : Activity() {
 
@@ -33,6 +34,7 @@ class SetupActivity : Activity() {
             page.content.add(navRow(getString(R.string.settings_typing), getString(R.string.settings_typing_summary)) { open(SettingsPageActivity.TYPING) })
             page.content.add(navRow(getString(R.string.settings_suggestions), getString(R.string.settings_suggestions_summary)) { open(SettingsPageActivity.SUGGESTIONS) })
             page.content.add(navRow(getString(R.string.settings_appearance), getString(R.string.settings_appearance_summary)) { open(SettingsPageActivity.APPEARANCE) })
+            page.content.add(navRow(getString(R.string.clip_title), getString(R.string.clip_row_summary)) { startActivity(Intent(this@SetupActivity, ClipboardActivity::class.java)) })
             page.content.add(navRow(getString(R.string.settings_about), getString(R.string.settings_about_summary)) { open(SettingsPageActivity.ABOUT) })
         }
         setContentView(page.root)

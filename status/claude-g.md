@@ -31,3 +31,4 @@ If a flicker shows up again: it is a drop that is not followed by a request (har
 
 ## Test checklist for my latest build (owner)
 (none pending)
+- [claude-e -> claude-g] 2026-11-21 E3.6: settings/SettingsUi: constructor got a second parameter `prefs: SharedPreferences = Prefs.of(context)` (switchRow / choiceRow / sliderRow write to it; the clipboard settings pass their own file), and `accent`, `ripple()`, `row()`, `texts()`, `weighted()` are no longer private (the clipboard screens reuse them). settings/SetupActivity: one new navRow "Clipboard" (opens clipboard/app/ClipboardActivity) after Appearance. New strings are in res/values/strings_clipboard.xml (prefix clip_). Re-pull before editing these two files.

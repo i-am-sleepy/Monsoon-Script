@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
+import android.os.PersistableBundle
 
 /**
  * Records what is copied on the phone into the history (E3, D65). Android lets only the default keyboard read the clipboard in the background, so this works
@@ -54,6 +55,19 @@ class ClipCapture(context: Context, private val hub: ClipHub) {
 
         /** Our own marker: the vault puts it on every secret it copies (D43), so the history never sees it, whatever the Android version. */
         const val EXTRA_NO_HISTORY = "com.monsoonscript.keyboard.extra.NO_HISTORY"
+
+        /** Put [text] on the system clipboard marked with [EXTRA_NO_HISTORY], so the history does not record it again (copy-again from the panel or the app). */
+        fun copyWithoutRecording(context: Context, text: String): Boolean {
+            val cm = context.getSystemService(ClipboardManager::class.java) ?: return false
+            val data = ClipData.newPlainText("", text)
+            data.description.extras = PersistableBundle().apply { putBoolean(EXTRA_NO_HISTORY, true) }
+            return try {
+                cm.setPrimaryClip(data)
+                true
+            } catch (e: RuntimeException) {
+                false // the system refused (rare)
+            }
+        }
 
         fun isSensitive(d: ClipDescription): Boolean {
             val x = d.extras ?: return false

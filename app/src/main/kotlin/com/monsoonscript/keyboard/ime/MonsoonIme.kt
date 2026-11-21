@@ -1,14 +1,11 @@
 package com.monsoonscript.keyboard.ime
 
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.drawable.ColorDrawable
 import android.inputmethodservice.InputMethodService
 import android.os.Build
-import android.os.PersistableBundle
 import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
@@ -25,6 +22,7 @@ import com.monsoonscript.keyboard.clipboard.ClipCapture
 import com.monsoonscript.keyboard.clipboard.ClipEditActivity
 import com.monsoonscript.keyboard.clipboard.ClipHub
 import com.monsoonscript.keyboard.clipboard.ClipPanelModel
+import com.monsoonscript.keyboard.clipboard.app.ClipboardSettingsActivity
 import com.monsoonscript.keyboard.emoji.EmojiLoader
 import com.monsoonscript.keyboard.emoji.EmojiStore
 import com.monsoonscript.keyboard.emoji.PrefsTextStore
@@ -35,7 +33,6 @@ import com.monsoonscript.keyboard.lang.avro.AvroPhoneticConverter
 import com.monsoonscript.keyboard.layout.Layouts
 import com.monsoonscript.keyboard.predict.WordTracker
 import com.monsoonscript.keyboard.prefs.Prefs
-import com.monsoonscript.keyboard.settings.SetupActivity
 import com.monsoonscript.keyboard.view.ClipboardPanelView
 import com.monsoonscript.keyboard.view.EmojiPanelView
 import com.monsoonscript.keyboard.view.KeyboardView
@@ -971,7 +968,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
         override fun edit(clipId: Long) = launch(ClipEditActivity.intent(this@MonsoonIme, clipId))
 
-        override fun openSettings() = launch(Intent(this@MonsoonIme, SetupActivity::class.java))
+        override fun openSettings() = launch(Intent(this@MonsoonIme, ClipboardSettingsActivity::class.java))
 
         override fun columnsChanged(cols: Int) {
             clipHub?.prefs?.columns = cols
@@ -1055,14 +1052,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** "Copy again": the text goes back on the system clipboard, marked so the history does not record it a second time. */
     private fun copyToClipboard(text: String) {
-        val cm = getSystemService(ClipboardManager::class.java) ?: return
-        val data = ClipData.newPlainText("", text)
-        data.description.extras = PersistableBundle().apply { putBoolean(ClipCapture.EXTRA_NO_HISTORY, true) }
-        try {
-            cm.setPrimaryClip(data)
-        } catch (e: RuntimeException) {
-            // the system refused (rare): nothing to do
-        }
+        ClipCapture.copyWithoutRecording(this, text)
     }
 
     /** Start an activity from the service (a new task is required); an app that cannot handle the intent is ignored. */

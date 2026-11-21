@@ -14,8 +14,7 @@ E3 Clipboard [~] Owner rule for this task: ask him every implementation decision
   E3.4 [x] Capture: `ClipPrefs` (file monsoon_clipboard), `ClipHub` (one shared store, loads DB in background), `ClipCapture` (listener; skips sensitive flag, our own `EXTRA_NO_HISTORY` marker for the vault (D43), password/incognito fields); hooks in MonsoonIme (onCreate/onStartInputView/onFinishInput/onDestroy). Pushed, CI to check. NOTE for E1: the vault must put `ClipCapture.EXTRA_NO_HISTORY` (and the Android 13 sensitive flag) on every secret it copies.
   E3.5 [x] Keyboard panel, pushed (CI to check): model/grid/format (50 JUnit tests, CI-run), `view/ClipboardPanelView` (Canvas), `SearchablePanel` (EmojiPanelView implements it too), host in MonsoonIme (`clipHost`: paste, copy again with EXTRA_NO_HISTORY, share, edit via `ClipEditActivity`, settings = SetupActivity for now), `emojiSearch` renamed `panelSearch` (+ `shownPanel`), strip clipboard icon -> `onClipboardKey`. Owner-tested on device 2026-11-21 (CI #39, c94d41e): works.
   E3.6 [~] App screens (D67 answered: 'Clipboard' row on the main screen -> ClipboardActivity with 4 bottom tabs History/Pinned/Folders/Shortcuts + gear; simple list rows; date groups on by default; ONE settings page with sections). Touches claude-g's SetupActivity: append a Warning to status/claude-g.md in the same push.
-    E3.6.1 [ ] ClipboardActivity shell: bottom tab bar, gear, list adapter (ListView) + row view.  E3.6.2 [ ] History tab (date groups, search, tap = actions, multi-select via long press).
-    E3.6.3 [ ] Pinned tab.  E3.6.4 [ ] Folders tab (list + counts, open folder, create/rename/delete).  E3.6.5 [ ] Shortcuts tab (list, add/edit/delete dialog).  E3.6.6 [ ] Settings page (ClipboardSettingsActivity).
+    E3.6.1-E3.6.6 [x] pushed together (CI + owner test pending): `clipboard/ClipListModel` (+13 JUnit tests, 63 clipboard tests pass), `clipboard/app/` = ClipboardActivity (4 tabs + gear), ClipListScreen (History/Pinned/folder), FolderScreen, ShortcutScreen, ClipActions, ClipboardSettingsActivity; "Clipboard" row in SetupActivity; panel gear opens the settings page; SettingsUi got a `prefs` parameter and public helpers.
   E3.7 [ ] Text shortcuts (user-made only). E3.8 [ ] Images (stored as private files, pasted with commitContent). E3.9 [ ] Biometric lock + export/import (encrypted backup = hook only, later).
 E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). Docs: docs/PASSWORD_MANAGER.md (design), PASSWORD_MANAGER_PHASE0.md (results), PASSWORD_MANAGER_BRIEF.md.
   E1.1-E1.11 [x] Design D25-D53 (signed off), Phase 0 feasibility on branch `e1-feasibility` (green run #12, GO).
@@ -27,7 +26,7 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D65) and update the docs.
 
 ## Next step
-Check CI for the E3.5 push, give the owner the test checklist (below), then E3.6: app Clipboard screens (bottom nav History/Pinned/Folders/Shortcuts, gear -> clipboard settings page) in plain Views. Warn claude-g first (SetupActivity / SettingsPageActivity). Before every push run `tools/compile_check.sh` (new, ~30 s).
+Check CI for the E3.6 push, give the owner the test checklist (below). Then E3.7 text shortcuts in the keyboard (strip suggestion when a trigger is typed: touches claude-l's suggestion strip, warn first), E3.8 images, E3.9 lock/export/import. Before every push run `tools/compile_check.sh` (~30 s).
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
 - Switch languages only through `MonsoonIme.setLanguage`. The strip has an arrow and shows suggestions instead of the icons (D23, D41: `Kind.STRIP` keys are hidden while suggestions show).
@@ -40,10 +39,10 @@ Side branch `e1-integrate` is merged (can be deleted); `e1-feasibility` is histo
 LESSON (mine): always re-read a notes file before rewriting it, other Claudes (and my other sessions) append to it.
 
 ## Test checklist for my latest build (owner)
-E3.5 clipboard panel (my commit is the `[claude-e] E3.5` one; wait for CI green, then take the APK at the `latest` link):
-1. Copy a few different texts in other apps (while Monsoon is the active keyboard), then tap the clipboard icon in the strip: the panel opens with cards, newest first.
-2. Tap a card: its text is typed. Long-press a card: selection starts; tap more cards; try pin / delete / move to folder from the top bar.
-3. 3 dots on a card: Pin, Edit (opens an edit page), Copy again, Share, Delete.
-4. Chips: All / Pinned / Text / Images / Shortcuts. Top-right toggle: 2 columns <-> 1 column. Search: tap the search icon, type (also in Avro): the panel shrinks above the keys and filters.
-5. Copy something in a password field or from KeePassDX (if installed): it must NOT appear in the history.
-6. Emoji button in the bottom bar goes to the emoji panel; ABC returns to the keys. Tell me anything that looks wrong, jumps, or is too slow.
+E3.6 clipboard app screens (my commit is the `[claude-e] E3.6` one; wait for CI green, then take the APK at the `latest` link):
+1. Open the Monsoon app: a new "Clipboard" row. It opens a page with tabs History / Pinned / Folders / Shortcuts and a gear at the top right.
+2. History: your copied clips as rows under Pinned / Today / Yesterday / Earlier. Search field on top. Tap a row: Copy, Pin, Edit, Share, Move to folder, Delete. Long-press a row: selection mode (count on top, Pin / Move / Share / Delete at the bottom, All, X).
+3. Pinned: only pinned clips. Folders: "New folder", tap one to see its clips, three dots = Rename / Delete folder; move clips in from History (Move).
+4. Shortcuts: "New shortcut" (trigger like ;sig + text), tap one to edit or delete. Then open the keyboard's clipboard panel, chip Shortcuts: your shortcuts are there; tap one to type its text.
+5. Gear: the clipboard settings (history on/off, limit, auto-delete, keep pinned, clear buttons, pinned on top, group by date, compact, preview lines, time). Try a few and see the keyboard panel follow (compact, lines, time, columns). The gear in the keyboard panel opens the same page.
+Tell me what looks wrong or feels clumsy.

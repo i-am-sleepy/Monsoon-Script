@@ -57,6 +57,11 @@ class ClipPrefs(context: Context) {
         get() = sp.getBoolean(K_TIME, true)
         set(v) = sp.edit().putBoolean(K_TIME, v).apply()
 
+    /** The app's History screen shows Pinned / Today / Yesterday / Earlier headers (D67). */
+    var groupByDate: Boolean
+        get() = sp.getBoolean(K_GROUP, true)
+        set(v) = sp.edit().putBoolean(K_GROUP, v).apply()
+
     /** Close the panel (back to the keys) after a clip was pasted. */
     var hideAfterPaste: Boolean
         get() = sp.getBoolean(K_HIDE_PASTE, false)
@@ -75,6 +80,7 @@ class ClipPrefs(context: Context) {
         const val K_COMPACT = "compact"
         const val K_TIME = "show_time"
         const val K_HIDE_PASTE = "hide_after_paste"
+        const val K_GROUP = "group_by_date"
 
         val LIMITS = intArrayOf(50, 100, 200, 500)
         private const val HOUR = 3_600_000L

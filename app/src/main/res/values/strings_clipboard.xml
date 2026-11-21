@@ -1,7 +1,128 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- edit page -->
     <string name="clip_edit_title">Edit clip</string>
     <string name="clip_edit_save">Save</string>
     <string name="clip_edit_cancel">Cancel</string>
     <string name="clip_edit_hint">Clip text</string>
+
+    <!-- main screen row -->
+    <string name="clip_title">Clipboard</string>
+    <string name="clip_row_summary">History, pinned clips, folders and shortcuts</string>
+
+    <!-- tabs -->
+    <string name="clip_tab_history">History</string>
+    <string name="clip_tab_pinned">Pinned</string>
+    <string name="clip_tab_folders">Folders</string>
+    <string name="clip_tab_shortcuts">Shortcuts</string>
+    <string name="clip_settings_button">Clipboard settings</string>
+
+    <!-- lists -->
+    <string name="clip_search_hint">Search clips</string>
+    <string name="clip_group_pinned">Pinned</string>
+    <string name="clip_group_today">Today</string>
+    <string name="clip_group_yesterday">Yesterday</string>
+    <string name="clip_group_earlier">Earlier</string>
+    <string name="clip_image">Image</string>
+    <string name="clip_empty_history">Nothing copied yet.\nTexts you copy while Monsoon is your keyboard show up here.</string>
+    <string name="clip_empty_history_off">The history is switched off.\nTurn it on in the clipboard settings (gear, top right).</string>
+    <string name="clip_empty_pinned">No pinned clips.\nPin a clip to keep it here.</string>
+    <string name="clip_empty_folder">This folder is empty.\nMove clips here from History.</string>
+    <string name="clip_empty_match">No clips match your search.</string>
+
+    <!-- clip actions -->
+    <string name="clip_act_copy">Copy</string>
+    <string name="clip_act_pin">Pin</string>
+    <string name="clip_act_unpin">Unpin</string>
+    <string name="clip_act_edit">Edit</string>
+    <string name="clip_act_share">Share</string>
+    <string name="clip_act_move">Move to folder…</string>
+    <string name="clip_act_delete">Delete</string>
+    <string name="clip_copied">Copied</string>
+    <string name="clip_delete_one">Delete this clip?</string>
+    <string name="clip_delete_many">Delete %1$d clips?</string>
+    <string name="clip_delete_confirm">Delete</string>
+    <string name="clip_move_title">Move to folder</string>
+    <string name="clip_no_folder">No folder</string>
+    <string name="clip_no_folders_yet">No folders yet. Make one in the Folders tab.</string>
+
+    <!-- selection -->
+    <string name="clip_selected">%1$d selected</string>
+    <string name="clip_select_all">All</string>
+    <string name="clip_bar_pin">Pin</string>
+    <string name="clip_bar_move">Move</string>
+    <string name="clip_bar_share">Share</string>
+    <string name="clip_bar_delete">Delete</string>
+
+    <!-- folders -->
+    <string name="clip_new_folder">New folder</string>
+    <string name="clip_folder_hint">Folder name</string>
+    <string name="clip_folder_rename_title">Rename folder</string>
+    <string name="clip_folder_rename">Rename</string>
+    <string name="clip_folder_delete">Delete folder</string>
+    <string name="clip_folder_delete_title">Delete the folder “%1$s”?</string>
+    <string name="clip_folder_delete_note">Its clips stay in your history.</string>
+    <string name="clip_folder_bad_name">That name is empty, too long or already used.</string>
+    <string name="clip_folder_count_one">1 clip</string>
+    <string name="clip_folder_count">%1$d clips</string>
+    <string name="clip_folders_empty">No folders yet.\nTap “New folder” to make one.</string>
+    <string name="clip_save">Save</string>
+
+    <!-- shortcuts -->
+    <string name="clip_new_shortcut">New shortcut</string>
+    <string name="clip_shortcut_edit_title">Edit shortcut</string>
+    <string name="clip_shortcut_trigger_hint">Trigger, for example ;sig</string>
+    <string name="clip_shortcut_text_hint">Text it inserts</string>
+    <string name="clip_shortcut_delete">Delete</string>
+    <string name="clip_shortcuts_note">Make your own shortcuts, for example ;email or ;sig. They are listed under the Shortcuts chip of the keyboard\'s clipboard panel; tap one there to type its text.</string>
+    <string name="clip_shortcuts_empty">No shortcuts yet.\nTap “New shortcut” to make one.</string>
+    <string name="clip_sc_empty">Write a trigger first.</string>
+    <string name="clip_sc_space">A trigger cannot contain spaces.</string>
+    <string name="clip_sc_long">That trigger is too long.</string>
+    <string name="clip_sc_no_text">Write the text the shortcut should insert.</string>
+    <string name="clip_sc_duplicate">Another shortcut already uses that trigger.</string>
+    <string name="clip_sc_many">There are too many shortcuts.</string>
+
+    <!-- settings page -->
+    <string name="clip_settings_title">Clipboard settings</string>
+    <string name="clip_set_management">Management</string>
+    <string name="clip_set_enabled">Save clipboard history</string>
+    <string name="clip_set_enabled_summary">Off: nothing new is saved. What is saved stays until you delete it.</string>
+    <string name="clip_set_limit">History limit</string>
+    <string name="clip_set_limit_summary">%1$d clips (pinned clips and clips in folders do not count)</string>
+    <string name="clip_set_auto">Delete automatically</string>
+    <string name="clip_auto_never">Never</string>
+    <string name="clip_auto_1h">After 1 hour</string>
+    <string name="clip_auto_1d">After 1 day</string>
+    <string name="clip_auto_7d">After 7 days</string>
+    <string name="clip_auto_30d">After 30 days</string>
+    <string name="clip_set_keep_pinned">Keep pinned clips</string>
+    <string name="clip_set_keep_pinned_summary">Pinned clips are never deleted by the limit or the timer.</string>
+    <string name="clip_set_dedupe">Merge repeated copies</string>
+    <string name="clip_set_dedupe_summary">Copying the same text again moves it to the top instead of adding it twice.</string>
+    <string name="clip_set_clear_unpinned">Clear unpinned clips</string>
+    <string name="clip_set_clear_unpinned_summary">Pinned clips and clips in folders stay.</string>
+    <string name="clip_set_clear_all">Clear the whole history</string>
+    <string name="clip_set_clear_all_summary">Removes every clip, pinned and in folders too. Folders and shortcuts stay.</string>
+    <string name="clip_clear_unpinned_ask">Delete all unpinned clips?</string>
+    <string name="clip_clear_all_ask">Delete the whole clipboard history?</string>
+    <string name="clip_cleared">Done</string>
+    <string name="clip_set_behavior">Behavior</string>
+    <string name="clip_set_pinned_top">Pinned clips on top</string>
+    <string name="clip_set_pinned_top_summary">In the keyboard panel and the History screen.</string>
+    <string name="clip_set_group">Group History by date</string>
+    <string name="clip_set_group_summary">Today, Yesterday and Earlier headers in the app\'s History screen.</string>
+    <string name="clip_set_hide_paste">Close the panel after pasting</string>
+    <string name="clip_set_hide_paste_summary">Go back to the keys after you tap a clip.</string>
+    <string name="clip_set_appearance">Appearance</string>
+    <string name="clip_set_compact">Compact cards</string>
+    <string name="clip_set_compact_summary">Less padding, more clips on screen.</string>
+    <string name="clip_set_lines">Preview length</string>
+    <string name="clip_lines_format">%1$d lines</string>
+    <string name="clip_set_time">Show time</string>
+    <string name="clip_set_time_summary">How long ago a clip was copied.</string>
+    <string name="clip_set_privacy">Privacy</string>
+    <string name="clip_privacy_stays">Everything stays on this phone. The clipboard history is never uploaded.</string>
+    <string name="clip_privacy_never">Never saved: anything copied while a password field is open, clips that a password manager marks as sensitive (KeePassDX does), and copies made by Monsoon\'s own vault.</string>
+    <string name="clip_privacy_limit">Android only lets the active keyboard read what you copy, so clips are saved while Monsoon is your keyboard.</string>
 </resources>

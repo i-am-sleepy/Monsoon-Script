@@ -41,6 +41,17 @@
             android:windowSoftInputMode="adjustResize|stateHidden" />
 
         <activity
+            android:name=".clipboard.app.ClipboardActivity"
+            android:exported="false"
+            android:label="@string/clip_title"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
+
+        <activity
+            android:name=".clipboard.app.ClipboardSettingsActivity"
+            android:exported="false"
+            android:label="@string/clip_settings_title" />
+
+        <activity
             android:name=".clipboard.ClipEditActivity"
             android:exported="false"
             android:excludeFromRecents="true"

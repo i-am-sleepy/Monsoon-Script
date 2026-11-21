@@ -2,6 +2,7 @@ package com.monsoonscript.keyboard.settings
 
 import android.app.AlertDialog
 import android.content.Context
+import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
@@ -21,16 +22,17 @@ import com.monsoonscript.keyboard.prefs.Prefs
 
 /**
  * Builds the settings screens out of plain framework views (no libraries): a page with a title and a back arrow, section headers and rows
- * (switch, navigation, button, info). Colors come from the activity theme, so light and dark follow the phone. Rows write straight to [Prefs].
+ * (switch, navigation, button, info). Colors come from the activity theme, so light and dark follow the phone. Rows write straight to [prefs]
+ * (the keyboard's [Prefs] unless another file is given, e.g. the clipboard's).
  */
-internal class SettingsUi(private val context: Context) {
+internal class SettingsUi(private val context: Context, private val prefs: SharedPreferences = Prefs.of(context)) {
     private val density = context.resources.displayMetrics.density
 
     fun dp(v: Int): Int = (v * density + 0.5f).toInt()
 
     val primary: ColorStateList = themeColors(android.R.attr.textColorPrimary) ?: ColorStateList.valueOf(Color.BLACK)
     val secondary: ColorStateList = themeColors(android.R.attr.textColorSecondary) ?: ColorStateList.valueOf(Color.GRAY)
-    private val accent: Int = context.obtainStyledAttributes(intArrayOf(android.R.attr.colorAccent)).let {
+    val accent: Int = context.obtainStyledAttributes(intArrayOf(android.R.attr.colorAccent)).let {
         val c = it.getColor(0, 0xFF00796B.toInt())
         it.recycle()
         c
@@ -46,7 +48,7 @@ internal class SettingsUi(private val context: Context) {
     }
 
     /** The theme's touch-feedback background (a fresh instance per row). */
-    private fun ripple(): Drawable? {
+    fun ripple(): Drawable? {
         val tv = TypedValue()
         if (!context.theme.resolveAttribute(android.R.attr.selectableItemBackground, tv, true)) return null
         return context.getDrawable(tv.resourceId)
@@ -107,7 +109,7 @@ internal class SettingsUi(private val context: Context) {
         setPadding(dp(20), dp(24), dp(20), dp(6))
     }
 
-    private fun row(): LinearLayout = LinearLayout(context).apply {
+    fun row(): LinearLayout = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         minimumHeight = dp(60)
@@ -115,7 +117,7 @@ internal class SettingsUi(private val context: Context) {
         background = ripple()
     }
 
-    private fun texts(title: String, summary: String?, titleColor: ColorStateList? = null): LinearLayout =
+    fun texts(title: String, summary: String?, titleColor: ColorStateList? = null): LinearLayout =
         LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
             addView(TextView(context).apply {
@@ -133,11 +135,10 @@ internal class SettingsUi(private val context: Context) {
             }
         }
 
-    private fun weighted(): LinearLayout.LayoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+    fun weighted(): LinearLayout.LayoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
 
     /** A row with a switch that reads and writes the boolean preference [key]. */
     fun switchRow(title: String, summary: String?, key: String, default: Boolean): View {
-        val prefs = Prefs.of(context)
         val sw = Switch(context).apply {
             isChecked = prefs.getBoolean(key, default)
             setOnCheckedChangeListener { _, on -> prefs.edit().putBoolean(key, on).apply() }
@@ -151,7 +152,6 @@ internal class SettingsUi(private val context: Context) {
 
     /** A row for the Int preference [key] (an index into [options]): the summary shows the current choice, a tap opens a list to pick another. */
     fun choiceRow(title: String, key: String, options: List<String>, default: Int): View {
-        val prefs = Prefs.of(context)
         fun current(): Int = prefs.getInt(key, default).coerceIn(0, options.size - 1)
         val labels = texts(title, options[current()])
         val summary = labels.getChildAt(1) as TextView
@@ -173,7 +173,6 @@ internal class SettingsUi(private val context: Context) {
 
     /** A row with a slider for the Int preference [key] from [minValue] to [maxValue]; [format] writes the current value next to the title. */
     fun sliderRow(title: String, key: String, minValue: Int, maxValue: Int, default: Int, format: (Int) -> String): View {
-        val prefs = Prefs.of(context)
         val start = prefs.getInt(key, default).coerceIn(minValue, maxValue)
         val valueText = TextView(context).apply {
             text = format(start)

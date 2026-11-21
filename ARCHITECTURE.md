@@ -132,8 +132,14 @@ The strip's mic icon is drawn but does nothing yet. Everything else below is pla
   interface), `ClipStore` (in-memory list newest first, written through `ClipDb`: limit and auto-delete age apply to "loose" clips only, pinned exempt while `keepPinned`, foldered always exempt; duplicate
   text moves to the top and keeps its pin/folder; folders; text shortcuts), `ClipFormat` ("2 min ago", preview text, export text), `CardGrid` (equal-size card geometry, 2 or 1 columns, hit test),
   `ClipPanelModel` (chips All/Pinned/Text/Images/Shortcuts + one per folder, search, selection, 3-dot menu, folder picker, bulk actions; talks to the keyboard through `ClipPanelModel.Host`).
+  `ClipListModel` (the app's History / Pinned / folder list: rows under Pinned / Today / Yesterday / Earlier headers, search, multi-selection, bulk pin / move / delete / share text).
   Android: `SqliteClipDb` (`clipboard.db`, one writer thread, errors logged and swallowed), `ClipPrefs` (SharedPreferences `monsoon_clipboard`), `ClipHub` (process singleton: prefs + store; the IME, the panel and
-  the app's screens share it), `ClipCapture` (OnPrimaryClipChangedListener), `ClipEditActivity` (plain-Views editor for one clip).
+  the app's screens share it), `ClipCapture` (OnPrimaryClipChangedListener; `copyWithoutRecording` puts a text back on the clipboard without it being recorded again), `ClipEditActivity` (plain-Views editor for one clip).
+- App screens (E3.6, D67), package `clipboard/app/`, plain Views, framework `ListView` (no RecyclerView): the main screen's "Clipboard" row opens `ClipboardActivity` (top bar with back + gear, four bottom tabs). Each tab is a `Screen`:
+  `ClipListScreen` (History / Pinned / one folder: search field, rows, long press = multi-select with a bottom action bar; it only shows `ClipListModel`), `FolderScreen` (folders with counts, "New folder", three dots = rename / delete,
+  tap opens the folder's `ClipListScreen`), `ShortcutScreen` (the user's `;trigger` shortcuts, editor dialog). Only the visible screen listens to the store (`show()` / `hide()` from onStart / onStop). `ClipActions` holds the shared dialogs
+  (clip menu, folder picker, delete confirm, name prompt). `ClipboardSettingsActivity` = one page with sections Management / Behavior / Appearance / Privacy; it uses `SettingsUi(this, prefs.sp)` (SettingsUi takes the SharedPreferences
+  file to write to; default is `Prefs`). The keyboard panel's gear opens it too.
 - Capture rules (D65): only while Monsoon is the active keyboard (Android lets nothing else read the clipboard in the background). Never recorded: history off, clip flagged sensitive
   (`EXTRA_IS_SENSITIVE`, which KeePassDX sets, or our own `ClipCapture.EXTRA_NO_HISTORY`, which the vault and "Copy again" must set), anything copied while a password / hidden / no-personalized-learning
   field has the keyboard (`MonsoonIme.clipCapture.fieldAllowed`). No guessing from content.

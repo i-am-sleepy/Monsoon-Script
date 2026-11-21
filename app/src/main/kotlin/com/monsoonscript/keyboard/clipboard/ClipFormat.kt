@@ -23,6 +23,9 @@ object ClipFormat {
         return if (sameYear) base else "$base ${c.get(Calendar.YEAR)}"
     }
 
+    /** How many calendar days (in [zone]) [then] lies before [now]: 0 = today, 1 = yesterday; negative for a clock that moved back. */
+    fun daysAgo(then: Long, now: Long, zone: TimeZone = TimeZone.getDefault()): Long = dayNumber(now, zone) - dayNumber(then, zone)
+
     /** The calendar day a moment falls on, counted from the epoch in [zone] (so "yesterday" follows the phone's midnight, not 24 hours). */
     private fun dayNumber(t: Long, zone: TimeZone): Long = Math.floorDiv(t + zone.getOffset(t), 86_400_000L)
 
