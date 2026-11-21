@@ -1,0 +1,51 @@
+result: success
+engine unit tests: success
+emulator tests: success
+run: #4 https://github.com/i-am-sleepy/Monsoon-Script/actions/runs/44880460778
+commit: 715b1b4f49debcf105496a1434f13f80ca2d02f0
+engine pin: 4.5.8
+time: 2026-11-21T07:33:11Z
+
+--- emulator errors ---
+
+--- emulator tail ---
+
+> Task :crypto:configureCMakeDebug[arm64-v8a]
+"Install CMake 3.22.1 v.3.22.1" ready.
+Installing CMake 3.22.1 in /usr/local/lib/android/sdk/cmake/3.22.1
+"Install CMake 3.22.1 v.3.22.1" complete.
+"Install CMake 3.22.1 v.3.22.1" finished.
+
+> Task :crypto:buildCMakeDebug[arm64-v8a]
+> Task :crypto:configureCMakeDebug[armeabi-v7a]
+> Task :crypto:buildCMakeDebug[armeabi-v7a]
+> Task :crypto:configureCMakeDebug[x86]
+> Task :crypto:buildCMakeDebug[x86]
+> Task :crypto:configureCMakeDebug[x86_64]
+> Task :crypto:buildCMakeDebug[x86_64]
+> Task :crypto:mergeDebugJniLibFolders
+> Task :crypto:mergeDebugNativeLibs
+> Task :crypto:copyDebugJniLibsProjectOnly
+> Task :vault:mergeDebugAndroidTestNativeLibs
+
+> Task :vault:stripDebugAndroidTestDebugSymbols
+Unable to strip the following libraries, packaging them as they are: libaes.so, libargon2.so. Run with --info option to learn more.
+
+> Task :vault:packageDebugAndroidTest
+> Task :vault:createDebugAndroidTestApkListingFileRedirect
+[EmulatorConsole]: Failed to start Emulator console for 5554
+
+> Task :vault:connectedDebugAndroidTest
+Starting 14 tests on emulator-5554 - 14
+
+emulator-5554 - 14 Tests 0/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 2/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 4/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 6/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 7/14 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 10/14 completed. (0 skipped) (0 failed)
+Finished 14 tests on emulator-5554 - 14
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/emu-1795246263292.json
+
+BUILD SUCCESSFUL in 2m 8s
+101 actionable tasks: 40 executed, 26 from cache, 35 up-to-date
