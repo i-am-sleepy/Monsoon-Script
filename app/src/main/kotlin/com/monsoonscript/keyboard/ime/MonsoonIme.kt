@@ -1,10 +1,14 @@
 package com.monsoonscript.keyboard.ime
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.drawable.ColorDrawable
 import android.inputmethodservice.InputMethodService
 import android.os.Build
+import android.os.PersistableBundle
 import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
@@ -18,7 +22,9 @@ import android.view.inputmethod.InputMethod
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
 import com.monsoonscript.keyboard.clipboard.ClipCapture
+import com.monsoonscript.keyboard.clipboard.ClipEditActivity
 import com.monsoonscript.keyboard.clipboard.ClipHub
+import com.monsoonscript.keyboard.clipboard.ClipPanelModel
 import com.monsoonscript.keyboard.emoji.EmojiLoader
 import com.monsoonscript.keyboard.emoji.EmojiStore
 import com.monsoonscript.keyboard.emoji.PrefsTextStore
@@ -29,8 +35,11 @@ import com.monsoonscript.keyboard.lang.avro.AvroPhoneticConverter
 import com.monsoonscript.keyboard.layout.Layouts
 import com.monsoonscript.keyboard.predict.WordTracker
 import com.monsoonscript.keyboard.prefs.Prefs
+import com.monsoonscript.keyboard.settings.SetupActivity
+import com.monsoonscript.keyboard.view.ClipboardPanelView
 import com.monsoonscript.keyboard.view.EmojiPanelView
 import com.monsoonscript.keyboard.view.KeyboardView
+import com.monsoonscript.keyboard.view.SearchablePanel
 import java.io.IOException
 
 /**
@@ -123,7 +132,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
      */
     private var learnAllowed = false
 
-    // ---- emoji panel (E2, D56): it replaces the keys; while searching it sits above the keys and typed text goes to the query, not the editor
+    // ---- emoji (E2, D56) and clipboard (E3, D65) panels: one of them replaces the keys; while searching it sits above the keys and typed text goes to the query, not the editor
 
     private var root: LinearLayout? = null
     private var emojiPanel: EmojiPanelView? = null
@@ -131,8 +140,12 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private var emojiStore: EmojiStore? = null
     private var emojiPreloadScheduled = false
 
-    /** Typing into the emoji search bar: [searchBuf] holds the finished part of the query, the Avro composer the word in progress. */
-    private var emojiSearch = false
+    /** The panel that is on screen in place of the keys (emoji or clipboard); null while the keys show. */
+    private var shownPanel: View? = null
+    private val searchPanel: SearchablePanel? get() = shownPanel as? SearchablePanel
+
+    /** Typing into a panel's search bar: [searchBuf] holds the finished part of the query, the Avro composer the word in progress. */
+    private var panelSearch = false
     private val searchBuf = StringBuilder()
 
     /** Recents are not kept in password fields or when the app asks for no personalized learning (incognito). */
@@ -141,6 +154,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     // ---- clipboard history (E3, D65): records what is copied while this keyboard is the active one; never in password / incognito fields
     private var clipHub: ClipHub? = null
     private var clipCapture: ClipCapture? = null
+    private var clipPanel: ClipboardPanelView? = null
+    private var clipModel: ClipPanelModel? = null
 
     init {
         tracker.onWord = { prev, word -> learnWord(prev, word) }
@@ -159,6 +174,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             kb.setAppearance(Prefs.theme(this), Prefs.numberRow(this), Prefs.emojiKey(this), Prefs.heightPortrait(this), Prefs.heightLandscape(this), Prefs.keyGap(this))
             applySystemBars() // the theme setting can change the keyboard color
             emojiPanel?.setPalette(kb.palette)
+            clipPanel?.setPalette(kb.palette)
         }
         keyboard?.setTypingFeel(Prefs.vibration(this), Prefs.keySound(this), Prefs.soundSource(this) == Prefs.SOUND_BUILTIN, Prefs.longPressMs(this))
         showSuggestions = Prefs.showSuggestions(this)
@@ -193,7 +209,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         r.addView(v, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root = r
         emojiPanel = null
-        emojiSearch = false
+        clipPanel = null
+        clipModel = null
+        shownPanel = null
+        panelSearch = false
         searchBuf.setLength(0)
         applyPrefs()
         applySystemBars()
@@ -220,7 +239,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun volumeKeyIsOurs(keyCode: Int): Boolean {
         if (volumeCursor == Prefs.VOLUME_OFF) return false
         if (keyCode != KeyEvent.KEYCODE_VOLUME_UP && keyCode != KeyEvent.KEYCODE_VOLUME_DOWN) return false
-        if (!isInputViewShown || emojiSearch) return false
+        if (!isInputViewShown || panelSearch) return false
         val info = currentInputEditorInfo ?: return false
         return currentInputConnection != null && info.inputType != InputType.TYPE_NULL
     }
@@ -252,18 +271,17 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         super.onConfigurationChanged(newConfig)
         keyboard?.refreshTheme()
         applySystemBars()
-        val kb = keyboard
-        val panel = emojiPanel
-        if (kb != null && panel != null) {
-            panel.setPalette(kb.palette)
-            if (panel.visibility == View.VISIBLE) setPanelHeight(if (emojiSearch) panel.compactHeight() else kb.desiredHeight())
-        }
+        val kb = keyboard ?: return
+        emojiPanel?.setPalette(kb.palette)
+        clipPanel?.setPalette(kb.palette)
+        val shown = searchPanel ?: return
+        setPanelHeight(if (panelSearch) shown.compactHeight() else kb.desiredHeight())
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        if (!restarting) closeEmoji() // a new field starts on the letter keys (a restart of the same field keeps the panel)
-        if (emojiSearch) flushSearchComposing() else composer?.clear()
+        if (!restarting) closePanels() // a new field starts on the letter keys (a restart of the same field keeps the panel)
+        if (panelSearch) flushSearchComposing() else composer?.clear()
         dropSuggestions()
         val inputType = info?.inputType ?: 0
         val cls = inputType and InputType.TYPE_MASK_CLASS
@@ -299,7 +317,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         dropSuggestions()
         predWorker?.flush() // save what was learned
         keyboard?.cancelAll()
-        closeEmoji()
+        closePanels()
     }
 
     /** The field is gone: clips copied in other apps from now on are recorded again. */
@@ -327,7 +345,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         hasSelection = newSelStart != newSelEnd
         // A change that is not an echo of our own edit (cursor moved, text replaced by the app, a physical keyboard): read the editor again.
         if (predicting && SystemClock.uptimeMillis() - lastEditAt > PhoneticComposer.STALE_MS) resyncAndPredict()
-        if (emojiSearch) return // the composer holds the search word, not text in the editor
+        if (panelSearch) return // the composer holds the search word, not text in the editor
         val comp = composer ?: return
         if (!comp.isComposing) return
         val sinceEdit = SystemClock.uptimeMillis() - lastEditAt
@@ -548,7 +566,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun commitComposingIfAny(keepStrip: Boolean = false) {
         val comp = composer ?: return
         if (!comp.isComposing) return
-        if (emojiSearch) { // the word belongs to the search query, not to the editor
+        if (panelSearch) { // the word belongs to the search query, not to the editor
             flushSearchComposing()
             return
         }
@@ -571,7 +589,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     // ---- KeyboardView.Listener
 
     override fun onText(text: String) {
-        if (emojiSearch) {
+        if (panelSearch) {
             searchText(text)
             return
         }
@@ -608,7 +626,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** A strip suggestion was tapped (D23): it replaces the underlined word and a space follows. */
     override fun onSuggestion(word: String) {
-        if (emojiSearch || suggestions.isEmpty()) return // empty = the strip only still paints the old words (G4)
+        if (panelSearch || suggestions.isEmpty()) return // empty = the strip only still paints the old words (G4)
         val ic = currentInputConnection ?: return
         val comp = composer
         if (comp == null || !comp.isComposing) {
@@ -626,7 +644,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onBackspace() {
-        if (emojiSearch) {
+        if (panelSearch) {
             searchBackspace()
             return
         }
@@ -654,7 +672,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onEnter() {
-        if (emojiSearch) { // Enter in the search bar shows the results in the grid
+        if (panelSearch) { // Enter in the search bar shows the results in the grid
             endSearchTyping(clear = false)
             return
         }
@@ -676,7 +694,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onTab() {
-        if (emojiSearch) return
+        if (panelSearch) return
         commitComposingIfAny()
         sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
         if (predicting) {
@@ -760,7 +778,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun setPanelHeight(h: Int) {
-        val p = emojiPanel ?: return
+        val p = shownPanel ?: return
         val lp = p.layoutParams ?: return
         if (lp.height != h) {
             lp.height = h
@@ -772,8 +790,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun showEmoji() {
         val kb = keyboard ?: return
         val panel = ensureEmojiPanel() ?: return
+        closeClipboard()
         kb.cancelAll()
-        emojiSearch = false
+        panelSearch = false
         searchBuf.setLength(0)
         composer?.clear()
         dropSuggestions()
@@ -789,6 +808,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
         kb.setStripVisible(true)
         kb.visibility = View.GONE
+        shownPanel = panel
         setPanelHeight(kb.desiredHeight())
         panel.visibility = View.VISIBLE
         panel.open()
@@ -803,13 +823,14 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun closeEmoji() {
         val panel = emojiPanel ?: return
         if (panel.visibility != View.VISIBLE) return
-        if (emojiSearch) composer?.clear()
-        emojiSearch = false
+        if (panelSearch) composer?.clear()
+        panelSearch = false
         searchBuf.setLength(0)
         panel.close()
         panel.setSearching(false)
         panel.setQuery("")
         panel.visibility = View.GONE
+        if (shownPanel === panel) shownPanel = null
         val kb = keyboard ?: return
         kb.setStripVisible(true)
         kb.visibility = View.VISIBLE
@@ -827,9 +848,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** The search pill was tapped: the panel shrinks to the results row and the real keys come back below it. */
     private fun startSearchTyping() {
         val kb = keyboard ?: return
-        val panel = emojiPanel ?: return
+        val panel = searchPanel ?: return
         kb.cancelAll()
-        emojiSearch = true
+        panelSearch = true
         composer?.clear()
         dropSuggestions()
         kb.setStripVisible(false)
@@ -843,11 +864,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Leave the keys and show the results (or all emoji when the query is blank / was cleared) in the grid. */
     private fun endSearchTyping(clear: Boolean) {
         val kb = keyboard ?: return
-        val panel = emojiPanel ?: return
+        val panel = searchPanel ?: return
         flushSearchComposing()
         composer?.clear()
         if (clear) searchBuf.setLength(0)
-        emojiSearch = false
+        panelSearch = false
         panel.setSearching(false)
         panel.setQuery(searchBuf.toString())
         kb.visibility = View.GONE
@@ -858,7 +879,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun clearSearch() {
         searchBuf.setLength(0)
         composer?.clear()
-        emojiPanel?.setQuery("")
+        searchPanel?.setQuery("")
     }
 
     /** The Avro word in progress becomes plain query text. */
@@ -874,7 +895,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun updateSearchQuery() {
         val comp = composer
         val q = if (comp != null && comp.isComposing) searchBuf.toString() + comp.text() else searchBuf.toString()
-        emojiPanel?.setQuery(q)
+        searchPanel?.setQuery(q)
     }
 
     private fun searchText(text: String) {
@@ -901,6 +922,157 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             searchBuf.setLength(searchBuf.offsetByCodePoints(searchBuf.length, -1))
         }
         updateSearchQuery()
+    }
+
+    // ---- clipboard panel (E3, D65)
+
+    override fun onClipboardKey() {
+        commitComposingIfAny()
+        showClipboard()
+    }
+
+    /** Back to the keys from whichever panel is up. Safe when none is. */
+    private fun closePanels() {
+        closeEmoji()
+        closeClipboard()
+    }
+
+    private val clipListener = object : ClipboardPanelView.Listener {
+        override fun onBackspace() = this@MonsoonIme.onBackspace()
+
+        override fun onClose() {
+            closeClipboard()
+            refreshAutoCaps()
+            resyncAndPredict()
+        }
+
+        override fun onEmoji() {
+            closeClipboard()
+            showEmoji()
+        }
+
+        override fun onSearchTap() = startSearchTyping()
+
+        override fun onSearchBack() = endSearchTyping(clear = true)
+
+        override fun onSearchClear() = clearSearch()
+    }
+
+    /** What the clipboard panel asks of the service: type a clip, put it back on the clipboard, share it, edit it, open the settings. */
+    private val clipHost = object : ClipPanelModel.Host {
+        override fun paste(text: String) = pasteClip(text)
+
+        override fun copyAgain(text: String) = copyToClipboard(text)
+
+        override fun share(text: String) {
+            val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
+            launch(Intent.createChooser(send, null))
+        }
+
+        override fun edit(clipId: Long) = launch(ClipEditActivity.intent(this@MonsoonIme, clipId))
+
+        override fun openSettings() = launch(Intent(this@MonsoonIme, SetupActivity::class.java))
+
+        override fun columnsChanged(cols: Int) {
+            clipHub?.prefs?.columns = cols
+        }
+
+        override fun changed() {
+            clipPanel?.onModelChanged()
+        }
+    }
+
+    private fun ensureClipPanel(): ClipboardPanelView? {
+        clipPanel?.let { return it }
+        val r = root ?: return null
+        val kb = keyboard ?: return null
+        val hub = clipHub ?: return null
+        val model = ClipPanelModel(hub.store, clipHost)
+        val p = ClipboardPanelView(this, kb.palette, model)
+        p.listener = clipListener
+        p.visibility = View.GONE
+        r.addView(p, 0, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, kb.desiredHeight()))
+        clipModel = model
+        clipPanel = p
+        return p
+    }
+
+    /** The clipboard replaces the keys, at the same height so the window does not jump. */
+    private fun showClipboard() {
+        val kb = keyboard ?: return
+        val hub = clipHub ?: return
+        val panel = ensureClipPanel() ?: return
+        val model = clipModel ?: return
+        closeEmoji()
+        kb.cancelAll()
+        panelSearch = false
+        searchBuf.setLength(0)
+        composer?.clear()
+        dropSuggestions()
+        hub.start() // reads the saved clips if that has not happened yet
+        val prefs = hub.prefs
+        panel.setStyle(prefs.previewLines, prefs.compact, prefs.showTime)
+        model.columns = prefs.columns
+        model.historyEnabled = prefs.historyEnabled
+        panel.setSearching(false)
+        panel.setPalette(kb.palette)
+        kb.setStripVisible(true)
+        kb.visibility = View.GONE
+        shownPanel = panel
+        setPanelHeight(kb.desiredHeight())
+        panel.visibility = View.VISIBLE
+        panel.open()
+    }
+
+    /** Back to the keys (ABC key, new field, keyboard hidden). Safe to call when the panel was never shown. */
+    private fun closeClipboard() {
+        val panel = clipPanel ?: return
+        if (panel.visibility != View.VISIBLE) return
+        if (panelSearch) composer?.clear()
+        panelSearch = false
+        searchBuf.setLength(0)
+        panel.close()
+        panel.setSearching(false)
+        panel.visibility = View.GONE
+        if (shownPanel === panel) shownPanel = null
+        val kb = keyboard ?: return
+        kb.setStripVisible(true)
+        kb.visibility = View.VISIBLE
+    }
+
+    /** A clip goes into the editor as plain text in one commit; pasted text is not a typed word, so it is not learned. */
+    private fun pasteClip(text: String) {
+        val ic = currentInputConnection ?: return
+        ic.commitText(text, 1)
+        lastEditAt = SystemClock.uptimeMillis()
+        if (predicting) tracker.append(' ')
+        if (clipHub?.prefs?.hideAfterPaste == true) {
+            closeClipboard()
+            refreshAutoCaps()
+            resyncAndPredict()
+        }
+    }
+
+    /** "Copy again": the text goes back on the system clipboard, marked so the history does not record it a second time. */
+    private fun copyToClipboard(text: String) {
+        val cm = getSystemService(ClipboardManager::class.java) ?: return
+        val data = ClipData.newPlainText("", text)
+        data.description.extras = PersistableBundle().apply { putBoolean(ClipCapture.EXTRA_NO_HISTORY, true) }
+        try {
+            cm.setPrimaryClip(data)
+        } catch (e: RuntimeException) {
+            // the system refused (rare): nothing to do
+        }
+    }
+
+    /** Start an activity from the service (a new task is required); an app that cannot handle the intent is ignored. */
+    private fun launch(intent: Intent) {
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            startActivity(intent)
+        } catch (e: RuntimeException) {
+            // no app can handle it
+        }
     }
 
     private fun refreshAutoCaps() {

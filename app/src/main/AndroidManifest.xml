@@ -41,6 +41,14 @@
             android:windowSoftInputMode="adjustResize|stateHidden" />
 
         <activity
+            android:name=".clipboard.ClipEditActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:label="@string/clip_edit_title"
+            android:taskAffinity=""
+            android:windowSoftInputMode="adjustResize|stateVisible" />
+
+        <activity
             android:name=".settings.LicensesActivity"
             android:exported="false"
             android:label="@string/settings_licenses" />

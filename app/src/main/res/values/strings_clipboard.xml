@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="clip_edit_title">Edit clip</string>
+    <string name="clip_edit_save">Save</string>
+    <string name="clip_edit_cancel">Cancel</string>
+    <string name="clip_edit_hint">Clip text</string>
+</resources>

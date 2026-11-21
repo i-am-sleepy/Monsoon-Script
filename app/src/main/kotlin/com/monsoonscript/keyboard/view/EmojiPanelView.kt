@@ -31,7 +31,7 @@ import kotlin.math.abs
  *
  * Every emoji is drawn and sent as ONE complete Unicode string (ZWJ sequences, flags, tones); the panel never splits or rebuilds one.
  */
-class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : View(context) {
+class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : View(context), SearchablePanel {
 
     interface Listener {
         /** Type this complete emoji string into the editor. */
@@ -287,13 +287,13 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
     val hasContent: Boolean get() = data != null
 
     /** Height of the panel while the keys sit below it (search typing): the results row plus the query bar. */
-    fun compactHeight(): Int {
+    override fun compactHeight(): Int {
         val land = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         return (dp(if (land) 38f else 44f) + dp(if (land) 44f else 52f)).toInt()
     }
 
     /** The text to search for: committed text plus whatever is still being composed. A blank query shows the tabs again. */
-    fun setQuery(q: String) {
+    override fun setQuery(q: String) {
         if (q == query) return
         query = q
         resultsMode = q.trim().isNotEmpty()
@@ -307,7 +307,7 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
     }
 
     /** true = typing into the search bar (compact panel above the keys); false = browsing. */
-    fun setSearching(on: Boolean) {
+    override fun setSearching(on: Boolean) {
         if (on == searching) return
         cancelAll()
         searching = on

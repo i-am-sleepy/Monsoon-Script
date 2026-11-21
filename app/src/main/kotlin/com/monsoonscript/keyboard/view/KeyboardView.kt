@@ -49,6 +49,9 @@ class KeyboardView(context: Context) : View(context) {
 
         /** The emoji key in the strip was tapped (E2): the IME swaps the keys for the emoji panel. */
         fun onEmojiKey() {}
+
+        /** The clipboard key in the strip was tapped (E3): the IME swaps the keys for the clipboard panel. */
+        fun onClipboardKey() {}
     }
 
     var listener: Listener? = null
@@ -1157,7 +1160,8 @@ class KeyboardView(context: Context) : View(context) {
             Codes.GLOBE -> listener?.onGlobe()
             Codes.LANG -> listener?.onLanguageToggle()
             Codes.EMOJI -> listener?.onEmojiKey()
-            else -> Unit // clipboard, mic: not built yet
+            Codes.CLIPBOARD -> listener?.onClipboardKey()
+            else -> Unit // mic: not built yet
         }
     }
 

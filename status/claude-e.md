@@ -12,7 +12,7 @@ E3 Clipboard [~] Owner rule for this task: ask him every implementation decision
   E3.2 [x] Questions answered, recorded as D65 (SQLite from the framework, defaults, build order below stand: the owner did not object).
   E3.3 [x] Store: pure Kotlin `clipboard/ClipModels|ClipDb|ClipStore` (limit on loose clips, dedupe, auto-delete, pin, folders, search, shortcuts) + `SqliteClipDb` (Android, background writes); 21 JUnit tests pass locally (kc.sh trick); pushed, CI to check.
   E3.4 [x] Capture: `ClipPrefs` (file monsoon_clipboard), `ClipHub` (one shared store, loads DB in background), `ClipCapture` (listener; skips sensitive flag, our own `EXTRA_NO_HISTORY` marker for the vault (D43), password/incognito fields); hooks in MonsoonIme (onCreate/onStartInputView/onFinishInput/onDestroy). Pushed, CI to check. NOTE for E1: the vault must put `ClipCapture.EXTRA_NO_HISTORY` (and the Android 13 sensitive flag) on every secret it copies.
-  E3.5 [~] Keyboard panel. Done + tested (50 JUnit tests, CI-run): `ClipPanelModel` (chips incl. folders + Shortcuts, search, cards, selection, 3-dot menu, bulk pin/delete/move/export), `CardGrid` (equal-size cards, 2/1 columns), `ClipFormat` (time, preview, export). Next: `view/ClipboardPanelView` (Canvas, same pattern as EmojiPanelView, draws the model), host in MonsoonIme (paste, copyAgain, share, edit activity, settings), searching above the keys (generalize emojiSearch -> panelSearch), strip clipboard icon -> panel.
+  E3.5 [x] Keyboard panel, pushed (CI to check): model/grid/format (50 JUnit tests, CI-run), `view/ClipboardPanelView` (Canvas), `SearchablePanel` (EmojiPanelView implements it too), host in MonsoonIme (`clipHost`: paste, copy again with EXTRA_NO_HISTORY, share, edit via `ClipEditActivity`, settings = SetupActivity for now), `emojiSearch` renamed `panelSearch` (+ `shownPanel`), strip clipboard icon -> `onClipboardKey`. Not device-tested yet: the owner's test of the build is the first run.
   E3.6 [ ] App: Clipboard screens (bottom nav) + settings page in plain Views; this touches claude-g's SetupActivity/SettingsPageActivity: append a Warning to status/claude-g.md first.
   E3.7 [ ] Text shortcuts (user-made only). E3.8 [ ] Images (stored as private files, pasted with commitContent). E3.9 [ ] Biometric lock + export/import (encrypted backup = hook only, later).
 E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). Docs: docs/PASSWORD_MANAGER.md (design), PASSWORD_MANAGER_PHASE0.md (results), PASSWORD_MANAGER_BRIEF.md.
@@ -25,8 +25,7 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D65) and update the docs.
 
 ## Next step
-E3.4 (capture: ClipHub + ClipPrefs, listener in MonsoonIme). Main build for the E1 merge (9330477) is green (Build APK run 44850243358); the engine-tests run was still going when I last looked (check `ci-status-engine`).
-(The temporary `e1-integrate` trigger is removed from build.yml and engine.yml, done with the E3.4 push.)
+Check CI for the E3.5 push, give the owner the test checklist (below), then E3.6: app Clipboard screens (bottom nav History/Pinned/Folders/Shortcuts, gear -> clipboard settings page) in plain Views. Warn claude-g first (SetupActivity / SettingsPageActivity). Before every push run `tools/compile_check.sh` (new, ~30 s).
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
 - Switch languages only through `MonsoonIme.setLanguage`. The strip has an arrow and shows suggestions instead of the icons (D23, D41: `Kind.STRIP` keys are hidden while suggestions show).
@@ -39,4 +38,10 @@ Side branch `e1-integrate` is merged (can be deleted); `e1-feasibility` is histo
 LESSON (mine): always re-read a notes file before rewriting it, other Claudes (and my other sessions) append to it.
 
 ## Test checklist for my latest build (owner)
-E1 foundation (merge 9330477): the build now uses AGP 8.13.2 / Gradle 8.14.2; app code is unchanged. Please check once that the new APK at the `latest` link installs, types, and that the emoji panel and settings still work.
+E3.5 clipboard panel (my commit is the `[claude-e] E3.5` one; wait for CI green, then take the APK at the `latest` link):
+1. Copy a few different texts in other apps (while Monsoon is the active keyboard), then tap the clipboard icon in the strip: the panel opens with cards, newest first.
+2. Tap a card: its text is typed. Long-press a card: selection starts; tap more cards; try pin / delete / move to folder from the top bar.
+3. 3 dots on a card: Pin, Edit (opens an edit page), Copy again, Share, Delete.
+4. Chips: All / Pinned / Text / Images / Shortcuts. Top-right toggle: 2 columns <-> 1 column. Search: tap the search icon, type (also in Avro): the panel shrinks above the keys and filters.
+5. Copy something in a password field or from KeePassDX (if installed): it must NOT appear in the history.
+6. Emoji button in the bottom bar goes to the emoji panel; ABC returns to the keys. Tell me anything that looks wrong, jumps, or is too slow.
