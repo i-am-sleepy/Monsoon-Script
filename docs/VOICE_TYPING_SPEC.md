@@ -38,3 +38,9 @@ Bangla CI test first (go/no-go), then English Parakeet, then the Bangla engine i
 
 ## Open
 Exact Parakeet file; Bangla go/no-go; runtime APK size; whether the Google service on the owner's phones supports Bangla (bn-BD) and an offline pack (test on device).
+
+## Update 2026-11-22 (owner: focus on the local models)
+- Runtime for both local models is transcribe.cpp (ggml, MIT) instead of sherpa-onnx / ONNX Runtime: GGUF files, one small native library, Android 64-bit CPU. English file confirmed by the owner: `parakeet-tdt_ctc-110m-Q4_K_M.gguf`
+  (about 90 MB, LibriSpeech test-clean 2.53% word error, CC-BY-4.0). Bangla: moonshine-base-bn converted to GGUF in CI (about 76.5 MB at Q8_0); the go/no-go test is `tools/voice/` + `.github/workflows/voice-spike.yml`, log on branch `voice-results`.
+- Google hold-to-talk (G5.3a) is built but does nothing on the owner's phone after the permission screen: parked, see status/claude-g.md.
+

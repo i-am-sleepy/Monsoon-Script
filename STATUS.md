@@ -32,8 +32,9 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
       G1.1 prefs + G1.2 main list/Typing/Suggestions/About pages DONE (63f95a7, owner-tested OK 2026-11-19); G1.3 suggestion toggles done (CI green, owner saw the switches 2026-11-20); G1.4 typing feel pushed (2b499bf, CI #23 green) G1.5 Appearance (20464dd, CI #24 green) and G1.6 hold-hint bubble pushed (73307d4, CI #25 green); owner tests G1.3 to G1.6 together; G1.7 optional built-in key click added after the owner's report (CI #28 green); G1.8 emoji key on the bottom row + keyboard button in the emoji panel pushed on the owner's request (447a1f9, CI #31 green). Steps in status/claude-g.md
 - [x] G2-G4 (claude-g, owner-tested 2026-11-21: volume keys okay, auto-open turned off as expected, no flashes so far) Typing page: "Volume buttons move the cursor" (G2), "Open the keyboard automatically" off = only a tap opens it (G3);
       the strip no longer flashes the icon row on a language switch or after a space (G4). Pushed (4e3ff3a, ee09d9b), CI #36 green. Reopen G4 if a flash shows up. Details in status/claude-g.md.
-- [~] G5 (claude-g) Voice typing (owner request 2026-11-21, design answered in D66, spec docs/VOICE_TYPING_SPEC.md): the strip's mic key (D13): HOLD = record and type at the cursor, TAP = panel with an editable text box;
-      engine per language, Google online first (G5.3), then Settings > Voice + Voice test page, then optional local models (English Parakeet, Bangla moonshine-base-bn after a CI go/no-go test). Steps in status/claude-g.md
+- [~] G5 (claude-g) Voice typing (owner request 2026-11-21, design answered in D66, spec docs/VOICE_TYPING_SPEC.md): the strip's mic key: HOLD = record and type at the cursor, TAP = panel with an editable text box; engine per language.
+      2026-11-22 OWNER ORDER: focus on the LOCAL models now. Google hold-to-talk (G5.3a) is pushed (94c1857) but does nothing on the owner's phone after the permission prompt: parked. Runtime for both local models = transcribe.cpp (ggml, MIT) instead of ONNX;
+      English = Parakeet TDT-CTC 110M Q4_K_M GGUF (about 90 MB, owner confirmed); Bangla = moonshine-base-bn converted to GGUF in CI (G5.2 spike running, results on branch `voice-results`). Steps in status/claude-g.md
 - [x] T11 (claude-l) Bangla digits (D18, D61). TAKEN OVER from claude-e on the owner's order 2026-11-21 (claude-e: remove it from your list). Built as a Settings > Typing choice "Digits in Bangla mode: English / Bangla" that swaps typed digit and hint on every digit key; pushed in 65133d1, CI #29 green, owner-tested OK (2026-11-21)
 - [x] E2 (claude-e) Emoji system: DONE FOR NOW (owner 2026-11-21: it works; more improvements are postponed). Offline picker, Unicode 17 data, bundled Noto Color Emoji, search in English and Bangla, recents, skin tones (D56). Ideas not built: see status/claude-e.md
 - [~] E1 (claude-e) Password manager in the keyboard (KeePassDX engine, picker in the keyboard, full vault screens in the app). CHECKPOINT 2026-11-21 (owner: pause E1, build the clipboard E3 now). Design SIGNED OFF (D53).
@@ -77,7 +78,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 11. (answered 2026-11-21: Bangla digits as a setting, hints only in Bangla layouts, see D61-D63)
 12. (answered 2026-11-21: clipboard 4th tab, card layout toggle, shortcut trigger, what is never recorded, see D65)
 13. (answered 2026-11-21: voice typing design: code in the APK, model download + import, mic hold/tap panel, engine per language, Voice test page, build order, see D66)
-14. Voice typing (G5, claude-g): the owner still has to confirm the exact English Parakeet file (my guess: Parakeet TDT-CTC 110M int8, about 100 MB). (claude-g)
+14. (answered 2026-11-22: the English local model is parakeet-tdt_ctc-110m Q4_K_M GGUF, about 90 MB, from the transcribe.cpp catalogue)
 15. (answered 2026-11-22: start with auto-correction and typo fixes, see L8)
 16. (answered 2026-11-22: auto-correction is a switch, off by default; auto-fix on space with Backspace undo; English only; fix first in bold, typed word second in quotes, see D69)
 
