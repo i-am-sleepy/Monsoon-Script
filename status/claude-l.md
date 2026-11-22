@@ -1,5 +1,5 @@
 # claude-l notes (only claude-l edits this file; others only append lines under "Warnings")
-Updated: 2026-11-22, session 7. Doing: L8 auto-correction and typo fixes (owner pick; design answered D69; built, waiting for CI and the owner test). Done: L7 (read-only trace of the features nobody works on). Before that: L5 + L6 + T11 (owner feedback after the L4 test), all owner-tested; L4 (Probhat + National layouts, owner order); prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
+Updated: 2026-11-22, session 7. Doing: L8 auto-correction and typo fixes (owner pick; design answered D69; pushed 7acebe7, CI #47 green, waiting for the owner test). Done: L7 (read-only trace of the features nobody works on). Before that: L5 + L6 + T11 (owner feedback after the L4 test), all owner-tested; L4 (Probhat + National layouts, owner order); prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
@@ -13,7 +13,7 @@ L8 Auto-correction and typo fixes [~] (owner pick 2026-11-22 from the L7 list; a
   L8.3 [x] `predict/Corrector` + `predict/Misspellings` (170 hand-made entries) + `CorrectorTest` (17 tests on the real packs, run locally with a JUnit stand-in; tuned over the whole word lists: weak-band English entries auto-fixed 0.09%, unlisted Banglish 0.8%, 0.005% after a Banglish word).
   L8.4 [x] `PredictionWorker` (Result.autoFix, request(autoCorrect), reject), `MonsoonIme` (pendingFix, applyAutoFix on space, undoAutoFix on Backspace, quoted index), `KeyboardView.setSuggestions(list, quoted)`.
   L8.5 [x] Settings > Suggestions > "Fixing typos" switch (`Prefs.AUTOCORRECT`, default off).
-  L8.6 [~] Pushed, waiting for CI. Owner test: Settings > Suggestions > Auto-correction ON, English layout, then (1) type `teh` + space -> `the `, strip showed `the` bold and "teh" in quotes before the space; (2) Backspace right after -> `teh` back (no space), type space again -> stays `teh`;
+  L8.6 [~] Pushed in 7acebe7, CI #47 green (build, all tests, signed APK). Waiting for the owner test: Settings > Suggestions > Auto-correction ON, English layout, then (1) type `teh` + space -> `the `, strip showed `the` bold and "teh" in quotes before the space; (2) Backspace right after -> `teh` back (no space), type space again -> stays `teh`;
        (3) `dont` + space -> `don't `; (4) `recieve`, `definately`, `freind` fixed; (5) real words (hello, form), names and Banglish words (ami, khub, valo, kemon) stay; (6) a Banglish sentence (ami kal baka) is untouched; (7) tap the quoted word instead of space = keeps it; (8) switch OFF = nothing changes. Not on device yet: all of it.
 L7 Trace of features nobody works on [x] (owner request 2026-11-22; read-only: no code was built or changed)
   L7.1 [x] Read CLAUDE.md, STATUS.md, all four notes files, docs/REQUIREMENTS.md, ARCHITECTURE.md, layout/Layouts.kt, the commit list. CI #41 (94c1857) green. GitHub code search is NOT indexed for this repo (a control search found nothing): read files instead.
@@ -96,7 +96,7 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
 
 ## Next step
 Nothing open. L4, L5, L6, T11 are owner-tested OK (2026-11-21). Do not start new features without the owner's go-ahead. Others' open items: claude-e Bijoy (T9.3), claude-s hardware-key translation (T6, should also decide whether a physical 1-0 follows `Prefs.banglaDigits()`).
-L7 is done. L8 (auto-correction) is built and pushed: wait for CI, then give the owner the L8.6 checklist. Later ideas, NOT built (ask first): fixing on punctuation/Enter, typo fixes in Bangla layouts, a "never fix this word" list the owner can edit, touch-position (fat-finger) scoring.
+L7 is done. L8 (auto-correction) is built, pushed and CI-green (#47): the owner tests it with the L8.6 checklist; fix what he reports. Later ideas, NOT built (ask first): fixing on punctuation/Enter, typo fixes in Bangla layouts, a "never fix this word" list the owner can edit, touch-position (fat-finger) scoring.
 
 ## Half-done files / known bugs
 None known. Not verified on a device yet: everything in L2.4 (Android code is only compiled by CI). Things to watch in the owner's report: strip arrow touch handling, English tap-to-complete
