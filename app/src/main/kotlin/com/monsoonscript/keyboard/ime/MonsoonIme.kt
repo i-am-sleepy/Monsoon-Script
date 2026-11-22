@@ -42,6 +42,7 @@ import com.monsoonscript.keyboard.lang.PhoneticComposer
 import com.monsoonscript.keyboard.lang.avro.AvroAutoCorrect
 import com.monsoonscript.keyboard.lang.avro.AvroPhoneticConverter
 import com.monsoonscript.keyboard.layout.Layouts
+import com.monsoonscript.keyboard.predict.TextNorm
 import com.monsoonscript.keyboard.predict.WordTracker
 import com.monsoonscript.keyboard.prefs.Prefs
 import com.monsoonscript.keyboard.view.ClipboardPanelView
@@ -135,6 +136,18 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private var nextWord = true
     private var typedFirst = true
 
+    // ---- auto-correction (L8, D69): off by default, English typing only. See predict/Corrector and ARCHITECTURE.md
+
+    private var autoCorrect = false
+
+    /** The fix the worker found for [typed]; space applies it while the typed word is still the same. Never read from the strip (shortcut texts may come first, E3.7). */
+    private class PendingFix(val typed: String, val fix: String)
+    private var pendingFix: PendingFix? = null
+
+    /** The fix just applied, so Backspace right after it can give the typed word back. [stamp] is [lastEditAt] right after the fix: any later edit changes it. */
+    private class DoneFix(val original: String, val fixed: String, val stamp: Long)
+    private var lastFix: DoneFix? = null
+
     /** Typing settings (G2, G3), cached by [applyPrefs]; [autoShow] is also read before the view exists, so [onCreate] sets it too. */
     private var autoShow = true
     private var volumeCursor = Prefs.VOLUME_OFF
@@ -201,6 +214,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         showSuggestions = Prefs.showSuggestions(this)
         nextWord = Prefs.nextWord(this)
         typedFirst = Prefs.typedFirst(this)
+        autoCorrect = Prefs.autoCorrect(this)
+        if (!autoCorrect) {
+            pendingFix = null
+            lastFix = null
+        }
         autoShow = Prefs.autoShow(this)
         volumeCursor = Prefs.volumeCursor(this)
         if (!showSuggestions && composer?.isComposing != true) dropSuggestions() // switched off: clear what is shown, never an Avro word in progress
@@ -497,6 +515,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         predWorker?.cancel()
         predSeq++ // an answer still on its way is stale now
         engineWords = emptyList()
+        pendingFix = null
         val showing = suggestions.isNotEmpty() || stripHeld
         val kb = keyboard
         if (keepShown && kb != null && showing) {
@@ -548,7 +567,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val seq = ++predSeq
         val w = predWorker ?: PredictionWorker(this, ::onPredictionResult).also { predWorker = it }
         val mode = if (language.isBangla) PredictionWorker.Mode.BANGLA else PredictionWorker.Mode.ENGLISH
-        w.request(seq, mode, tracker.typed, prefix, w1, tracker.w2, tracker.atSentenceStart, typedFirst)
+        w.request(seq, mode, tracker.typed, prefix, w1, tracker.w2, tracker.atSentenceStart, typedFirst, autoCorrect && !language.isBangla)
     }
 
     private fun learnWord(prev: String?, word: String) {
@@ -560,12 +579,14 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     private fun onPredictionResult(r: PredictionWorker.Result) {
         if (r.seq != predSeq || !predicting || !showSuggestions) return
+        pendingFix = if (autoCorrect && !language.isBangla) r.autoFix?.let { PendingFix(tracker.typed, it) } else null
         setSuggestions(r.words)
     }
 
     /** A prediction was tapped: it replaces the word in progress (checked against the editor first) and a space follows. */
     private fun acceptPrediction(ic: InputConnection, word: String) {
         val typed = tracker.typed
+        if (autoCorrect && typed.isNotEmpty() && word == typed) predWorker?.reject(TextNorm.key(typed)) // tapped "my word": never fix it (D69)
         if (typed.isNotEmpty()) {
             val before = ic.getTextBeforeCursor(typed.length, 0)
             if (before == null || before.toString() != typed) { // the editor is not what we thought: do not delete the wrong text
@@ -594,7 +615,58 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         engineWords = list
         val shown = withShortcuts(list)
         suggestions = shown
-        keyboard?.setSuggestions(shown)
+        val fx = pendingFix
+        val quoted = if (fx != null && autoCorrect && !language.isBangla) shown.indexOf(fx.typed) else -1 // the typed word beside a fix is drawn in quotes
+        keyboard?.setSuggestions(shown, quoted)
+    }
+
+    // ---- auto-correction (L8, D69)
+
+    /**
+     * Space after a word the worker found a sure fix for: the fix replaces the word, then the space follows. What the strip shows first
+     * (the fix, the typed word in quotes) is exactly what happens. Only while the answer is current, the editor holds the typed word
+     * and no shortcut candidate is in front. Returns true when it did the whole job.
+     */
+    private fun applyAutoFix(ic: InputConnection): Boolean {
+        val f = pendingFix ?: return false
+        pendingFix = null
+        if (!autoCorrect || language.isBangla || !predicting || composer?.isComposing == true) return false
+        if (shortcutHits.isNotEmpty() || tracker.typed != f.typed) return false
+        val before = ic.getTextBeforeCursor(f.typed.length, 0)
+        if (before == null || before.toString() != f.typed) return false // the editor is not what we thought
+        ic.beginBatchEdit()
+        ic.deleteSurroundingText(f.typed.length, 0)
+        ic.commitText(f.fix + " ", 1)
+        ic.endBatchEdit()
+        lastEditAt = SystemClock.uptimeMillis()
+        lastFix = DoneFix(f.typed, f.fix, lastEditAt)
+        tracker.dropWord()
+        tracker.appendAll(f.fix + " ") // the fixed word is the context now (and what is learned)
+        triggerRun.clear()
+        refreshAutoCaps()
+        requestPrediction()
+        return true
+    }
+
+    /** Backspace right after an automatic fix: the typed word comes back, without the space, and is never fixed again. Returns true when it did. */
+    private fun undoAutoFix(): Boolean {
+        val d = lastFix ?: return false
+        lastFix = null
+        val ic = currentInputConnection ?: return false
+        if (hasSelection || d.stamp != lastEditAt) return false
+        val expected = d.fixed + " "
+        val before = ic.getTextBeforeCursor(expected.length, 0)
+        if (before == null || before.toString() != expected) return false
+        ic.beginBatchEdit()
+        ic.deleteSurroundingText(expected.length, 0)
+        ic.commitText(d.original, 1)
+        ic.endBatchEdit()
+        lastEditAt = SystemClock.uptimeMillis()
+        predWorker?.reject(TextNorm.key(d.original))
+        resyncTracker()
+        requestPrediction()
+        refreshAutoCaps()
+        return true
     }
 
     // ---- text shortcuts (E3.7, D68)
@@ -677,6 +749,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     private fun setLanguage(l: Language) {
         language = l
+        pendingFix = null
+        lastFix = null
         triggerRun.clear() // what was typed in another layout cannot be a trigger of this one
         if (l.isBangla) lastBangla = l
         Prefs.saveLanguage(this, l, lastBangla)
@@ -692,6 +766,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             return
         }
         val ic = currentInputConnection ?: return
+        lastFix = null // any typing ends the chance to undo the last fix
+        if (text == " " && applyAutoFix(ic)) return
         if (avroActive) {
             val comp = ensureComposer()
             if (text.length == 1 && comp.accepts(text[0])) {
@@ -726,6 +802,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** A strip suggestion was tapped (D23): it replaces the underlined word and a space follows. */
     override fun onSuggestion(word: String) {
         if (panelSearch || suggestions.isEmpty()) return // empty = the strip only still paints the old words (G4)
+        lastFix = null
         if (acceptShortcut(word)) return
         val ic = currentInputConnection ?: return
         val comp = composer
@@ -762,6 +839,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             lastEditAt = SystemClock.uptimeMillis()
             return
         }
+        if (undoAutoFix()) return
         val selected = hasSelection
         sendDownUpKeyEvents(KeyEvent.KEYCODE_DEL)
         if (predicting) {
@@ -778,6 +856,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             endSearchTyping(clear = false)
             return
         }
+        lastFix = null
         commitComposingIfAny()
         val options = currentInputEditorInfo?.imeOptions ?: 0
         val action = options and EditorInfo.IME_MASK_ACTION
@@ -798,6 +877,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     override fun onTab() {
         if (panelSearch) return
+        lastFix = null
         commitComposingIfAny()
         sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
         if (predicting) {

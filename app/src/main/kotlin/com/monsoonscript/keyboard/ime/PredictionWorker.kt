@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
 import com.monsoonscript.keyboard.predict.Bridge
+import com.monsoonscript.keyboard.predict.Corrector
 import com.monsoonscript.keyboard.predict.LangPack
 import com.monsoonscript.keyboard.predict.Predictor
 import com.monsoonscript.keyboard.predict.TextNorm
@@ -31,12 +32,17 @@ class PredictionWorker(
 ) {
     enum class Mode { ENGLISH, BANGLA }
 
-    /** [words] are ready to show: capitalized like what is being typed. */
-    class Result(val seq: Int, val words: List<String>)
+    /**
+     * [words] are ready to show: capitalized like what is being typed. [autoFix] is set when the first word is a fix that the owner's
+     * setting lets the IME apply on space (D69): then the second word is the word as typed.
+     */
+    class Result(val seq: Int, val words: List<String>, val autoFix: String? = null)
+
+    private class Out(val words: List<String>, val autoFix: String? = null)
 
     private class Request(
         val seq: Int, val mode: Mode, val typed: String, val prefix: String,
-        val w1: String?, val w2: String?, val capitalizeStart: Boolean, val typedFirst: Boolean,
+        val w1: String?, val w2: String?, val capitalizeStart: Boolean, val typedFirst: Boolean, val autoCorrect: Boolean,
     )
 
     private val appContext = context.applicationContext
@@ -53,6 +59,7 @@ class PredictionWorker(
     private var bridge: Bridge? = null
     private var bridgeTried = false
     private val stats = UserStats()
+    private val rejected = HashSet<String>() // worker thread only
     private val predictor = Predictor(stats)
     private var store: UserStore? = null
     private var userLoaded = false
@@ -61,13 +68,21 @@ class PredictionWorker(
     /**
      * [typed] is the word in progress exactly as in the editor (for capitals), [prefix] the same in lookup form, [w1]/[w2] the two words
      * before it (lookup form, null when unknown), [capitalizeStart] true when the next word begins a sentence, [typedFirst] true to put
-     * the word as typed first in the list while a word is in progress (settings, G1.3).
+     * the word as typed first in the list while a word is in progress (settings, G1.3). [autoCorrect] (English only, settings, D69) asks for
+     * a typo fix too: see [Result.autoFix] and `predict/Corrector`.
      */
     fun request(
         seq: Int, mode: Mode, typed: String, prefix: String, w1: String?, w2: String?, capitalizeStart: Boolean, typedFirst: Boolean = true,
+        autoCorrect: Boolean = false,
     ) {
         val h = handler ?: start()
-        if (pending.getAndSet(Request(seq, mode, typed, prefix, w1, w2, capitalizeStart, typedFirst)) == null) h.post(drain)
+        if (pending.getAndSet(Request(seq, mode, typed, prefix, w1, w2, capitalizeStart, typedFirst, autoCorrect)) == null) h.post(drain)
+    }
+
+    /** The owner undid the fix of [word] (`TextNorm.key` form) or chose to keep it: never fix it again (until the keyboard process restarts; a learned word stays known). */
+    fun reject(word: String) {
+        val h = handler ?: start()
+        h.post { rejected.add(word) }
     }
 
     /** The owner finished typing [word] after [prev] (null at a sentence start). Both in `TextNorm.key` form. Saved a few seconds later. */
@@ -145,17 +160,17 @@ class PredictionWorker(
 
     private val drain = Runnable {
         val r = pending.getAndSet(null) ?: return@Runnable
-        val words = try {
+        val out = try {
             ensureUser()
             predict(r)
         } catch (e: RuntimeException) {
-            emptyList() // a damaged pack must never crash the keyboard: no suggestions this time
+            Out(emptyList()) // a damaged pack must never crash the keyboard: no suggestions this time
         }
-        val result = Result(r.seq, words)
+        val result = Result(r.seq, out.words, out.autoFix)
         main.post { onResult(result) }
     }
 
-    private fun predict(r: Request): List<String> {
+    private fun predict(r: Request): Out {
         val packs: List<WeightedPack> = when (r.mode) {
             Mode.ENGLISH -> {
                 val e = en ?: PackLoader.load(assets, "en")?.also { en = it }
@@ -171,13 +186,26 @@ class PredictionWorker(
                 if (b != null) listOf(WeightedPack(b)) else emptyList()
             }
         }
-        if (packs.isEmpty()) return emptyList()
+        if (packs.isEmpty()) return Out(emptyList())
         val typing = r.prefix.isNotEmpty()
         val withTyped = typing && r.typedFirst
         val keys = predictor.predict(packs, r.prefix, r.w1, r.w2, if (withTyped) RESULTS - 1 else RESULTS)
         val words = keys.map { TextNorm.matchCase(r.typed, it, r.capitalizeStart) }
         // While a word is typed its first choice is the word as typed (D54, like Gboard): tapping it just adds the space. Nothing to offer = no strip.
-        return if (withTyped && words.isNotEmpty()) listOf(r.typed) + words else words
+        val plain = if (withTyped && words.isNotEmpty()) listOf(r.typed) + words else words
+        if (!typing || !r.autoCorrect || r.mode != Mode.ENGLISH) return Out(plain)
+
+        // Typo fix (L8, D69). A sure fix goes first and the word as typed second (the IME draws it in quotes and applies the fix on space);
+        // an unsure one is only a candidate behind the typed word, to be tapped.
+        val fix = en?.let { Corrector.correct(it, rom, stats, r.typed, r.w1, r.capitalizeStart, rejected) } ?: return Out(plain)
+        val cased = TextNorm.matchCase(r.typed, fix.word, r.capitalizeStart)
+        val rest = words.filter { it != cased && it != r.typed }
+        val list = when {
+            fix.auto -> listOf(cased, r.typed) + rest
+            withTyped -> listOf(r.typed, cased) + rest
+            else -> listOf(cased) + rest
+        }
+        return Out(list.take(RESULTS), if (fix.auto) cased else null)
     }
 
     /** Banglish -> Bangla links for Banglish next-word suggestions (D54), loaded on the first Banglish context. Worker thread. */

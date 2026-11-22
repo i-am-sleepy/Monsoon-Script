@@ -91,6 +91,8 @@ class SettingsPageActivity : Activity() {
             page.content.add(switchRow(getString(R.string.settings_show_suggestions), getString(R.string.settings_show_suggestions_summary), Prefs.SHOW_SUGGESTIONS, true))
             page.content.add(switchRow(getString(R.string.settings_next_word), getString(R.string.settings_next_word_summary), Prefs.NEXT_WORD, true))
             page.content.add(switchRow(getString(R.string.settings_typed_first), getString(R.string.settings_typed_first_summary), Prefs.TYPED_FIRST, true))
+            page.content.add(header(getString(R.string.settings_correct_header)))
+            page.content.add(switchRow(getString(R.string.settings_autocorrect), getString(R.string.settings_autocorrect_summary), Prefs.AUTOCORRECT, false))
             page.content.add(header(getString(R.string.settings_personal_header)))
             page.content.add(switchRow(getString(R.string.settings_learn), getString(R.string.settings_learn_summary), Prefs.LEARN, true))
             page.content.add(buttonRow(getString(R.string.settings_clear), getString(R.string.settings_clear_summary)) { confirmClear() })

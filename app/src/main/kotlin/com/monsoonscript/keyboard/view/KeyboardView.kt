@@ -141,6 +141,9 @@ class KeyboardView(context: Context) : View(context) {
     // Suggestion strip (D23): while a Bangla word is being typed, the first SUG_SLOTS candidates replace the strip icons.
     private val sug = arrayOfNulls<String>(SUG_SLOTS)
     private var sugCount = 0
+    /** The slot whose word is drawn in quotation marks (the typed word beside an automatic fix, L8, D69), or -1; [sugQuotedText] is what is drawn. */
+    private var sugQuoted = -1
+    private var sugQuotedText: String? = null
     private val ptrInSug = BooleanArray(MAX_PTR) // this finger went down in the suggestion strip
     private val ptrSug = IntArray(MAX_PTR) { -1 } // slot under that finger, -1 for none
     // Gboard-style arrow at the left of the strip whenever suggestions exist: tap = swap suggestions <-> the icon row.
@@ -457,9 +460,10 @@ class KeyboardView(context: Context) : View(context) {
     /**
      * Candidates for the word being typed or the next word (D23, D41). The first [SUG_SLOTS] are shown in the strip next to a small
      * arrow and the icons hide; the arrow swaps them for the icon row until the candidates change again. An empty list brings the plain
-     * icon row back (no arrow). Cheap when nothing changed, so the IME may call it on every keystroke.
+     * icon row back (no arrow). Cheap when nothing changed, so the IME may call it on every keystroke. The word in slot [quoted] is drawn in
+     * quotation marks (the typed word beside an automatic fix, D69); what a tap delivers is still the plain word.
      */
-    fun setSuggestions(list: List<String>) {
+    fun setSuggestions(list: List<String>, quoted: Int = -1) {
         val n = if (list.size < SUG_SLOTS) list.size else SUG_SLOTS
         var changed = n != sugCount
         for (i in 0 until SUG_SLOTS) {
@@ -468,6 +472,13 @@ class KeyboardView(context: Context) : View(context) {
                 sug[i] = w
                 changed = true
             }
+        }
+        val q = if (quoted in 0 until n) quoted else -1
+        val qText = if (q >= 0) "\u201C${sug[q]}\u201D" else null
+        if (q != sugQuoted || qText != sugQuotedText) {
+            sugQuoted = q
+            sugQuotedText = qText
+            changed = true
         }
         if (!changed) return
         val wasShown = sugCount > 0
@@ -920,7 +931,8 @@ class KeyboardView(context: Context) : View(context) {
             }
             val p = if (i == 0) sugBoldPaint else sugPaint
             p.color = pal.text
-            drawFitted(c, word, p, x0 + slotW / 2, stripH / 2, slotW - dp(12f))
+            val label = if (i == sugQuoted) sugQuotedText ?: word else word
+            drawFitted(c, label, p, x0 + slotW / 2, stripH / 2, slotW - dp(12f))
         }
     }
 

@@ -60,6 +60,9 @@ object Prefs {
     const val NEXT_WORD = "suggest_next_word"
     const val TYPED_FIRST = "suggest_typed_first"
 
+    // auto-correction (L8, D69): default OFF; English typing only
+    const val AUTOCORRECT = "suggest_autocorrect"
+
     // suggestions and learning (D42)
     const val LEARN = "learn_enabled" // default on
     const val CLEAR_EPOCH = "learn_clear_epoch" // bumped by "Clear learned words"
@@ -108,6 +111,8 @@ object Prefs {
     fun nextWord(context: Context): Boolean = of(context).getBoolean(NEXT_WORD, true)
 
     fun typedFirst(context: Context): Boolean = of(context).getBoolean(TYPED_FIRST, true)
+
+    fun autoCorrect(context: Context): Boolean = of(context).getBoolean(AUTOCORRECT, false)
 
     /** The language the keyboard was last left in; English when nothing or an unknown name is saved. */
     fun language(context: Context): Language = byName(of(context).getString(LANGUAGE, null), Language.ENGLISH)

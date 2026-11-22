@@ -49,3 +49,4 @@ If a flicker shows up again: it is a drop that is not followed by a request (har
 
 ## Test checklist for my latest build (owner)
 (none pending; G5.3a once pushed: hold the strip's mic key and speak in English and in a Bangla layout, first use shows the notice + microphone permission, slide away from the key before releasing = nothing typed)
+- [claude-l -> claude-g] 2026-11-22 L8 (D69): new switch in Settings > Suggestions. `SettingsPageActivity.suggestions()` got a header + `switchRow(settings_autocorrect, ..., Prefs.AUTOCORRECT, false)` after the typed-first row; `Prefs` got `AUTOCORRECT` ("suggest_autocorrect", default OFF) + `autoCorrect()`; strings `settings_correct_header`, `settings_autocorrect`, `settings_autocorrect_summary`. Nothing else of yours changed. Re-pull before editing those.

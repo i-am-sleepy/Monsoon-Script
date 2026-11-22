@@ -51,7 +51,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [x] L6 (claude-l) The signs left out of L4 (॥ ৲ ৴-৹ ৺ ৄ ৢ ৣ ঽ) as long-press hints on the ?123 pages, Bangla layouts only (D63). Pushed in 65133d1, CI #29 green, owner-tested OK (2026-11-21). Steps in status/claude-l.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 - [x] L7 (claude-l) Trace of the features nobody works on (owner request 2026-11-22, read-only, nothing built): the unowned list, the idle claims (T6, T9.3, E1) and stale notes are in status/claude-l.md (L7). The owner picked auto-correction first (L8)
-- [~] L8 (claude-l) Auto-correction and typo fixes (owner pick 2026-11-22, design answered D69): Settings > Suggestions switch (off by default), English only, auto-fix on space + Backspace undo, fix first in bold and typed word second in quotes on the strip. Steps in status/claude-l.md
+- [~] L8 (claude-l) Auto-correction and typo fixes (owner pick 2026-11-22, design D69): Settings > Suggestions switch "Auto-correction" (off by default), English only, auto-fix on space + Backspace undo, fix first in bold and typed word second in quotes on the strip. BUILT and pushed; CI and owner test pending. Steps in status/claude-l.md
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
 - Language switching has ONE entry point: `MonsoonIme.setLanguage(l: Language)`. The pill, space-bar swipe and claude-s's Ctrl+Space call it; nobody adds a second path.

@@ -105,6 +105,19 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   Settings contract for claude-g: `ime/LearnSettings` holds the pref names (`PREFS`, `KEY_ENABLED`, `KEY_CLEAR_EPOCH`); the switch writes `learn_enabled`
   (`LearnSettings.setEnabled`), the button calls `LearnSettings.clearLearnedWords(context)` (empties the database and bumps an epoch that the running service hears via a
   SharedPreferences listener to empty its memory). Change `LearnSettings.PREFS` if the settings code uses another prefs file.
+- Auto-correction (L8, D69; Settings > Suggestions > "Auto-correction", `Prefs.AUTOCORRECT`, default OFF, English typing only). `predict/Corrector` (pure Kotlin) finds the
+  fix for the word in progress; `predict/Misspellings` is a hand-made list of ~170 well-known misspellings (a test checks every entry against the packs). Rules (measured over the whole
+  word lists, see the header of `Corrector.kt` and `CorrectorTest`): words of 3+ plain letters, lowercase (a capital only at a sentence start); never a word the English list knows well
+  (level 90+), the Banglish list knows (60+), the owner typed (`UserStats`) or undid (`PredictionWorker.reject`); a "fix" must be far more common than the typed word; edits are slips only
+  (swap, neighbouring key, vowel for vowel, doubled/missing letter, apostrophe), never a deleted last letter (plurals) or a far-fetched letter (`thx`); a word whose letters start a common
+  word is "still typing" and left alone; after a Banglish previous word (`Corrector.isBanglish`) nothing but the misspelling list and `dont` -> `don't` fires. A fix is APPLIED BY ITSELF
+  only for the misspelling list, `n't` contractions and a clear slip in a word no list knows (`Fix.auto`); anything else is just a second strip candidate to tap.
+  Flow: `requestPrediction` passes `autoCorrect && !language.isBangla` to `PredictionWorker.request`; the worker returns `Result.autoFix` (the fix, cased like the typed word; then
+  `words` = fix, typed word, ...) and `MonsoonIme.onPredictionResult` keeps it as `pendingFix(typed, fix)`. The strip shows the fix first and the typed word second in quotes
+  (`KeyboardView.setSuggestions(list, quoted)`, the slot still delivers the plain word). `onText(" ")` -> `applyAutoFix`: only while the answer is current, the editor really holds the typed
+  word and no shortcut candidate (E3.7) is in front: the fix replaces the word, a space follows. NEVER read `suggestions[0]` for this (shortcut texts can come first), use `pendingFix`.
+  `onBackspace` -> `undoAutoFix` right after a fix (checked against `lastEditAt` and the editor text): the typed word comes back WITHOUT the space and `reject` makes the worker leave it alone
+  (for the session; a word the owner then finishes is learned like any other when learning is on). Tapping the quoted typed word also rejects it. Only on space, not on punctuation or Enter.
 - Strip arrow (D41): while the strip has candidates, a chevron button sits at its left (`KeyboardView`, `arrowW`); tapping it swaps the candidates for the normal icon row (`iconsPinned`,
   chevron mirrored) until the candidates change; with no candidates the strip is the plain icon row without arrow. The left-hand strip icons are shifted right by the arrow width in place
   (`placeStrip`, `stripLeftCount`), so hit-testing needs no special case; touches on the arrow are tracked per pointer (`ptrArrow`, `ARROW_SLOT`).

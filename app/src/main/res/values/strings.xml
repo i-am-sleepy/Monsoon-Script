@@ -74,6 +74,9 @@
     <string name="settings_next_word_summary">Suggest the next word after a space.</string>
     <string name="settings_typed_first">Show my typed word first</string>
     <string name="settings_typed_first_summary">While typing, the first choice is the word as you typed it; off shows one more suggestion instead.</string>
+    <string name="settings_correct_header">Fixing typos</string>
+    <string name="settings_autocorrect">Auto-correction</string>
+    <string name="settings_autocorrect_summary">English typing only. Fixes a misspelled word when you press space: the fix shows first and your word second in quotes. Backspace right after a fix brings your word back, and it is never fixed again. Banglish words are left alone. Needs word suggestions to be on.</string>
     <string name="settings_personal_header">Personal words</string>
     <string name="settings_learn">Learn from my typing</string>
     <string name="settings_learn_summary">Remembers the words you type, on this phone only. Never in password, e-mail or web address fields.</string>
