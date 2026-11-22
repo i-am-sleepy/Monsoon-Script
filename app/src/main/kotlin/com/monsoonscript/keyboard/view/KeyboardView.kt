@@ -41,6 +41,9 @@ class KeyboardView(context: Context) : View(context) {
         /** Language key tap, or a swipe across the space bar: switch English <-> the last Bangla layout. */
         fun onLanguageToggle()
 
+        /** The cursor drag on the space bar (L9, D72): move the cursor [steps] characters, negative = left. */
+        fun onCursorMove(steps: Int) {}
+
         /** A layout was picked in the popup that a long press on the language key opens (L4, D19). */
         fun onLanguagePicked(language: Language) {}
 
@@ -133,10 +136,21 @@ class KeyboardView(context: Context) : View(context) {
     private val ptrHint = BooleanArray(MAX_PTR) // a long press armed the key's hint: its bubble shows the hint, which is typed on release (G1.6)
     private val downX = FloatArray(MAX_PTR)
     private val swipeArmed = BooleanArray(MAX_PTR)
+
+    // ---- cursor drag on the space bar (L9, D72): hold the space bar for [dragDelayMs], then a slide moves the cursor
+    private var dragEnabled = true
+    private var dragDelayMs = 350L
+    private var dragStepDp = SpaceDrag.stepDp(SpaceDrag.SPEED_DEFAULT)
+    private val dragPending = BooleanArray(MAX_PTR) // the finger is on the space bar and the hold delay is running
+    private val ptrDrag = BooleanArray(MAX_PTR) // the hold delay is over: sliding moves the cursor
+    private val lastX = FloatArray(MAX_PTR)
+    private val drag = Array(MAX_PTR) { SpaceDrag() }
+    private var lastTickAt = 0L
     private val repeatCount = IntArray(MAX_PTR)
     private val uiHandler = Handler(Looper.getMainLooper())
     private val longPressRunnable = Array(MAX_PTR) { slot -> Runnable { onLongPress(slot) } }
     private val repeatRunnable = Array(MAX_PTR) { slot -> Runnable { onRepeat(slot) } }
+    private val dragRunnable = Array(MAX_PTR) { slot -> Runnable { onDragStart(slot) } }
 
     // Suggestion strip (D23): while a Bangla word is being typed, the first SUG_SLOTS candidates replace the strip icons.
     private val sug = arrayOfNulls<String>(SUG_SLOTS)
@@ -352,6 +366,13 @@ class KeyboardView(context: Context) : View(context) {
     }
 
     /** The two switches from D15/D19 (settings wire them in T10). Hiding the language key re-flows the strip. */
+    /** The space bar cursor drag (L9, D72): on/off, the hold time before a slide moves the cursor, and the slide in dp that makes one character. */
+    fun setSpaceDrag(enabled: Boolean, delayMs: Long, stepDp: Float) {
+        dragEnabled = enabled
+        dragDelayMs = delayMs
+        dragStepDp = stepDp
+    }
+
     fun setLanguageOptions(languageKey: Boolean, spaceSwipe: Boolean) {
         spaceSwipeEnabled = spaceSwipe
         if (languageKey != languageKeyEnabled) {
@@ -508,6 +529,8 @@ class KeyboardView(context: Context) : View(context) {
             ptrLong[s] = false
             ptrHint[s] = false
             swipeArmed[s] = false
+            dragPending[s] = false
+            ptrDrag[s] = false
             ptrInSug[s] = false
             ptrSug[s] = -1
             ptrArrow[s] = false
@@ -1026,6 +1049,9 @@ class KeyboardView(context: Context) : View(context) {
         ptrHint[slot] = false
         repeatCount[slot] = 0
         swipeArmed[slot] = false
+        dragPending[slot] = false
+        ptrDrag[slot] = false
+        lastX[slot] = x
         ptrInSug[slot] = inSug
         ptrArrow[slot] = inArrow
         ptrSug[slot] = if (inSug) sugIndexAt(x) else if (inArrow) ARROW_SLOT else -1
@@ -1045,6 +1071,10 @@ class KeyboardView(context: Context) : View(context) {
         val k = keys[page][idx]
         downX[slot] = x
         swipeArmed[slot] = spaceSwipeEnabled && k.code == Codes.SPACE
+        if (dragEnabled && k.code == Codes.SPACE) {
+            dragPending[slot] = true
+            uiHandler.postDelayed(dragRunnable[slot], dragDelayMs)
+        }
         tap()
         click(k.code)
         invalidate()
@@ -1058,6 +1088,25 @@ class KeyboardView(context: Context) : View(context) {
 
     private fun move(id: Int, x: Float, y: Float) {
         val slot = slotOf(id)
+        if (slot >= 0) {
+            lastX[slot] = x
+            if (ptrDrag[slot]) { // the cursor drag: the finger may wander anywhere, every whole step moves the cursor one character
+                val n = drag[slot].steps(x, dp(dragStepDp))
+                if (n != 0) {
+                    listener?.onCursorMove(n)
+                    val now = SystemClock.uptimeMillis()
+                    if (now - lastTickAt >= DRAG_TICK_MS) { // a tiny tick per character, but never faster than the vibrator can follow
+                        lastTickAt = now
+                        tap()
+                    }
+                }
+                return
+            }
+            if (dragPending[slot] && abs(x - downX[slot]) > dp(DRAG_SLOP_DP)) { // moving before the hold delay is over: a quick slide (language swipe), no drag
+                dragPending[slot] = false
+                uiHandler.removeCallbacks(dragRunnable[slot])
+            }
+        }
         if (slot >= 0 && slot == micSlot) { // holding the mic key: sliding well away from it cancels the recording (G5)
             val i = ptrKey[slot]
             if (i >= 0 && page < rects.size) {
@@ -1120,6 +1169,9 @@ class KeyboardView(context: Context) : View(context) {
         val wasSug = ptrInSug[slot]
         val wasArrow = ptrArrow[slot]
         val sugIdx = ptrSug[slot]
+        val dragMoved = ptrDrag[slot] && drag[slot].moved // a drag that moved the cursor ends without typing a space
+        dragPending[slot] = false
+        ptrDrag[slot] = false
         ptrId[slot] = -1
         ptrKey[slot] = -1
         ptrLong[slot] = false
@@ -1157,7 +1209,7 @@ class KeyboardView(context: Context) : View(context) {
             if (sugIdx >= 0) sug[sugIdx]?.let { listener?.onSuggestion(it) }
             return
         }
-        if (idx < 0 || wasLong || page >= keys.size) return
+        if (idx < 0 || wasLong || dragMoved || page >= keys.size) return
         if (showSug && keys[page][idx].kind == Kind.STRIP) return // finger went down on an icon before it was hidden
         perform(keys[page][idx])
     }
@@ -1165,6 +1217,18 @@ class KeyboardView(context: Context) : View(context) {
     private fun cancelTimers(slot: Int) {
         uiHandler.removeCallbacks(longPressRunnable[slot])
         uiHandler.removeCallbacks(repeatRunnable[slot])
+        uiHandler.removeCallbacks(dragRunnable[slot])
+    }
+
+    /** The space bar was held for the hold delay: from now on a slide moves the cursor (L9, D72). A hold without a slide still types the space on release. */
+    private fun onDragStart(slot: Int) {
+        if (!dragPending[slot] || ptrId[slot] < 0) return
+        dragPending[slot] = false
+        ptrDrag[slot] = true
+        swipeArmed[slot] = false // no language switch any more for this touch
+        drag[slot].start(lastX[slot])
+        longTap() // the owner feels that the drag is on
+        invalidate()
     }
 
     private fun onLongPress(slot: Int) {
@@ -1291,6 +1355,8 @@ class KeyboardView(context: Context) : View(context) {
         const val REPEAT_FAST_MS = 30L
         const val DOUBLE_TAP_MS = 350L
         const val SWIPE_DP = 64f
+        const val DRAG_SLOP_DP = 10f
+        const val DRAG_TICK_MS = 25L
         const val MIC_SLOP_DP = 36f // how far a held mic key may be left before releasing cancels (G5)
         const val SUG_SLOTS = 3
         const val ARROW_SLOT = 100 // ptrSug value while a finger is on the strip arrow

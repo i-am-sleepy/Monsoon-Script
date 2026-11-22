@@ -16,6 +16,7 @@ import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.ime.LearnSettings
 import com.monsoonscript.keyboard.prefs.Prefs
 import com.monsoonscript.keyboard.view.KeyboardView
+import com.monsoonscript.keyboard.view.SpaceDrag
 
 /**
  * One settings sub-page (D55): which one comes in the intent extra [EXTRA_PAGE]. Each page is its own activity, so the system Back button
@@ -54,6 +55,11 @@ class SettingsPageActivity : Activity() {
             val volume = listOf(R.string.settings_volume_off, R.string.settings_volume_up_left, R.string.settings_volume_up_right).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.settings_volume_cursor), Prefs.VOLUME_CURSOR, volume, Prefs.VOLUME_OFF))
             page.content.add(note(getString(R.string.settings_volume_cursor_note)))
+            page.content.add(header(getString(R.string.settings_drag_header)))
+            page.content.add(switchRow(getString(R.string.settings_space_drag), getString(R.string.settings_space_drag_summary), Prefs.SPACE_DRAG, true))
+            page.content.add(sliderRow(getString(R.string.settings_drag_delay), Prefs.DRAG_DELAY, SpaceDrag.DELAY_MIN, SpaceDrag.DELAY_MAX, SpaceDrag.DELAY_DEFAULT) { "${it * SpaceDrag.DELAY_UNIT_MS} ms" })
+            page.content.add(sliderRow(getString(R.string.settings_drag_speed), Prefs.DRAG_SPEED, SpaceDrag.SPEED_MIN, SpaceDrag.SPEED_MAX, SpaceDrag.SPEED_DEFAULT) { it.toString() })
+            page.content.add(note(getString(R.string.settings_drag_note)))
             page.content.add(header(getString(R.string.settings_feel_header)))
             val levels = listOf(R.string.settings_vib_off, R.string.settings_vib_light, R.string.settings_vib_normal, R.string.settings_vib_strong).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.settings_vibration), Prefs.VIBRATION, levels, Prefs.VIB_NORMAL))

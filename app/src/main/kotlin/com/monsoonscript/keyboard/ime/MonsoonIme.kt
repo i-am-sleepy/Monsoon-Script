@@ -212,6 +212,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             emojiPanel?.setPalette(kb.palette)
             clipPanel?.setPalette(kb.palette)
         }
+        keyboard?.setSpaceDrag(Prefs.spaceDrag(this), Prefs.dragDelayMs(this), Prefs.dragStepDp(this))
         keyboard?.setTypingFeel(Prefs.vibration(this), Prefs.keySound(this), Prefs.soundSource(this) == Prefs.SOUND_BUILTIN, Prefs.longPressMs(this))
         showSuggestions = Prefs.showSuggestions(this)
         nextWord = Prefs.nextWord(this)
@@ -304,8 +305,16 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** One step left or right, as the app's own arrow keys would do it (clusters, right-to-left text). A Bangla word in progress is finished first. */
     private fun moveCursor(left: Boolean) {
         commitComposingIfAny()
+        pendingFix = null // the cursor leaves the word: no automatic fix any more, and no undo of the last one (L8)
+        lastFix = null
         sendDownUpKeyEvents(if (left) KeyEvent.KEYCODE_DPAD_LEFT else KeyEvent.KEYCODE_DPAD_RIGHT)
         lastEditAt = 0L // the selection change that follows is a real move, not an echo: [onUpdateSelection] reads the editor again
+    }
+
+    /** The space bar cursor drag (L9, D72): [steps] characters, negative = left; each one is a cursor key press, so clusters and right-to-left text behave as in the app itself. */
+    override fun onCursorMove(steps: Int) {
+        if (panelSearch || steps == 0) return
+        repeat(kotlin.math.abs(steps)) { moveCursor(left = steps < 0) }
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {

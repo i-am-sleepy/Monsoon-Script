@@ -3,6 +3,7 @@ package com.monsoonscript.keyboard.prefs
 import android.content.Context
 import android.content.SharedPreferences
 import com.monsoonscript.keyboard.lang.Language
+import com.monsoonscript.keyboard.view.SpaceDrag
 
 /**
  * The keyboard's saved settings: ONE SharedPreferences file read by the keyboard service and written by the settings screens (same process, so
@@ -60,6 +61,11 @@ object Prefs {
     const val NEXT_WORD = "suggest_next_word"
     const val TYPED_FIRST = "suggest_typed_first"
 
+    // space bar cursor drag (L9, D72): hold the space bar, then slide
+    const val SPACE_DRAG = "typing_space_drag" // Boolean, default ON
+    const val DRAG_DELAY = "typing_drag_delay" // Int, units of SpaceDrag.DELAY_UNIT_MS
+    const val DRAG_SPEED = "typing_drag_speed" // Int 1 (slow) .. 10 (fast)
+
     // auto-correction (L8, D69): default OFF; English typing only
     const val AUTOCORRECT = "suggest_autocorrect"
 
@@ -113,6 +119,12 @@ object Prefs {
     fun typedFirst(context: Context): Boolean = of(context).getBoolean(TYPED_FIRST, true)
 
     fun autoCorrect(context: Context): Boolean = of(context).getBoolean(AUTOCORRECT, false)
+
+    fun spaceDrag(context: Context): Boolean = of(context).getBoolean(SPACE_DRAG, true)
+
+    fun dragDelayMs(context: Context): Long = SpaceDrag.delayMs(of(context).getInt(DRAG_DELAY, SpaceDrag.DELAY_DEFAULT))
+
+    fun dragStepDp(context: Context): Float = SpaceDrag.stepDp(of(context).getInt(DRAG_SPEED, SpaceDrag.SPEED_DEFAULT))
 
     /** The language the keyboard was last left in; English when nothing or an unknown name is saved. */
     fun language(context: Context): Language = byName(of(context).getString(LANGUAGE, null), Language.ENGLISH)

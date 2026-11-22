@@ -105,6 +105,11 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   Settings contract for claude-g: `ime/LearnSettings` holds the pref names (`PREFS`, `KEY_ENABLED`, `KEY_CLEAR_EPOCH`); the switch writes `learn_enabled`
   (`LearnSettings.setEnabled`), the button calls `LearnSettings.clearLearnedWords(context)` (empties the database and bumps an epoch that the running service hears via a
   SharedPreferences listener to empty its memory). Change `LearnSettings.PREFS` if the settings code uses another prefs file.
+- Space-bar cursor drag (L9, D72; Settings > Typing > "Space bar": `Prefs.SPACE_DRAG` default ON, `DRAG_DELAY` units of 50 ms default 7 = 350 ms, `DRAG_SPEED` 1-10 default 6). `KeyboardView`:
+  touch down on the space bar starts `dragRunnable` (the hold delay); moving more than `DRAG_SLOP_DP` before it fires cancels the drag (a quick slide stays the language swipe, `swipeArmed`);
+  when it fires (`onDragStart`: `ptrDrag`, `swipeArmed` off, stronger vibration) every touch move goes to `view/SpaceDrag.steps` (pure Kotlin, tested: whole steps only, the remainder is kept) and
+  `Listener.onCursorMove(n)`; `up()` types the space only when the cursor did NOT move (`dragMoved`). `MonsoonIme.onCursorMove` = `moveCursor` n times (cursor key presses, so clusters and RTL behave
+  as in the app; clears `pendingFix`/`lastFix` of L8). Tick per character at most every `DRAG_TICK_MS`. Left/right only. `setSpaceDrag(enabled, delayMs, stepDp)` is fed by `applyPrefs`.
 - Auto-correction (L8, D69; Settings > Suggestions > "Auto-correction", `Prefs.AUTOCORRECT`, default OFF, English typing only). `predict/Corrector` (pure Kotlin) finds the
   fix for the word in progress; `predict/Misspellings` is a hand-made list of ~170 well-known misspellings (a test checks every entry against the packs). Rules (measured over the whole
   word lists, see the header of `Corrector.kt` and `CorrectorTest`): words of 3+ plain letters, lowercase (a capital only at a sentence start); never a word the English list knows well

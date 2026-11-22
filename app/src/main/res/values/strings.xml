@@ -74,6 +74,12 @@
     <string name="settings_next_word_summary">Suggest the next word after a space.</string>
     <string name="settings_typed_first">Show my typed word first</string>
     <string name="settings_typed_first_summary">While typing, the first choice is the word as you typed it; off shows one more suggestion instead.</string>
+    <string name="settings_drag_header">Space bar</string>
+    <string name="settings_space_drag">Move the cursor with the space bar</string>
+    <string name="settings_space_drag_summary">Hold the space bar for a moment, then slide left or right. A quick slide still switches language, and holding without sliding types a space.</string>
+    <string name="settings_drag_delay">Hold time before the cursor moves</string>
+    <string name="settings_drag_speed">Cursor speed</string>
+    <string name="settings_drag_note">Speed 1 is slowest and 10 is fastest. Every character the cursor moves gives a tiny tick (it follows the vibration setting below).</string>
     <string name="settings_correct_header">Fixing typos</string>
     <string name="settings_autocorrect">Auto-correction</string>
     <string name="settings_autocorrect_summary">English typing only. Fixes a misspelled word when you press space: the fix shows first and your word second in quotes. Backspace right after a fix brings your word back, and it is never fixed again. Banglish words are left alone. Needs word suggestions to be on.</string>
