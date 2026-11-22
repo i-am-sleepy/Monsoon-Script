@@ -1,10 +1,12 @@
 package com.monsoonscript.keyboard.ime
 
+import android.content.ClipDescription
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.drawable.ColorDrawable
 import android.inputmethodservice.InputMethodService
+import android.net.Uri
 import android.os.Build
 import android.os.SystemClock
 import android.text.InputType
@@ -15,6 +17,7 @@ import android.view.WindowInsetsController
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
+import android.view.inputmethod.InputContentInfo
 import android.view.inputmethod.InputMethod
 import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
@@ -24,6 +27,9 @@ import com.monsoonscript.keyboard.clipboard.ClipCapture
 import com.monsoonscript.keyboard.clipboard.ClipEditActivity
 import com.monsoonscript.keyboard.clipboard.ClipFormat
 import com.monsoonscript.keyboard.clipboard.ClipHub
+import com.monsoonscript.keyboard.clipboard.ClipItem
+import com.monsoonscript.keyboard.clipboard.ImageMime
+import com.monsoonscript.keyboard.clipboard.ImageShare
 import com.monsoonscript.keyboard.clipboard.ClipPanelModel
 import com.monsoonscript.keyboard.clipboard.ClipShortcut
 import com.monsoonscript.keyboard.clipboard.TriggerRun
@@ -1114,6 +1120,19 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             launch(Intent.createChooser(send, null))
         }
 
+        override fun pasteImage(clip: ClipItem) = pasteImageClip(clip)
+
+        override fun copyAgainImage(clip: ClipItem) {
+            val hub = clipHub ?: return
+            val name = clip.image ?: return
+            ClipCapture.copyImageWithoutRecording(this@MonsoonIme, hub.images.uri(name), clip.mime ?: "image/png")
+        }
+
+        override fun shareImage(clip: ClipItem) {
+            val hub = clipHub ?: return
+            ImageShare.chooser(hub.images, clip)?.let { launch(it) }
+        }
+
         override fun edit(clipId: Long) = launch(ClipEditActivity.intent(this@MonsoonIme, clipId))
 
         override fun openSettings() = launch(Intent(this@MonsoonIme, ClipboardSettingsActivity::class.java))
@@ -1135,6 +1154,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val model = ClipPanelModel(hub.store, clipHost)
         val p = ClipboardPanelView(this, kb.palette, model)
         p.listener = clipListener
+        p.thumbs = hub.thumbs
         p.visibility = View.GONE
         r.addView(p, 0, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, kb.desiredHeight()))
         clipModel = model
@@ -1194,11 +1214,52 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             tracker.append(' ')
             triggerRun.clear()
         }
+        hideAfterPasteIfWanted()
+    }
+
+    private fun hideAfterPasteIfWanted() {
         if (clipHub?.prefs?.hideAfterPaste == true) {
             closeClipboard()
             refreshAutoCaps()
             resyncAndPredict()
         }
+    }
+
+    /**
+     * A saved picture goes into the editor with commitContent, if the field says it takes that type. Where it does not (or the app refuses), the picture goes onto
+     * the system clipboard instead, marked so the history does not record it again, and a message says so (D70).
+     */
+    private fun pasteImageClip(clip: ClipItem) {
+        val hub = clipHub ?: return
+        val name = clip.image ?: return
+        val mime = clip.mime ?: "image/png"
+        val uri = hub.images.uri(name)
+        if (commitImage(uri, mime)) {
+            lastEditAt = SystemClock.uptimeMillis()
+            hideAfterPasteIfWanted()
+        } else if (ClipCapture.copyImageWithoutRecording(this, uri, mime)) {
+            Toast.makeText(this, R.string.clip_image_not_accepted, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun commitImage(uri: Uri, mime: String): Boolean {
+        val ic = currentInputConnection ?: return false
+        val info = currentInputEditorInfo ?: return false
+        if (!ImageMime.accepted(acceptedTypes(info), mime)) return false
+        return try {
+            val content = InputContentInfo(uri, ClipDescription("", arrayOf(mime)))
+            ic.commitContent(content, InputConnection.INPUT_CONTENT_GRANT_READ_URI_PERMISSION, null)
+        } catch (e: RuntimeException) {
+            false
+        }
+    }
+
+    /** The types the field takes from a keyboard: the field of the editor info, or where an older app put them (the extras of the support library). */
+    private fun acceptedTypes(info: EditorInfo): Array<String>? {
+        info.contentMimeTypes?.let { if (it.isNotEmpty()) return it }
+        val extras = info.extras ?: return null
+        return extras.getStringArray("androidx.core.view.inputmethod.EditorInfoCompat.CONTENT_MIME_TYPES")
+            ?: extras.getStringArray("android.support.v13.view.inputmethod.EditorInfoCompat.CONTENT_MIME_TYPES")
     }
 
     /** "Copy again": the text goes back on the system clipboard, marked so the history does not record it a second time. */

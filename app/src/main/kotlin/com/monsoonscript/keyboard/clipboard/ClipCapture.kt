@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
+import android.net.Uri
 import android.os.PersistableBundle
 
 /**
@@ -38,8 +39,25 @@ class ClipCapture(context: Context, private val hub: ClipHub) {
         if (!fieldAllowed || !hub.prefs.historyEnabled) return
         val clip = readClip() ?: return
         if (clip.itemCount < 1 || isSensitive(clip.description)) return
-        val text = clip.getItemAt(0).text?.toString() ?: return // image clips come with E3.8
+        val item = clip.getItemAt(0)
+        val uri = item.uri
+        if (uri != null && uri.scheme == "content" && uri.authority != hub.images.authority && imageType(clip.description) != null) {
+            if (hub.prefs.saveImages) {
+                hub.recordImage(uri)
+                return
+            }
+        }
+        val text = item.text?.toString() ?: return
         hub.record(text)
+    }
+
+    /** The first image type the clip announces, or null when it is not a picture. */
+    private fun imageType(d: ClipDescription): String? {
+        for (i in 0 until d.mimeTypeCount) {
+            val t = d.getMimeType(i)
+            if (t.startsWith("image/")) return t
+        }
+        return null
     }
 
     private fun readClip(): ClipData? =
@@ -66,6 +84,19 @@ class ClipCapture(context: Context, private val hub: ClipHub) {
                 true
             } catch (e: RuntimeException) {
                 false // the system refused (rare)
+            }
+        }
+
+        /** "Copy again" for a saved picture: its address goes on the system clipboard, marked so the history does not record it a second time. */
+        fun copyImageWithoutRecording(context: Context, uri: Uri, mime: String): Boolean {
+            val cm = context.getSystemService(ClipboardManager::class.java) ?: return false
+            val data = ClipData(ClipDescription("", arrayOf(mime)), ClipData.Item(uri))
+            data.description.extras = PersistableBundle().apply { putBoolean(EXTRA_NO_HISTORY, true) }
+            return try {
+                cm.setPrimaryClip(data)
+                true
+            } catch (e: RuntimeException) {
+                false
             }
         }
 

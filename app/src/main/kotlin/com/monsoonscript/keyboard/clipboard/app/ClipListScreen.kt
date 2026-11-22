@@ -5,12 +5,15 @@ import android.text.Editable
 import android.text.InputType
 import android.text.TextUtils
 import android.text.TextWatcher
+import android.graphics.Outline
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.BaseAdapter
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
@@ -20,6 +23,7 @@ import com.monsoonscript.keyboard.clipboard.ClipHub
 import com.monsoonscript.keyboard.clipboard.ClipItem
 import com.monsoonscript.keyboard.clipboard.ClipListModel
 import com.monsoonscript.keyboard.clipboard.ClipStore
+import com.monsoonscript.keyboard.clipboard.ImageMime
 import com.monsoonscript.keyboard.settings.SettingsUi
 
 /**
@@ -50,6 +54,13 @@ internal class ClipListScreen(
     private var now = System.currentTimeMillis()
     private var wasSelecting = false
     private var listening = false
+
+    /** A picture's thumbnail was read in the background: show it (several arrive in a burst, so one refresh covers them). */
+    private val refreshThumbs = Runnable { adapter.notifyDataSetChanged() }
+    private val thumbReady = Runnable {
+        list.removeCallbacks(refreshThumbs)
+        list.post(refreshThumbs)
+    }
 
     private val adapter = object : BaseAdapter() {
         override fun getCount(): Int = model.rows.size
@@ -90,6 +101,7 @@ internal class ClipListScreen(
     /** One clip: a selection mark (only while selecting), up to two lines of the text, and a small line with pin, time and folder. */
     private inner class RowView : LinearLayout(activity) {
         private val mark = TextView(activity)
+        private val thumb = ImageView(activity)
         private val preview = TextView(activity)
         private val meta = TextView(activity)
         private var highlighted = false
@@ -105,6 +117,17 @@ internal class ClipListScreen(
                 gravity = Gravity.CENTER
             }
             addView(mark, LayoutParams(ui.dp(32), ViewGroup.LayoutParams.WRAP_CONTENT))
+            thumb.apply {
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                visibility = GONE
+                outlineProvider = object : ViewOutlineProvider() {
+                    override fun getOutline(view: View, outline: Outline) {
+                        outline.setRoundRect(0, 0, view.width, view.height, ui.dp(8).toFloat())
+                    }
+                }
+                clipToOutline = true
+            }
+            addView(thumb, LayoutParams(ui.dp(48), ui.dp(48)).apply { rightMargin = ui.dp(12) })
             val column = LinearLayout(activity).apply { orientation = VERTICAL }
             preview.apply {
                 textSize = 16f
@@ -138,8 +161,17 @@ internal class ClipListScreen(
                 preview.text = ClipFormat.previewSource(clip.text, 200)
                 preview.setTextColor(ui.primary)
             } else {
-                preview.text = activity.getString(R.string.clip_image)
+                preview.text = activity.getString(R.string.clip_image) + " · " + ImageMime.label(clip.mime)
                 preview.setTextColor(ui.secondary)
+            }
+            if (clip.isImage) {
+                val bmp = clip.image?.let { hub.thumbs.thumb(it, thumbReady) }
+                thumb.visibility = VISIBLE
+                thumb.setImageBitmap(bmp)
+                thumb.setBackgroundColor(0x22808080) // the square shows until the picture is read
+            } else {
+                thumb.visibility = GONE
+                thumb.setImageDrawable(null)
             }
             val sb = StringBuilder()
             if (clip.pinned) sb.append(activity.getString(R.string.clip_group_pinned)).append(" · ")

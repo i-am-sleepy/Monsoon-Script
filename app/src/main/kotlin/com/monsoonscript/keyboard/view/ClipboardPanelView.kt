@@ -5,6 +5,7 @@ import android.content.res.Configuration
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.text.Layout
@@ -21,6 +22,8 @@ import android.widget.OverScroller
 import com.monsoonscript.keyboard.clipboard.CardGrid
 import com.monsoonscript.keyboard.clipboard.ClipFormat
 import com.monsoonscript.keyboard.clipboard.ClipPanelModel
+import com.monsoonscript.keyboard.clipboard.ImageMime
+import com.monsoonscript.keyboard.clipboard.ThumbLoader
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.sin
@@ -101,6 +104,15 @@ class ClipboardPanelView(
         strokeWidth = 0.085f // unit-square coordinates; the canvas is scaled to the icon size
     }
     private val rect = RectF()
+
+    // ---- picture thumbnails on image cards (E3.8, D70): small square on the left, "Image" and the type beside it
+    /** Where the thumbnails come from; set by the keyboard service. A thumbnail still being read shows a plain square. */
+    var thumbs: ThumbLoader? = null
+    private val thumbReady = Runnable { invalidate() }
+    private val thumbRect = RectF()
+    private val thumbSrc = Rect()
+    private val thumbPath = Path()
+    private val bitmapPaint = Paint(Paint.FILTER_BITMAP_FLAG)
 
     // ---- icons, unit square
     private val iconSearch = Path().apply {
@@ -204,6 +216,7 @@ class ClipboardPanelView(
     private var cardPadTop = dp(8f)
     private var padH = dp(10f)
     private var lineH = 0f
+    private var bodyH = 0f // height of the text area of a card: [lines] lines, but room for a thumbnail when the list has pictures
     private var resCardW = dp(150f)
     private var resLines = 3
     private val footerH = dp(20f)
@@ -368,7 +381,13 @@ class ClipboardPanelView(
         chipBase = baselineOf(chipPaint)
         labelBase = baselineOf(labelPaint)
         botW = (w - 2f * sideW) / 4f
-        val cardH = cardPadTop + lines * lineH + footerH + dp(2f)
+        var anyImage = false
+        for (card in model.cards) if (card.clip?.isImage == true) {
+            anyImage = true
+            break
+        }
+        bodyH = if (anyImage) maxOf(lines * lineH, dp(40f)) else lines * lineH
+        val cardH = cardPadTop + bodyH + footerH + dp(2f)
         grid.layout(model.cards.size, model.columns, w, cardH, gap, edge)
         resCardW = dp(150f)
         val resCardH = resRowH - dp(12f)
@@ -448,18 +467,20 @@ class ClipboardPanelView(
 
     // ---------------------------------------------------------------- card text
 
-    private fun entryFor(card: ClipPanelModel.Card, w: Float, nLines: Int): Entry {
+    /** [side] is the width of the thumbnail beside the text of an image card, 0 for other cards. */
+    private fun entryFor(card: ClipPanelModel.Card, w: Float, nLines: Int, side: Float): Entry {
         val key = card.key
         val clip = card.clip
         val sc = card.shortcut
-        val raw = clip?.text ?: sc?.text ?: ""
-        val width = (w - 2f * padH).toInt().coerceAtLeast(1)
+        val image = clip != null && clip.isImage
+        val raw = if (image) clip?.mime ?: "" else clip?.text ?: sc?.text ?: ""
+        val width = (w - 2f * padH - (if (image) side + dp(8f) else 0f)).toInt().coerceAtLeast(1)
         val used = clip?.used ?: 0L
         val hit = cache.get(key)
         if (hit != null && hit.width == width && hit.nLines == nLines && hit.used == used && hit.raw == raw) return hit
         if (cache.size() > 80) cache.clear()
-        val src = ClipFormat.previewSource(raw)
-        val textLines = if (sc != null) (nLines - 1).coerceAtLeast(1) else nLines
+        val src = if (image) "Image\n" + ImageMime.label(raw) else ClipFormat.previewSource(raw)
+        val textLines = if (image) 2 else if (sc != null) (nLines - 1).coerceAtLeast(1) else nLines
         val layout = if (src.isEmpty()) {
             null
         } else {
@@ -541,24 +562,34 @@ class ClipboardPanelView(
             strokePaint.color = pal.accent
             c.drawRoundRect(rect, radius, radius, strokePaint)
         }
-        val e = entryFor(card, w, nLines)
+        val image = clip != null && clip.isImage
+        val side = if (!image) 0f else if (footer) bodyH else h - 2f * cardPadTop
+        val e = entryFor(card, w, nLines, side)
         var ty = y + cardPadTop
         val title = e.title
-        if (title != null) {
-            titlePaint.color = pal.accent
-            c.drawText(title, x + padH, ty + lineH / 2f + titleBase, titlePaint)
-            ty += lineH
-        } else if (clip != null && clip.isImage) {
-            textPaint.color = pal.textMuted
-            c.drawText(IMAGE_LABEL, x + padH, ty + lineH / 2f + textBase, textPaint)
-        }
         val layout = e.layout
-        if (layout != null) {
-            c.save()
-            c.translate(x + padH, ty)
-            textPaint.color = pal.text
-            layout.draw(c)
-            c.restore()
+        if (image) {
+            drawThumb(c, clip?.image, x + padH, ty, side)
+            if (layout != null) {
+                c.save()
+                c.translate(x + padH + side + dp(8f), ty + (side - layout.height) / 2f)
+                textPaint.color = pal.textMuted
+                layout.draw(c)
+                c.restore()
+            }
+        } else {
+            if (title != null) {
+                titlePaint.color = pal.accent
+                c.drawText(title, x + padH, ty + lineH / 2f + titleBase, titlePaint)
+                ty += lineH
+            }
+            if (layout != null) {
+                c.save()
+                c.translate(x + padH, ty)
+                textPaint.color = pal.text
+                layout.draw(c)
+                c.restore()
+            }
         }
         if (!footer || clip == null) return
         val fy = y + h - footerH / 2f - dp(1f)
@@ -587,6 +618,26 @@ class ClipboardPanelView(
             c.drawCircle(rx, fy, dp(1.6f), fillPaint)
             c.drawCircle(rx, fy + dp(5f), dp(1.6f), fillPaint)
         }
+    }
+
+    /** The thumbnail of a picture, cropped to a rounded square; until it is loaded only the square shows. Draws without allocating. */
+    private fun drawThumb(c: Canvas, name: String?, left: Float, top: Float, side: Float) {
+        val r = dp(6f)
+        thumbRect.set(left, top, left + side, top + side)
+        fillPaint.color = pal.keyPressed
+        c.drawRoundRect(thumbRect, r, r, fillPaint)
+        val bmp = if (name != null) thumbs?.thumb(name, thumbReady) else null
+        if (bmp == null) return
+        val s = minOf(bmp.width, bmp.height)
+        val sx = (bmp.width - s) / 2
+        val sy = (bmp.height - s) / 2
+        thumbSrc.set(sx, sy, sx + s, sy + s)
+        thumbPath.rewind()
+        thumbPath.addRoundRect(thumbRect, r, r, Path.Direction.CW)
+        c.save()
+        c.clipPath(thumbPath)
+        c.drawBitmap(bmp, thumbSrc, thumbRect, bitmapPaint)
+        c.restore()
     }
 
     private fun drawToolbar(c: Canvas) {
@@ -1198,7 +1249,6 @@ class ClipboardPanelView(
 
         const val TITLE = "Clipboard"
         const val HINT_SEARCH = "Search clipboard"
-        const val IMAGE_LABEL = "Image"
         val MENU_LABELS = arrayOf("Pin", "Unpin", "Edit", "Copy again", "Share", "Delete")
     }
 }

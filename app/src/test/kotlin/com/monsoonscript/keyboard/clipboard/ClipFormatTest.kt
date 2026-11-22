@@ -62,4 +62,15 @@ class ClipFormatTest {
         assertEquals("one\n\ntwo\nlines", ClipFormat.exportText(listOf(a, img, b)))
         assertEquals("", ClipFormat.exportText(listOf(img)))
     }
+
+    @Test
+    fun sizesAreShortAndReadable() {
+        assertEquals("0 B", ClipFormat.bytes(0))
+        assertEquals("1023 B", ClipFormat.bytes(1023))
+        assertEquals("1 KB", ClipFormat.bytes(1024))
+        assertEquals("340 KB", ClipFormat.bytes(340L * 1024))
+        assertEquals("1.0 MB", ClipFormat.bytes(1024L * 1024))
+        assertEquals("8.4 MB", ClipFormat.bytes((8.4 * 1024 * 1024).toLong()))
+        assertEquals("100.0 MB", ClipFormat.bytes(100L * 1024 * 1024))
+    }
 }

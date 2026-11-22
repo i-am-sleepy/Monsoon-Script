@@ -11,8 +11,10 @@ import android.widget.Toast
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.clipboard.ClipCapture
 import com.monsoonscript.keyboard.clipboard.ClipEditActivity
+import com.monsoonscript.keyboard.clipboard.ClipHub
 import com.monsoonscript.keyboard.clipboard.ClipItem
 import com.monsoonscript.keyboard.clipboard.ClipStore
+import com.monsoonscript.keyboard.clipboard.ImageShare
 
 /** The things a clip can do in the app's screens (copy, share, edit, move, delete) and the small dialogs they need. Every change goes through the [store]; the screens update by listening to it. */
 internal class ClipActions(private val activity: Activity, private val store: ClipStore) {
@@ -21,12 +23,26 @@ internal class ClipActions(private val activity: Activity, private val store: Cl
 
     fun toast(res: Int) = Toast.makeText(activity, res, Toast.LENGTH_SHORT).show()
 
-    /** Put a text clip back on the system clipboard and move it to the top of the history. */
+    /** Put a clip (text or picture) back on the system clipboard and move it to the top of the history. */
     fun copy(clip: ClipItem) {
-        if (!clip.isText) return
-        if (ClipCapture.copyWithoutRecording(activity, clip.text)) {
+        val ok = if (clip.isImage) {
+            val name = clip.image ?: return
+            ClipCapture.copyImageWithoutRecording(activity, ClipHub.get(activity).images.uri(name), clip.mime ?: "image/png")
+        } else {
+            ClipCapture.copyWithoutRecording(activity, clip.text)
+        }
+        if (ok) {
             store.touch(clip.id)
             toast(R.string.clip_copied)
+        }
+    }
+
+    fun shareImage(clip: ClipItem) {
+        val chooser = ImageShare.chooser(ClipHub.get(activity).images, clip) ?: return
+        try {
+            activity.startActivity(chooser)
+        } catch (e: RuntimeException) {
+            // no app can take it
         }
     }
 
@@ -81,12 +97,10 @@ internal class ClipActions(private val activity: Activity, private val store: Cl
             labels.add(activity.getString(res))
             actions.add(run)
         }
-        if (clip.isText) add(R.string.clip_act_copy) { copy(clip) }
+        add(R.string.clip_act_copy) { copy(clip) }
         add(if (clip.pinned) R.string.clip_act_unpin else R.string.clip_act_pin) { store.setPinned(listOf(clip.id), !clip.pinned) }
-        if (clip.isText) {
-            add(R.string.clip_act_edit) { edit(clip) }
-            add(R.string.clip_act_share) { share(clip.text) }
-        }
+        if (clip.isText) add(R.string.clip_act_edit) { edit(clip) }
+        add(R.string.clip_act_share) { if (clip.isImage) shareImage(clip) else share(clip.text) }
         add(R.string.clip_act_move) { pickFolder { store.moveToFolder(listOf(clip.id), it) } }
         add(R.string.clip_act_delete) { confirmDelete(1) { store.delete(listOf(clip.id)) } }
         AlertDialog.Builder(activity)

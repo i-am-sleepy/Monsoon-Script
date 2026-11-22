@@ -125,4 +125,16 @@
     <string name="clip_privacy_stays">Everything stays on this phone. The clipboard history is never uploaded.</string>
     <string name="clip_privacy_never">Never saved: anything copied while a password field is open, clips that a password manager marks as sensitive (KeePassDX does), and copies made by Monsoon\'s own vault.</string>
     <string name="clip_privacy_limit">Android only lets the active keyboard read what you copy, so clips are saved while Monsoon is your keyboard.</string>
+    <!-- Images (E3.8, D70) -->
+    <string name="clip_set_images">Images</string>
+    <string name="clip_set_save_images">Save copied images</string>
+    <string name="clip_set_save_images_summary">Off: pictures you copy are not saved. Saved ones stay until you delete them. They live only inside this app, not in your Gallery.</string>
+    <string name="clip_set_image_cap">Image storage limit</string>
+    <string name="clip_set_image_cap_summary">%1$d MB. When it is full, the oldest images that are not pinned go first. One image can be up to 10 MB.</string>
+    <string name="clip_set_stored_images">Stored images</string>
+    <string name="clip_stored_images_none">No images saved.</string>
+    <string name="clip_stored_images_one">1 image, %1$s. Tap to delete it.</string>
+    <string name="clip_stored_images_many">%1$d images, %2$s. Tap to delete them.</string>
+    <string name="clip_delete_images_ask">Delete all saved images? Pinned images and images in folders stay.</string>
+    <string name="clip_image_not_accepted">This field takes no images. The image is copied: long-press the field and tap Paste.</string>
 </resources>

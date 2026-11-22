@@ -75,6 +75,13 @@
             android:taskAffinity=""
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
 
+        <!-- Hands one saved clipboard picture at a time to the app it is pasted or shared into (E3.8, D70). Not exported: only an address given explicitly works. -->
+        <provider
+            android:name=".clipboard.ImageProvider"
+            android:authorities="${applicationId}.clipimages"
+            android:exported="false"
+            android:grantUriPermissions="true" />
+
         <activity
             android:name=".settings.LicensesActivity"
             android:exported="false"

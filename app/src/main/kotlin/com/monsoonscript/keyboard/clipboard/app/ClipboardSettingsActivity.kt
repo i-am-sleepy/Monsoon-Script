@@ -7,8 +7,10 @@ import android.view.View
 import android.widget.TextView
 import android.widget.Toast
 import com.monsoonscript.keyboard.R
+import com.monsoonscript.keyboard.clipboard.ClipFormat
 import com.monsoonscript.keyboard.clipboard.ClipHub
 import com.monsoonscript.keyboard.clipboard.ClipPrefs
+import com.monsoonscript.keyboard.clipboard.ClipStore
 import com.monsoonscript.keyboard.settings.SettingsUi
 
 /**
@@ -16,10 +18,17 @@ import com.monsoonscript.keyboard.settings.SettingsUi
  * history rules to the store at once and the keyboard panel reads the rest when it opens. Opened by the gear in the app and in the keyboard panel.
  */
 class ClipboardSettingsActivity : Activity() {
+    private lateinit var hub: ClipHub
+    private var storedText: TextView? = null
+
+    /** The saved clips are read in the background, and they change: keep the "N images" line right. */
+    private val storeListener = object : ClipStore.Listener {
+        override fun onClipsChanged() = refreshStored()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val hub = ClipHub.get(this)
+        hub = ClipHub.get(this)
         hub.start()
         val prefs = hub.prefs
         val ui = SettingsUi(this, prefs.sp)
@@ -51,6 +60,25 @@ class ClipboardSettingsActivity : Activity() {
             page.content.add(switchRow(getString(R.string.clip_set_group), getString(R.string.clip_set_group_summary), ClipPrefs.K_GROUP, true))
             page.content.add(switchRow(getString(R.string.clip_set_hide_paste), getString(R.string.clip_set_hide_paste_summary), ClipPrefs.K_HIDE_PASTE, false))
 
+            page.content.add(header(getString(R.string.clip_set_images)))
+            page.content.add(switchRow(getString(R.string.clip_set_save_images), getString(R.string.clip_set_save_images_summary), ClipPrefs.K_IMAGES, true))
+            val caps = ClipPrefs.IMAGE_CAPS.map { "$it MB" }
+            page.content.add(
+                pickRow(ui, getString(R.string.clip_set_image_cap), caps, { ClipPrefs.IMAGE_CAPS.indexOf(prefs.imageCapMb).coerceAtLeast(0) },
+                    { getString(R.string.clip_set_image_cap_summary, ClipPrefs.IMAGE_CAPS[it]) }) { prefs.imageCapMb = ClipPrefs.IMAGE_CAPS[it] },
+            )
+            val stored = texts(getString(R.string.clip_set_stored_images), "")
+            storedText = stored.getChildAt(1) as TextView
+            page.content.add(
+                row().apply {
+                    addView(stored, weighted())
+                    setOnClickListener {
+                        if (hub.store.imageCount() > 0) confirm(R.string.clip_delete_images_ask) { hub.store.clearImages() }
+                    }
+                },
+            )
+            refreshStored()
+
             page.content.add(header(getString(R.string.clip_set_appearance)))
             page.content.add(switchRow(getString(R.string.clip_set_compact), getString(R.string.clip_set_compact_summary), ClipPrefs.K_COMPACT, false))
             page.content.add(sliderRow(getString(R.string.clip_set_lines), ClipPrefs.K_LINES, 1, 5, 3) { getString(R.string.clip_lines_format, it) })
@@ -62,6 +90,26 @@ class ClipboardSettingsActivity : Activity() {
             page.content.add(note(getString(R.string.clip_privacy_limit)))
         }
         setContentView(page.root)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        hub.store.addListener(storeListener)
+        refreshStored()
+    }
+
+    override fun onPause() {
+        hub.store.removeListener(storeListener)
+        super.onPause()
+    }
+
+    private fun refreshStored() {
+        val (count, bytes) = hub.imageStats()
+        storedText?.text = when (count) {
+            0 -> getString(R.string.clip_stored_images_none)
+            1 -> getString(R.string.clip_stored_images_one, ClipFormat.bytes(bytes))
+            else -> getString(R.string.clip_stored_images_many, count, ClipFormat.bytes(bytes))
+        }
     }
 
     /** A row whose tap opens a list of [labels]; [current] is the chosen index, [summary] the text under the title, [onPick] stores the choice. */

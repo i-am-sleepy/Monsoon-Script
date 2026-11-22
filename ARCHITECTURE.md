@@ -145,6 +145,14 @@ The strip's mic icon is drawn but does nothing yet. Everything else below is pla
   field has the keyboard (`MonsoonIme.clipCapture.fieldAllowed`). No guessing from content.
 - `view/ClipboardPanelView`: one Canvas view like `EmojiPanelView` (toolbar, chip row, scrolling cards, bottom bar, popup for menu and folder picker); it only draws `ClipPanelModel` and forwards touches. One cached
   `StaticLayout` per card. Not Compose, no RecyclerView.
+- Clipboard images (E3.8, D70): `ClipCapture` sees a clip with an image type and a `content://` address (not our own provider), `ClipHub.recordImage` copies it on the single worker thread
+  `clip-images` via `ImageFiles.import` into `files/clip-images/` (private; max 10 MB; type read from the bytes by BitmapFactory; named `<sha256>.<ext>` so the same picture is one file; a 160 px
+  thumbnail `<name>.t` next to it), then the main thread calls `ClipStore.addImage` (always de-duplicated by file name) and `trimImages` (cap 50/100/250 MB from `ClipPrefs.imageCapMb`, oldest loose first).
+  `ClipStore.imageCleaner` (set by the hub) deletes the files of removed clips; `ImageFiles.sweep` removes orphans older than an hour after start-up. `ThumbCache` (4 MB LRU, decodes on the worker thread,
+  `ThumbLoader.thumb(name, onReady)` never blocks) feeds `ClipboardPanelView` (small square + "Image" / type, `bodyH` leaves room for it) and the app's list rows. Other apps read a picture only through
+  `ImageProvider` (`<package>.clipimages`, not exported, read-only, serves only names that match `ImageMime.isStoredName`, grantUriPermissions): paste = `InputConnection.commitContent` when the editor's
+  content types (`EditorInfo.contentMimeTypes` or the support-library extras) accept the type, else the picture goes on the system clipboard (`ClipCapture.copyImageWithoutRecording`) with a toast; share = `ImageShare.chooser`.
+  Pure + unit tested: `ImageMime`, the store methods (`trimImages`, `clearImages`, `imageBytes`), `ClipFormat.bytes`.
 - Text shortcuts in the strip (E3.7, D68): `TriggerRun` (pure) holds the characters typed since the last space and is fed next to `WordTracker` (onText, backspace, enter/tab, accepted suggestions, emoji, paste; rebuilt in `resyncTracker`). `refreshShortcuts()` runs at the
   start of every `requestPrediction()`: `ClipStore.matchShortcuts` against the run -> `shortcutHits`; `setSuggestions` puts their one-line texts (`ClipFormat.stripLabel`) IN FRONT of what the word engines gave (`engineWords`), so a slow prediction answer
   cannot drop them. Not active in Avro mode or where the strip is off. A tap goes to `acceptShortcut` first: it replaces the typed trigger with the full text (checked against the editor), no space. The first entries of `suggestions` are shortcuts while `shortcutHits` is

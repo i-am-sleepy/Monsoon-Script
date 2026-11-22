@@ -76,6 +76,14 @@ object ClipFormat {
         return ""
     }
 
+    /** A size for people: "340 KB", "8.4 MB" (one decimal from 1 MB up; no locale-dependent formatting on purpose). */
+    fun bytes(n: Long): String {
+        if (n < 1024L) return "$n B"
+        if (n < 1024L * 1024L) return "${(n + 512L) / 1024L} KB"
+        val tenths = (n * 10L + 524_288L) / 1_048_576L
+        return "${tenths / 10L}.${tenths % 10L} MB"
+    }
+
     /** Selected text clips as one text: clips separated by a blank line, in the order given. Image clips are left out. */
     fun exportText(clips: List<ClipItem>): String {
         val sb = StringBuilder()

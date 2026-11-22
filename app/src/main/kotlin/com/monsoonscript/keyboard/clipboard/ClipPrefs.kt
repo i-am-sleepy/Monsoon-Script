@@ -62,6 +62,18 @@ class ClipPrefs(context: Context) {
         get() = sp.getBoolean(K_GROUP, true)
         set(v) = sp.edit().putBoolean(K_GROUP, v).apply()
 
+    /** Save copied images (E3.8, D70). Off = images are not recorded; the ones saved stay until deleted. */
+    var saveImages: Boolean
+        get() = sp.getBoolean(K_IMAGES, true)
+        set(v) = sp.edit().putBoolean(K_IMAGES, v).apply()
+
+    /** The room the saved images may take, in MB: 50, 100 (default) or 250. */
+    var imageCapMb: Int
+        get() = sp.getInt(K_IMAGE_CAP, 100).let { if (it in IMAGE_CAPS) it else 100 }
+        set(v) = sp.edit().putInt(K_IMAGE_CAP, v).apply()
+
+    val imageCapBytes: Long get() = imageCapMb * 1024L * 1024L
+
     /** Close the panel (back to the keys) after a clip was pasted. */
     var hideAfterPaste: Boolean
         get() = sp.getBoolean(K_HIDE_PASTE, false)
@@ -81,8 +93,11 @@ class ClipPrefs(context: Context) {
         const val K_TIME = "show_time"
         const val K_HIDE_PASTE = "hide_after_paste"
         const val K_GROUP = "group_by_date"
+        const val K_IMAGES = "save_images"
+        const val K_IMAGE_CAP = "image_cap_mb"
 
         val LIMITS = intArrayOf(50, 100, 200, 500)
+        val IMAGE_CAPS = intArrayOf(50, 100, 250)
         private const val HOUR = 3_600_000L
         val AUTO_DELETE = longArrayOf(0L, HOUR, 24 * HOUR, 7 * 24 * HOUR, 30 * 24 * HOUR)
     }

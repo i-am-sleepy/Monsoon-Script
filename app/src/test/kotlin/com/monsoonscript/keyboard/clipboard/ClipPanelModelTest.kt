@@ -14,6 +14,9 @@ class ClipPanelModelTest {
         val pasted = ArrayList<String>()
         val copied = ArrayList<String>()
         val shared = ArrayList<String>()
+        val pastedImages = ArrayList<Long>()
+        val copiedImages = ArrayList<Long>()
+        val sharedImages = ArrayList<Long>()
         val edited = ArrayList<Long>()
         val columns = ArrayList<Int>()
         var settings = 0
@@ -26,6 +29,15 @@ class ClipPanelModelTest {
         }
         override fun share(text: String) {
             shared.add(text)
+        }
+        override fun pasteImage(clip: ClipItem) {
+            pastedImages.add(clip.id)
+        }
+        override fun copyAgainImage(clip: ClipItem) {
+            copiedImages.add(clip.id)
+        }
+        override fun shareImage(clip: ClipItem) {
+            sharedImages.add(clip.id)
         }
         override fun edit(clipId: Long) {
             edited.add(clipId)
@@ -198,8 +210,25 @@ class ClipPanelModelTest {
         assertEquals(MenuItem.UNPIN, model.menuItems()[0])
         model.closePopups()
         model.openMenu(model.cards.indexOfFirst { it.clip!!.id == img.id })
-        assertEquals(listOf(MenuItem.PIN, MenuItem.DELETE), model.menuItems())
+        assertEquals(listOf(MenuItem.PIN, MenuItem.COPY_AGAIN, MenuItem.SHARE, MenuItem.DELETE), model.menuItems())
         assertTrue(b.id > 0)
+    }
+
+    @Test
+    fun imageCardsPasteCopyAndShareThroughTheImageCalls() {
+        val img = store.addImage("i.png", "image/png")
+        model.open()
+        model.tapCard(0)
+        assertEquals(listOf(img.id), host.pastedImages)
+        assertTrue(host.pasted.isEmpty())
+        model.openMenu(0)
+        model.pickMenu(MenuItem.COPY_AGAIN)
+        assertEquals(listOf(img.id), host.copiedImages)
+        assertTrue(host.copied.isEmpty())
+        model.openMenu(0)
+        model.pickMenu(MenuItem.SHARE)
+        assertEquals(listOf(img.id), host.sharedImages)
+        assertTrue(host.shared.isEmpty())
     }
 
     @Test

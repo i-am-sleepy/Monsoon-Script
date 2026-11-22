@@ -18,6 +18,15 @@ class ClipPanelModel(private val store: ClipStore, private val host: Host) : Cli
         /** Share this text with another app. */
         fun share(text: String)
 
+        /** Put this image clip into the editor (or, where the field takes no images, onto the system clipboard; see D70). */
+        fun pasteImage(clip: ClipItem)
+
+        /** Put this image back on the system clipboard ("Copy again"). */
+        fun copyAgainImage(clip: ClipItem)
+
+        /** Share this image with another app. */
+        fun shareImage(clip: ClipItem)
+
         /** Open the editor for this text clip. */
         fun edit(clipId: Long)
 
@@ -209,6 +218,8 @@ class ClipPanelModel(private val store: ClipStore, private val host: Host) : Cli
             host.changed()
         } else if (clip.isText) {
             host.paste(clip.text)
+        } else if (clip.isImage) {
+            host.pasteImage(clip)
         }
     }
 
@@ -243,8 +254,8 @@ class ClipPanelModel(private val store: ClipStore, private val host: Host) : Cli
         val out = ArrayList<MenuItem>(5)
         out.add(if (clip.pinned) MenuItem.UNPIN else MenuItem.PIN)
         if (clip.isText) out.add(MenuItem.EDIT)
-        if (clip.isText) out.add(MenuItem.COPY_AGAIN)
-        if (clip.isText) out.add(MenuItem.SHARE)
+        out.add(MenuItem.COPY_AGAIN)
+        out.add(MenuItem.SHARE)
         out.add(MenuItem.DELETE)
         return out
     }
@@ -257,10 +268,10 @@ class ClipPanelModel(private val store: ClipStore, private val host: Host) : Cli
             MenuItem.UNPIN -> store.setPinned(listOf(clip.id), false)
             MenuItem.EDIT -> host.edit(clip.id)
             MenuItem.COPY_AGAIN -> {
-                host.copyAgain(clip.text)
+                if (clip.isImage) host.copyAgainImage(clip) else host.copyAgain(clip.text)
                 store.touch(clip.id)
             }
-            MenuItem.SHARE -> host.share(clip.text)
+            MenuItem.SHARE -> if (clip.isImage) host.shareImage(clip) else host.share(clip.text)
             MenuItem.DELETE -> store.delete(listOf(clip.id))
         }
         host.changed()

@@ -302,6 +302,66 @@ class ClipStoreTest {
     }
 
     @Test
+    fun theSameImageMovesToTheTopInsteadOfBeingStoredTwice() {
+        val s = store()
+        val a = s.addImage("a.png", "image/png"); now++
+        s.addText("t"); now++
+        s.addImage("b.png", "image/png"); now++
+        s.setPinned(listOf(a.id), true)
+        s.dedupe = false // images are deduplicated whatever the text setting says: one file, one clip
+        val again = s.addImage("a.png", "image/png")
+        assertSame(a, again)
+        assertTrue(again.pinned)
+        assertEquals(3, s.size)
+        assertEquals(a.id, s.query(ClipFilter.IMAGES, "")[0].id)
+    }
+
+    @Test
+    fun trimImagesDropsTheOldestLooseOnesUntilItFits() {
+        val s = store()
+        val removed = ArrayList<String>()
+        s.imageCleaner = { removed.addAll(it) }
+        val size = mapOf("old" to 40L, "pin" to 40L, "mid" to 40L, "new" to 40L)
+        val old = s.addImage("old", "image/png"); now++
+        val pin = s.addImage("pin", "image/png"); now++
+        s.addImage("mid", "image/png"); now++
+        s.addImage("new", "image/png")
+        s.setPinned(listOf(pin.id), true)
+        assertFalse(s.trimImages(160L) { size.getValue(it) }) // exactly fits
+        assertTrue(s.trimImages(100L) { size.getValue(it) })
+        assertEquals(setOf("old", "mid"), removed.toSet()) // 160 -> 120 -> 80: the two oldest loose ones; the pinned old-timer and the newest stay
+        assertEquals(null, s.byId(old.id))
+        assertEquals(2, s.imageCount())
+        assertEquals(setOf("pin", "new"), s.imageNames())
+        assertEquals(80L, s.imageBytes { size.getValue(it) })
+    }
+
+    @Test
+    fun trimImagesNeverDropsPinnedOrFolderedImages() {
+        val s = store()
+        val f = s.createFolder("F")!!
+        val a = s.addImage("a", "image/png"); now++
+        val b = s.addImage("b", "image/png")
+        s.setPinned(listOf(a.id), true)
+        s.moveToFolder(listOf(b.id), f.id)
+        assertFalse(s.trimImages(1L) { 100L })
+        assertEquals(2, s.imageCount())
+    }
+
+    @Test
+    fun clearImagesRemovesLooseImagesOnly() {
+        val s = store()
+        val keep = s.addImage("keep", "image/png")
+        s.setPinned(listOf(keep.id), true)
+        s.addImage("gone", "image/png")
+        s.addText("t")
+        assertTrue(s.clearImages())
+        assertEquals(setOf("keep"), s.imageNames())
+        assertEquals(2, s.size)
+        assertFalse(s.clearImages())
+    }
+
+    @Test
     fun listenersAndRevisionFollowChanges() {
         val s = store()
         var calls = 0

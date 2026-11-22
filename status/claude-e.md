@@ -15,8 +15,13 @@ E3 Clipboard [~] Owner rule for this task: ask him every implementation decision
   E3.5 [x] Keyboard panel, pushed (CI to check): model/grid/format (50 JUnit tests, CI-run), `view/ClipboardPanelView` (Canvas), `SearchablePanel` (EmojiPanelView implements it too), host in MonsoonIme (`clipHost`: paste, copy again with EXTRA_NO_HISTORY, share, edit via `ClipEditActivity`, settings = SetupActivity for now), `emojiSearch` renamed `panelSearch` (+ `shownPanel`), strip clipboard icon -> `onClipboardKey`. Owner-tested on device 2026-11-21 (CI #39, c94d41e): works.
   E3.6 [~] App screens (D67 answered: 'Clipboard' row on the main screen -> ClipboardActivity with 4 bottom tabs History/Pinned/Folders/Shortcuts + gear; simple list rows; date groups on by default; ONE settings page with sections). Touches claude-g's SetupActivity: append a Warning to status/claude-g.md in the same push.
     E3.6.1-E3.6.6 [x] pushed together (CI + owner test pending): `clipboard/ClipListModel` (+13 JUnit tests, 63 clipboard tests pass), `clipboard/app/` = ClipboardActivity (4 tabs + gear), ClipListScreen (History/Pinned/folder), FolderScreen, ShortcutScreen, ClipActions, ClipboardSettingsActivity; "Clipboard" row in SetupActivity; panel gear opens the settings page; SettingsUi got a `prefs` parameter and public helpers.
-  E3.7 [~] Shortcuts in the strip (D68). E3.7.1 [x] pure `TriggerRun` + `ClipFormat.stripLabel` (+5 tests, 68 clipboard tests pass). E3.7.2 [x] IME hooks (setSuggestions merge, requestPrediction start, feeds in onText/backspace/enter/tab/accept/emoji/paste/resync, acceptShortcut). E3.7.3 [~] pushed, CI + owner test pending.
-  E3.7 [ ] Text shortcuts (user-made only). E3.8 [ ] Images (stored as private files, pasted with commitContent). E3.9 [ ] Biometric lock + export/import (encrypted backup = hook only, later).
+  E3.7 [~] Shortcuts in the strip (D68). E3.7.1 [x] pure `TriggerRun` + `ClipFormat.stripLabel` (+5 tests, 68 clipboard tests pass). E3.7.2 [x] IME hooks (setSuggestions merge, requestPrediction start, feeds in onText/backspace/enter/tab/accept/emoji/paste/resync, acceptShortcut). E3.7.3 [~] pushed (a65ba1e), CI #42 green; owner test pending (he said he will test everything together later).
+  E3.8 [~] Images (D70 answered: save by default + cap 50/100/250 MB; small thumbnail card; paste = commitContent, fallback copy + toast; settings 'Images' section with count/size + delete all).
+    E3.8.1 [x] pure: `ImageMime`, store `addImage` dedupe / `trimImages` / `clearImages` / `imageBytes`, `ClipFormat.bytes`, `ClipPrefs.saveImages/imageCapMb`, model Host `pasteImage/copyAgainImage/shareImage` (+11 tests, 79 clipboard tests pass).
+    E3.8.2 [x] Android: `ImageFiles` (import to private folder, sha256 name, thumbnail, sweep), `ImageProvider` (+ manifest), `ThumbCache`/`ThumbLoader`, `ImageShare`, `ClipHub.recordImage/imageStats`, `ClipCapture` image branch + `copyImageWithoutRecording`.
+    E3.8.3 [x] UI: panel card (thumbnail + Image/type), IME host (commitContent / fallback / share / copy again), app list rows with thumbnails, copy/share for images in the row menu, settings 'Images' section.
+    E3.8.4 [~] pushed together, CI + owner test pending (checklist below). Known limits: bulk 'Share' (keyboard panel and app) sends text clips only; images are not searchable (no text); no gallery screen (owner chose summary + delete all).
+  E3.9 [ ] Biometric lock + export/import (encrypted backup = hook only, later).
 E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). Docs: docs/PASSWORD_MANAGER.md (design), PASSWORD_MANAGER_PHASE0.md (results), PASSWORD_MANAGER_BRIEF.md.
   E1.1-E1.11 [x] Design D25-D53 (signed off), Phase 0 feasibility on branch `e1-feasibility` (green run #12, GO).
   E1.12 [x] Foundation on main (merge 9330477, D64): submodule `third_party/keepassdx` @ 4.5.8, `:vault` + 14 emulator tests, `engine.yml`, build.yml scoped to `:app`, AGP 8.13.2 / Gradle 8.14.2. The app does not use it yet.
@@ -27,7 +32,7 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D65) and update the docs.
 
 ## Next step
-Check CI for the E3.7 push, give the owner the test checklist (below). Then E3.8 images, E3.9 lock/export/import, the optional "recent clip" strip suggestion. Before every push run `tools/compile_check.sh` (~30 s).
+Check CI for the E3.8 push, give the owner the test checklist (below; E3.7 is still untested by him). Then E3.9 lock/export/import, the optional "recent clip" strip suggestion. Before every push run `tools/compile_check.sh` (~30 s).
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
 - Switch languages only through `MonsoonIme.setLanguage`. The strip has an arrow and shows suggestions instead of the icons (D23, D41: `Kind.STRIP` keys are hidden while suggestions show).
@@ -40,10 +45,11 @@ Side branch `e1-integrate` is merged (can be deleted); `e1-feasibility` is histo
 LESSON (mine): always re-read a notes file before rewriting it, other Claudes (and my other sessions) append to it.
 
 ## Test checklist for my latest build (owner)
-E3.7 shortcut suggestions in the keyboard (my commit is the `[claude-e] E3.7` one; wait for CI green, then take the APK at the `latest` link):
-1. In the Monsoon app > Clipboard > Shortcuts, make a shortcut: trigger `;sig`, text "Best regards,\nYour name".
-2. Open any normal text field, keyboard in English. Type `;`: the strip shows the shortcut's first line as a candidate. Type `;s`, `;si`, `;sig`: it stays. Tap it: the typed `;sig` is replaced by the full text (both lines), no space added.
-3. Type `;x` (no such trigger) or a space after `;sig`: the candidate goes away. Backspace back to `;s`: it comes back.
-4. Make a second shortcut `;sign` with different text: typing `;si` shows both (the one with the shorter trigger first).
-5. Avro mode: typing `;sig` does NOT offer it (the letters become Bangla); that is expected (D68). Password and URL fields: nothing offered.
-6. Normal typing and the usual word suggestions must work as before; tell me if the strip flickers or a normal word is replaced by a shortcut.
+E3.8 clipboard images (my commit is the `[claude-e] E3.8` one; wait for CI green, then take the APK at the `latest` link). E3.7 (shortcuts in the strip) is still untested: its steps were in the previous checklist (type `;sig`, tap the suggestion).
+1. Monsoon is your keyboard. In Chrome or Photos copy an image (long-press an image > Copy image, or share/copy from Photos). Open the keyboard's clipboard panel: an image card with a small thumbnail and "Image / PNG" shows at the top. Copy the same image again: still one card.
+2. Open the app > Clipboard > History: the image row has a thumbnail. Tap it: Copy / Pin / Share / Move / Delete. Copy and Share work with images (share to Messages or WhatsApp).
+3. Tap an image card in the panel while a chat app is open (WhatsApp, Messenger, Telegram, Gboard-style message field): the image is inserted into the message. Try a plain text field (a notes app, the browser address bar): the image is copied and a message says to long-press and Paste.
+4. Copy an animated GIF (e.g. from a chat app's GIF search) and paste it into a chat: it should still move.
+5. App > Clipboard > gear > Images: 'Save copied images' switch (try off: a new copy is not saved), 'Image storage limit' (50 / 100 / 250 MB), 'Stored images' line shows count and size; tap it to delete all (pinned ones stay).
+6. Images chip in the keyboard panel and the History screen lists only images. Text clips and the shortcuts you made earlier still work.
+7. Tell me if the panel scrolls slower with many images, a thumbnail stays an empty square, or an app shows a broken image after pasting.

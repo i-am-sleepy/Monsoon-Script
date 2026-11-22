@@ -108,15 +108,34 @@ class ClipStore(private val db: ClipDb, private val clock: () -> Long = { System
         return c
     }
 
-    /** An image clip (E3.8): [file] is the name inside the private image folder. */
+    /**
+     * An image clip (E3.8): [file] is the name inside the private image folder (its name is the SHA-256 of the picture, so the same picture always has the
+     * same name). An image that is saved already only moves to the top, whatever the duplicate setting says: one file must never belong to two clips,
+     * because deleting one clip deletes the file.
+     */
     fun addImage(file: String, mime: String): ClipItem {
         val now = clock()
+        val i = indexOfImage(file)
+        if (i >= 0) {
+            val old = clips.removeAt(i)
+            old.used = now
+            clips.add(0, old)
+            db.saveClips(listOf(old))
+            enforce(now)
+            changed()
+            return old
+        }
         val c = ClipItem(nextClipId++, ClipKind.IMAGE, "", file, mime, false, 0L, now, now)
         clips.add(0, c)
         db.saveClips(listOf(c))
         enforce(now)
         changed()
         return c
+    }
+
+    private fun indexOfImage(file: String): Int {
+        for (i in clips.indices) if (clips[i].image == file) return i
+        return -1
     }
 
     private fun indexOfText(raw: String): Int {
@@ -251,6 +270,60 @@ class ClipStore(private val db: ClipDb, private val clock: () -> Long = { System
     fun clearUnpinned(): Boolean {
         val doomed = HashSet<Long>()
         for (c in clips) if (!c.pinned && c.folder == 0L) doomed.add(c.id)
+        if (!remove(doomed)) return false
+        changed()
+        return true
+    }
+
+    // ---------------------------------------------------------------- image storage (E3.8)
+
+    /** How many image clips there are. */
+    fun imageCount(): Int {
+        var n = 0
+        for (c in clips) if (c.kind == ClipKind.IMAGE) n++
+        return n
+    }
+
+    /** The files of all image clips (the Android side deletes files nobody refers to). */
+    fun imageNames(): Set<String> {
+        val out = HashSet<String>()
+        for (c in clips) c.image?.let { out.add(it) }
+        return out
+    }
+
+    /** Disk space of all images, as [sizeOf] measures one file. */
+    fun imageBytes(sizeOf: (String) -> Long): Long {
+        var total = 0L
+        for (c in clips) c.image?.let { total += sizeOf(it) }
+        return total
+    }
+
+    /**
+     * Keep the images within [maxBytes]: the oldest loose image clips (not pinned, not in a folder) go first until it fits. Pinned and foldered images
+     * count but are never dropped, so the total can stay above the cap. Returns true if something was removed.
+     */
+    fun trimImages(maxBytes: Long, sizeOf: (String) -> Long): Boolean {
+        if (imageCount() == 0) return false
+        var total = imageBytes(sizeOf)
+        if (total <= maxBytes) return false
+        val doomed = HashSet<Long>()
+        for (i in clips.indices.reversed()) { // oldest first
+            if (total <= maxBytes) break
+            val c = clips[i]
+            val file = c.image ?: continue
+            if (c.pinned || c.folder != 0L) continue
+            doomed.add(c.id)
+            total -= sizeOf(file)
+        }
+        if (!remove(doomed)) return false
+        changed()
+        return true
+    }
+
+    /** "Delete all images" (settings): removes the loose image clips; pinned ones and ones in folders stay. */
+    fun clearImages(): Boolean {
+        val doomed = HashSet<Long>()
+        for (c in clips) if (c.kind == ClipKind.IMAGE && !c.pinned && c.folder == 0L) doomed.add(c.id)
         if (!remove(doomed)) return false
         changed()
         return true
