@@ -52,7 +52,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 - [x] L7 (claude-l) Trace of the features nobody works on (owner request 2026-11-22, read-only, nothing built): the unowned list, the idle claims (T6, T9.3, E1) and stale notes are in status/claude-l.md (L7). The owner picked auto-correction first (L8)
 - [~] L8 (claude-l) Auto-correction and typo fixes (owner pick 2026-11-22, design D69): Settings > Suggestions switch "Auto-correction" (off by default), English only, auto-fix on space + Backspace undo, fix first in bold and typed word second in quotes on the strip. Pushed in 7acebe7, CI #47 green; owner test pending. Steps in status/claude-l.md
-- [~] L9 (claude-l) Space-bar cursor drag (owner go-ahead 2026-11-22, design D72): hold the space bar, then slide moves the cursor; a quick slide still switches language; Settings > Typing > Space bar (switch, hold time, speed); a tick per character. Built and pushed, CI + owner test pending. Steps in status/claude-l.md
+- [~] L9 (claude-l) Space-bar cursor drag (owner go-ahead 2026-11-22, design D72): hold the space bar, then slide moves the cursor; a quick slide still switches language; Settings > Typing > Space bar (switch, hold time, speed); a tick per character. Pushed in 874ef94, CI #49 green; owner test pending. Steps in status/claude-l.md
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
 - Language switching has ONE entry point: `MonsoonIme.setLanguage(l: Language)`. The pill, space-bar swipe and claude-s's Ctrl+Space call it; nobody adds a second path.
