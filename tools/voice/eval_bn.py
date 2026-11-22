@@ -19,12 +19,10 @@ import jiwer
 import numpy as np
 import soundfile as sf
 import torch
-from datasets import Audio, get_dataset_split_names, load_dataset
 from scipy.signal import resample_poly
 from transformers import AutoModelForSpeechSeq2Seq, AutoTokenizer
 
 REPO = "Sanjidh090/moonshine-base-bn"
-DATA = "Sanjidh090/Lipi-Ghor-bn-882-SSTT"
 N = int(os.environ.get("N", "60"))
 MAX_SEC = 25.0
 
@@ -35,32 +33,38 @@ def norm(s: str) -> str:
 
 
 def load_clips(work: Path):
-    print("dataset splits:", get_dataset_split_names(DATA), flush=True)
-    ds = load_dataset(DATA, split="test", streaming=True)
-    print("features:", ds.features, flush=True)
-    audio_col = next(k for k, v in ds.features.items() if isinstance(v, Audio))
-    text_col = next((k for k in ("sentence", "text", "transcription", "transcript", "normalized_text") if k in ds.features), None)
-    if text_col is None:
-        text_col = next(k for k, v in ds.features.items() if getattr(v, "dtype", None) == "string")
-    print("columns used: audio =", audio_col, "text =", text_col, flush=True)
-    ds = ds.cast_column(audio_col, Audio(decode=False))
+    """FLEURS Bengali (google/fleurs, bn_in, test): real read speech with reference text. The authors' own test set
+    (Lipi-Ghor-bn-882-SSTT) is gated on the Hub, so CI cannot read it."""
+    import tarfile
+    from huggingface_hub import hf_hub_download
+
+    tsv = hf_hub_download("google/fleurs", "data/bn_in/test.tsv", repo_type="dataset")
+    tgz = hf_hub_download("google/fleurs", "data/bn_in/audio/test.tar.gz", repo_type="dataset")
+    refs = {}
+    for line in open(tsv, encoding="utf-8"):
+        c = line.rstrip("\n").split("\t")
+        if len(c) > 3:
+            refs[c[1]] = c[3]
+    print("fleurs bn_in test rows:", len(refs), flush=True)
     clips = []
-    for ex in ds:
-        a = ex[audio_col]
-        data, sr = sf.read(io.BytesIO(a["bytes"]), dtype="float32")
-        if data.ndim > 1:
-            data = data.mean(axis=1)
-        if sr != 16000:
-            g = np.gcd(sr, 16000)
-            data = resample_poly(data, 16000 // g, sr // g).astype("float32")
-        if len(data) / 16000 > MAX_SEC or len(data) < 16000 * 0.8:
-            continue
-        i = len(clips)
-        p = work / f"clip{i:03d}.wav"
-        sf.write(p, data, 16000)
-        clips.append((p, data, ex[text_col]))
-        if len(clips) >= N:
-            break
+    with tarfile.open(tgz) as tf:
+        for m in tf:
+            name = os.path.basename(m.name)
+            if not (m.isfile() and name in refs):
+                continue
+            data, sr = sf.read(io.BytesIO(tf.extractfile(m).read()), dtype="float32")
+            if data.ndim > 1:
+                data = data.mean(axis=1)
+            if sr != 16000:
+                g = np.gcd(sr, 16000)
+                data = resample_poly(data, 16000 // g, sr // g).astype("float32")
+            if len(data) / 16000 > MAX_SEC or len(data) < 16000 * 0.8:
+                continue
+            p = work / f"clip{len(clips):03d}.wav"
+            sf.write(p, data, 16000)
+            clips.append((p, data, refs[name]))
+            if len(clips) >= N:
+                break
     return clips
 
 
