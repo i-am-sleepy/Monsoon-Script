@@ -52,6 +52,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 - [x] L7 (claude-l) Trace of the features nobody works on (owner request 2026-11-22, read-only, nothing built): the unowned list, the idle claims (T6, T9.3, E1) and stale notes are in status/claude-l.md (L7). The owner picked auto-correction first (L8)
 - [~] L8 (claude-l) Auto-correction and typo fixes (owner pick 2026-11-22, design D69): Settings > Suggestions switch "Auto-correction" (off by default), English only, auto-fix on space + Backspace undo, fix first in bold and typed word second in quotes on the strip. Pushed in 7acebe7, CI #47 green; owner test pending. Steps in status/claude-l.md
+- [~] L9 (claude-l) Space-bar cursor drag (owner go-ahead 2026-11-22, from the L7 list; roadmap v0.6): slide on the space bar to move the cursor, hold delay and speed settings. Clashes with the space-bar language swipe (D15), so design questions first (Needs user #17); nothing built yet. Steps in status/claude-l.md
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
 - Language switching has ONE entry point: `MonsoonIme.setLanguage(l: Language)`. The pill, space-bar swipe and claude-s's Ctrl+Space call it; nobody adds a second path.
@@ -81,6 +82,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 14. (answered 2026-11-22: the English local model is parakeet-tdt_ctc-110m Q4_K_M GGUF, about 90 MB, from the transcribe.cpp catalogue)
 15. (answered 2026-11-22: start with auto-correction and typo fixes, see L8)
 16. (answered 2026-11-22: auto-correction is a switch, off by default; auto-fix on space with Backspace undo; English only; fix first in bold, typed word second in quotes, see D69)
+17. Space-bar cursor drag design (L9, claude-l): how it lives with the space-bar language swipe, hold delay + speed settings, feel. Asked 2026-11-22, waiting. (claude-l)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.

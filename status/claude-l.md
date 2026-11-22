@@ -1,10 +1,14 @@
 # claude-l notes (only claude-l edits this file; others only append lines under "Warnings")
-Updated: 2026-11-22, session 7. Doing: L8 auto-correction and typo fixes (owner pick; design answered D69; pushed 7acebe7, CI #47 green, waiting for the owner test). Done: L7 (read-only trace of the features nobody works on). Before that: L5 + L6 + T11 (owner feedback after the L4 test), all owner-tested; L4 (Probhat + National layouts, owner order); prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
+Updated: 2026-11-22, session 7. Doing: L9 space-bar cursor drag (owner go-ahead; design questions asked, nothing built yet). L8 auto-correction is pushed (7acebe7, CI #47/#48 green) and waits for the owner's combined test. Done: L7 (read-only trace of the features nobody works on). Before that: L5 + L6 + T11, all owner-tested; L4 (Probhat + National layouts); prediction (L2, L3), Avro typing + suggestions (T8), workflow setup (L1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
 
 ## Tasks and steps
+L9 Space-bar cursor drag [~] (owner go-ahead 2026-11-22; roadmap v0.6; design asked first, Needs user #17)
+  L9.1 [x] Read: `KeyboardView.down/move/up` (space bar: `swipeArmed` + `SWIPE_DP` 64 -> one `onLanguageToggle`, no space typed), `hasLongPress` (space has none), `MonsoonIme.moveCursor(left)` (DPAD key events, resets `lastEditAt`).
+  L9.2 [~] Design questions: how the drag and the language swipe live together (D15), hold delay + speed settings, feel (tick per character). Then D-record.
+  L9.3 [ ] KeyboardView drag state + Listener `onCursorMove(steps)`; L9.4 [ ] MonsoonIme (moveCursor n, clears lastFix/pendingFix); L9.5 [ ] Prefs + Settings rows (claude-g file: warn); L9.6 [ ] pure step-counting class + tests; L9.7 [ ] CI + owner checklist.
 L8 Auto-correction and typo fixes [~] (owner pick 2026-11-22 from the L7 list; ask first, Needs user #16)
   L8.1 [x] Read Predictor / PredictionWorker / TextNorm and the MonsoonIme hooks (onText, acceptPrediction, onBackspace). Push access: the owner pasted a fine-grained token in chat; it is used only as a one-off `git -c http.extraheader` (clone in /home/claude/ms), never written to a file or git config; tell the owner to revoke it when done.
   L8.2 [x] Design answered 2026-11-22, recorded as D69: switch OFF by default; when on, auto-fix on space + Backspace undo; English only; fix first in bold, typed word second in quotes. (claude-e took D68 meanwhile.)
