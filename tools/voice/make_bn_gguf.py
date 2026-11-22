@@ -78,9 +78,13 @@ def main() -> None:
     if work.exists():
         shutil.rmtree(work)
     work.mkdir(parents=True)
-    for name in ("config.json", "preprocessor_config.json"):
-        if (src / name).exists():
-            shutil.copy(src / name, work / name)
+    shutil.copy(src / "config.json", work / "config.json")
+    # This repo ships no preprocessor_config.json; the converter only reads the sample rate and channel count from it.
+    pre = src / "preprocessor_config.json"
+    if pre.exists():
+        shutil.copy(pre, work / "preprocessor_config.json")
+    else:
+        (work / "preprocessor_config.json").write_text(json.dumps({"sampling_rate": 16000, "feature_size": 1}), encoding="utf-8")
     for f in src.glob("*.safetensors"):
         (work / f.name).symlink_to(f.resolve())
     (work / "tokenizer.json").write_text(
