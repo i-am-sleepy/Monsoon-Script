@@ -1,5 +1,5 @@
 # claude-l notes (only claude-l edits this file; others only append lines under "Warnings")
-Updated: 2026-11-22, session 7. Doing: L8 auto-correction and typo fixes (owner pick; design questions asked, nothing built yet). Done: L7 (read-only trace of the features nobody works on). Before that: L5 + L6 + T11 (owner feedback after the L4 test), all owner-tested; L4 (Probhat + National layouts, owner order); prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
+Updated: 2026-11-22, session 7. Doing: L8 auto-correction and typo fixes (owner pick; design answered D69, building L8.3). Done: L7 (read-only trace of the features nobody works on). Before that: L5 + L6 + T11 (owner feedback after the L4 test), all owner-tested; L4 (Probhat + National layouts, owner order); prediction (L2, L3 done and owner-tested), Avro typing + suggestions (T8 done), workflow setup (L1).
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
@@ -7,7 +7,7 @@ Updated: 2026-11-22, session 7. Doing: L8 auto-correction and typo fixes (owner 
 ## Tasks and steps
 L8 Auto-correction and typo fixes [~] (owner pick 2026-11-22 from the L7 list; ask first, Needs user #16)
   L8.1 [x] Read Predictor / PredictionWorker / TextNorm and the MonsoonIme hooks (onText, acceptPrediction, onBackspace). Push access: the owner pasted a fine-grained token in chat; it is used only as a one-off `git -c http.extraheader` (clone in /home/claude/ms), never written to a file or git config; tell the owner to revoke it when done.
-  L8.2 [~] Design questions to the owner: default behaviour (auto-fix + undo / suggest only / off), which layouts (English first), how the strip shows a fix. After the answers: D68 in DECISIONS.md.
+  L8.2 [x] Design answered 2026-11-22, recorded as D69: switch OFF by default; when on, auto-fix on space + Backspace undo; English only; fix first in bold, typed word second in quotes. (claude-e took D68 meanwhile.)
        My plan: pure-Kotlin `predict/Corrector` (edit-distance 1-2 candidates found by lookup in the pack word list, keyboard-neighbour costs, ranked by frequency + context + learned words; only for words that no pack and no learned list knows; a Banglish word missing from the data can still look like a typo, so stay conservative: distance 1 first, high-frequency targets only, and an undo teaches "never fix this word"),
        a `PredictionWorker` request for it, Backspace right after a fix = undo + never fix that word again, a Prefs key + row in Settings > Suggestions (warn claude-g first), ARCHITECTURE.md section.
   L8.3 [ ] Corrector + JUnit tests on the real packs (run locally, kc.sh trick). L8.4 [ ] IME hook + undo + strip. L8.5 [ ] Settings row. L8.6 [ ] CI green, owner checklist.
@@ -92,7 +92,7 @@ L2 Offline prediction from WM Keyboard Data [~] decisions D41/D42 answered, buil
 
 ## Next step
 Nothing open. L4, L5, L6, T11 are owner-tested OK (2026-11-21). Do not start new features without the owner's go-ahead. Others' open items: claude-e Bijoy (T9.3), claude-s hardware-key translation (T6, should also decide whether a physical 1-0 follows `Prefs.banglaDigits()`).
-L7 is done. The owner picked auto-correction (2026-11-22): L8 above. Ask is open (Needs user #16); build nothing until it is answered. E3.7 of claude-e will also add a strip candidate: warn each other before touching the strip.
+L7 is done. The owner picked auto-correction (2026-11-22): L8 above. Design answered (D69): build L8.3-L8.6. E3.7 of claude-e will also add a strip candidate: warn each other before touching the strip.
 
 ## Half-done files / known bugs
 None known. Not verified on a device yet: everything in L2.4 (Android code is only compiled by CI). Things to watch in the owner's report: strip arrow touch handling, English tap-to-complete

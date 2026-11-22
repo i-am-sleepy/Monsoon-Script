@@ -50,7 +50,7 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [x] L6 (claude-l) The signs left out of L4 (॥ ৲ ৴-৹ ৺ ৄ ৢ ৣ ঽ) as long-press hints on the ?123 pages, Bangla layouts only (D63). Pushed in 65133d1, CI #29 green, owner-tested OK (2026-11-21). Steps in status/claude-l.md
 - [~] L1 (claude-l) Multi-Claude workflow (D20-D22): CLAUDE.md rules, owner tags, `status/` notes files, new paste command in README
 - [x] L7 (claude-l) Trace of the features nobody works on (owner request 2026-11-22, read-only, nothing built): the unowned list, the idle claims (T6, T9.3, E1) and stale notes are in status/claude-l.md (L7). The owner picked auto-correction first (L8)
-- [~] L8 (claude-l) Auto-correction and typo fixes (owner pick 2026-11-22): fix misspelled words from the prediction data + learned words, on the strip and/or on space, with undo. Design questions asked (Needs user #16); nothing built yet. Steps in status/claude-l.md
+- [~] L8 (claude-l) Auto-correction and typo fixes (owner pick 2026-11-22, design answered D69): Settings > Suggestions switch (off by default), English only, auto-fix on space + Backspace undo, fix first in bold and typed word second in quotes on the strip. Steps in status/claude-l.md
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
 - Language switching has ONE entry point: `MonsoonIme.setLanguage(l: Language)`. The pill, space-bar swipe and claude-s's Ctrl+Space call it; nobody adds a second path.
@@ -79,7 +79,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 13. (answered 2026-11-21: voice typing design: code in the APK, model download + import, mic hold/tap panel, engine per language, Voice test page, build order, see D66)
 14. Voice typing (G5, claude-g): the owner still has to confirm the exact English Parakeet file (my guess: Parakeet TDT-CTC 110M int8, about 100 MB). (claude-g)
 15. (answered 2026-11-22: start with auto-correction and typo fixes, see L8)
-16. Auto-correction design (L8, claude-l): default behaviour, which layouts it works in, how the strip shows a fix. Asked 2026-11-22, waiting. (claude-l)
+16. (answered 2026-11-22: auto-correction is a switch, off by default; auto-fix on space with Backspace undo; English only; fix first in bold, typed word second in quotes, see D69)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.
