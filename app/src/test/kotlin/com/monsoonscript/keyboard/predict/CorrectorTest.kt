@@ -51,8 +51,8 @@ class CorrectorTest {
 
     @Test fun staysSilentAfterABanglishWord() {
         // the same unknown word is fixed after an English word and left alone after a Banglish one
-        assertEquals("almost", auto("allmost", "the"))
-        assertNull(fix("allmost", "ami"))
+        assertEquals("challenge", auto("chalenge", "the"))
+        assertNull(fix("chalenge", "ami"))
         // a well-known English misspelling is still fixed in a Banglish sentence
         assertEquals("the", auto("teh", "ami"))
     }
@@ -123,7 +123,7 @@ class CorrectorTest {
             val e = Packs.en.indexOf(typo)
             assertTrue("$typo is too common in English to be a typo", e < 0 || Packs.en.countLevel(e) < 150)
             val r = Packs.rom.indexOf(typo)
-            assertTrue("$typo is a Banglish word", r < 0 || Packs.rom.countLevel(r) < Corrector.ROM_KNOWN)
+            assertTrue("$typo is a Banglish word", r < 0 || Packs.rom.countLevel(r) < Corrector.TABLE_ROM_MAX)
         }
     }
 
@@ -131,5 +131,50 @@ class CorrectorTest {
         val plain = Corrector.debugCandidates(Packs.en, "thier", null).first { it.word == "their" }.score
         val inContext = Corrector.debugCandidates(Packs.en, "thier", "in").first { it.word == "their" }.score
         assertTrue(inContext >= plain)
+    }
+
+    // ---- D73: the stronger corrector (the owner's test sentence: "It woks but miltales loke tgid get overlioked")
+
+    @Test fun fixesTheOwnersTestSentence() {
+        // each word after the word before it, as the keyboard sees it (the previous word is the FIXED one)
+        assertEquals("works", auto("woks", "it")) // a rare listed word, the pair "it works" decides against "woke"
+        assertEquals("mistakes", auto("miltales", "but")) // two slips
+        assertEquals("like", auto("loke", "mistakes")) // also a Banglish word, but the English context and a very common fix decide
+        assertEquals("this", auto("tgid", "like")) // two neighbouring keys
+        assertEquals("overlooked", auto("overlioked", "get")) // one slip in a long word
+    }
+
+    @Test fun aWeaklyBanglishWordIsOnlyFixedWithEnglishContextAndAVeryCommonFix() {
+        assertNull(fix("loke")) // no context: could be the Banglish word
+        assertNull(fix("loke", "ami")) // Banglish context
+        for (w in listOf("baraber", "islame", "horin", "jage", "chabir")) assertNull(w, fix(w, "the")) // real Banglish words, the fixes are not common enough
+    }
+
+    @Test fun twoSlipsAreFoundAndPriced() {
+        assertEquals(Corrector.C_TRANSPOSE, Corrector.editCost("teh", "the", 2.1), 1e-9)
+        assertEquals(Corrector.C_APOSTROPHE, Corrector.editCost("dont", "don't", 2.1), 1e-9)
+        assertEquals(2 * Corrector.C_NEIGHBOUR, Corrector.editCost("tgid", "this", 2.1), 1e-9) // g next to h, d next to s
+        assertEquals(Corrector.C_FAR + Corrector.C_NEIGHBOUR, Corrector.editCost("miltales", "mistakes", 2.1), 1e-9)
+        assertTrue(Corrector.editCost("thx", "tomorrow", 2.1) > 2.1) // too far: never offered
+        assertTrue(Corrector.candidates(Packs.en, "miltales", Corrector.MAX_COST).containsKey("mistakes"))
+        assertFalse(Corrector.candidates(Packs.en, "miltales", Corrector.C_LETTER).containsKey("mistakes")) // one slip only: not found
+    }
+
+    @Test fun aRareListedWordNeedsAMuchMoreCommonFix() {
+        assertEquals("works", auto("woks", "it"))
+        assertNull(auto("arising")) // fairly common real word: never applied (a tap candidate at most)
+        assertNull(auto("form")) // common real word
+    }
+
+    @Test fun aWordWithTwoSlipsNeedsFourLettersAndAClearLead() {
+        assertNull(auto("thx")) // far-away slip, three letters
+        assertNull(auto("pls"))
+        assertEquals("this", auto("tgid", "like")) // two neighbouring keys in four letters is allowed
+    }
+
+    @Test fun strongerSearchStillLeavesRealWordsAndNamesAlone() {
+        for (w in listOf("whatsapp", "bluetooth", "instagram", "youtube", "google", "iphone", "android", "emoji", "rahman", "karim", "sultana", "mehedi", "tanvir", "tamim", "sylhet")) {
+            assertFalse(w, fix(w, "the")?.auto == true)
+        }
     }
 }

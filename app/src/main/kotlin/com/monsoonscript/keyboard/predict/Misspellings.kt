@@ -9,7 +9,7 @@ package com.monsoonscript.keyboard.predict
  */
 object Misspellings {
     private const val PAIRS = """
-        teh the  adn and  hte the  taht that  thier their  wiht with  waht what  whta what  whihc which  wich which
+        allmost almost  teh the  adn and  hte the  taht that  thier their  wiht with  waht what  whta what  whihc which  wich which
         becuase because  becasue because  becuse because  beacuse because  definately definitely  definatly definitely
         definitly definitely  definate definite  seperate separate  seperately separately  occured occurred
         occurence occurrence  occurance occurrence  recieve receive  recieved received  recive receive  reciept receipt

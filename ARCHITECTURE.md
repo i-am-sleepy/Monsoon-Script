@@ -123,6 +123,11 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   word and no shortcut candidate (E3.7) is in front: the fix replaces the word, a space follows. NEVER read `suggestions[0]` for this (shortcut texts can come first), use `pendingFix`.
   `onBackspace` -> `undoAutoFix` right after a fix (checked against `lastEditAt` and the editor text): the typed word comes back WITHOUT the space and `reject` makes the worker leave it alone
   (for the session; a word the owner then finishes is learned like any other when learning is on). Tapping the quoted typed word also rejects it. Only on space, not on punctuation or Enter.
+  D73 (stronger, after the owner test): `Corrector.candidates` = every one-slip edit (any first letter) + a weighted edit distance (`editCost`: swap 0.5, neighbouring key 0.7, doubled 0.7, vowel for vowel 0.9, missing/extra 1.0, far letter 1.3, apostrophe 0.5;
+  OSA with transposition) over the words that start with the same letter, up to `MAX_COST` 2.1 = two slips (about 0.3 ms per word on a PC; the whole list of one first letter is scanned). Score = level - 80 x cost + pair bonus (`contextBonus`: the pair
+  "previous word + candidate" in the pairs data). A fix is applied by itself when the fix is common enough (120, 100 from 7 letters), the typed word is unlisted or rare in the list (<= 70) and the fix 100 levels more common, the lead over the second best is
+  40 (60 for two slips), a two-slip fix has 4+ letters (6+ unless both slips are neighbouring keys), and no Banglish-only word is about as likely (`banglishRival`, Banglish levels get +70). Banglish protection: rom level >= 60 never, 30-59 only with a supporting
+  pair and a fix of level 195+, nothing generic after a Banglish previous word. `Misspellings` and `n't` contractions are checked before the Banglish protection.
 - Strip arrow (D41): while the strip has candidates, a chevron button sits at its left (`KeyboardView`, `arrowW`); tapping it swaps the candidates for the normal icon row (`iconsPinned`,
   chevron mirrored) until the candidates change; with no candidates the strip is the plain icon row without arrow. The left-hand strip icons are shifted right by the arrow width in place
   (`placeStrip`, `stripLeftCount`), so hit-testing needs no special case; touches on the arrow are tracked per pointer (`ptrArrow`, `ARROW_SLOT`).
