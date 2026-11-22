@@ -84,6 +84,13 @@ object ClipFormat {
         return "${tenths / 10L}.${tenths % 10L} MB"
     }
 
+    /** The picture clips of a selection, in the order given (they are shared together with [exportText], D74). */
+    fun imageClips(clips: List<ClipItem>): List<ClipItem> {
+        val out = ArrayList<ClipItem>()
+        for (c in clips) if (c.isImage && c.image != null) out.add(c)
+        return out
+    }
+
     /** Selected text clips as one text: clips separated by a blank line, in the order given. Image clips are left out. */
     fun exportText(clips: List<ClipItem>): String {
         val sb = StringBuilder()

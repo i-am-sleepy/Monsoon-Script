@@ -84,8 +84,16 @@ class ClipHub private constructor(private val app: Context) {
         }
     }
 
+    /** The keyboard reads these on every key, so they are copied here when a setting changes (D74). */
+    @Volatile var directShortcuts = false
+        private set
+    @Volatile var recentChip = true
+        private set
+
     /** Copy the history rules from the settings into the store. */
     fun applySettings() {
+        directShortcuts = prefs.directShortcuts
+        recentChip = prefs.recentChip
         store.maxItems = prefs.maxItems
         store.autoDeleteMs = prefs.autoDeleteMs
         store.keepPinned = prefs.keepPinned
@@ -105,9 +113,15 @@ class ClipHub private constructor(private val app: Context) {
         store.trimImages(prefs.imageCapBytes, images::sizeOf)
     }
 
+    /** The latest copied text for the strip chip (D74), and who wants to know when a new one arrives (the keyboard). */
+    val recent = RecentCopy(SystemClock::elapsedRealtime)
+    var onCopied: (() -> Unit)? = null
+
     /** A text was copied (called by [ClipCapture] after its checks). */
     fun record(text: String) {
         if (!started) start()
+        recent.note(text)
+        onCopied?.invoke()
         if (store.loaded) {
             store.addText(text)
         } else if (pending.size < MAX_PENDING) {

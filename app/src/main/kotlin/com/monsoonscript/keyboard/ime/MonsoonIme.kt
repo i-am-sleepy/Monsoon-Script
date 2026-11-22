@@ -150,6 +150,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private class DoneFix(val original: String, val fixed: String, val stamp: Long)
     private var lastFix: DoneFix? = null
 
+    /** After Backspace brought a trigger back, the next Space must not turn it into the text again (D74). */
+    private var skipTrigger: String? = null
+
     /** Typing settings (G2, G3), cached by [applyPrefs]; [autoShow] is also read before the view exists, so [onCreate] sets it too. */
     private var autoShow = true
     private var volumeCursor = Prefs.VOLUME_OFF
@@ -238,6 +241,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         clipHub = hub
         hub.start()
         clipCapture = ClipCapture(this, hub).also { it.start() }
+        hub.onCopied = { refreshRecentChip() }
     }
 
     override fun onCreateInputView(): View {
@@ -388,6 +392,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     override fun onDestroy() {
+        clipHub?.onCopied = null
         clipCapture?.stop()
         clipCapture = null
         Prefs.of(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
@@ -635,6 +640,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val fx = pendingFix
         val quoted = if (fx != null && autoCorrect && !language.isBangla) shown.indexOf(fx.typed) else -1 // the typed word beside a fix is drawn in quotes
         keyboard?.setSuggestions(shown, quoted)
+        keyboard?.removeCallbacks(chipExpire)
+        val chip = clipHub?.recent
+        if (chip != null && shown.isNotEmpty() && recentChipText() != null) keyboard?.postDelayed(chipExpire, chip.remainingMs() + 50) // the chip leaves when its minute is over
     }
 
     // ---- auto-correction (L8, D69)
@@ -680,6 +688,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         ic.endBatchEdit()
         lastEditAt = SystemClock.uptimeMillis()
         predWorker?.reject(TextNorm.key(d.original))
+        skipTrigger = d.original // a shortcut trigger comes back as typed: the next Space leaves it alone (D74)
         resyncTracker()
         requestPrediction()
         refreshAutoCaps()
@@ -692,11 +701,39 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun shortcutsActive(): Boolean =
         answerFollows && !avroActive && !panelSearch && clipHub?.store?.shortcuts?.isNotEmpty() == true
 
+    /**
+     * Direct insertion (E3.10, D74): Space after a complete trigger replaces the trigger with the full text, the space follows. Uses [lastFix], so Backspace right after
+     * brings the trigger back (without the space) like an auto-correction. Goes before auto-correction; no strip candidates are shown while it is on.
+     */
+    private fun applyDirectShortcut(ic: InputConnection): Boolean {
+        val hub = clipHub ?: return false
+        if (!hub.directShortcuts || !predicting || avroActive || panelSearch || hasSelection || composer?.isComposing == true) return false
+        val typed = triggerRun.text
+        if (typed.isEmpty()) return false
+        val skip = skipTrigger
+        skipTrigger = null
+        if (skip != null && skip.equals(typed, ignoreCase = true)) return false
+        val hit = hub.store.shortcutFor(typed) ?: return false
+        val before = ic.getTextBeforeCursor(typed.length, 0)
+        if (before == null || before.toString() != typed) return false // the editor is not what we thought: a plain space
+        ic.beginBatchEdit()
+        ic.deleteSurroundingText(typed.length, 0)
+        ic.commitText(hit.text + " ", 1)
+        ic.endBatchEdit()
+        lastEditAt = SystemClock.uptimeMillis()
+        lastFix = DoneFix(typed, hit.text, lastEditAt)
+        shortcutHits = emptyList()
+        resyncTracker() // the editor now holds the full text
+        refreshAutoCaps()
+        requestPrediction()
+        return true
+    }
+
     /** Match what was typed since the last space against the triggers; when the offer changed, repaint the strip. Called before every prediction request. */
     private fun refreshShortcuts() {
         val store = clipHub?.store
         var hits: List<ClipShortcut> = emptyList()
-        if (store != null && shortcutsActive()) {
+        if (store != null && shortcutsActive() && clipHub?.directShortcuts != true) { // direct insertion replaces the candidates
             val typed = triggerRun.text
             if (typed.isNotEmpty()) hits = store.matchShortcuts(typed, MAX_SHORTCUT_CANDIDATES)
         }
@@ -712,8 +749,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** The strip list: the shortcut texts first (one line each), then what the word engines suggested. */
     private fun withShortcuts(words: List<String>): List<String> {
-        if (shortcutHits.isEmpty()) return words
-        val out = ArrayList<String>(words.size + shortcutHits.size)
+        val chip = recentChipText()
+        if (shortcutHits.isEmpty() && chip == null) return words
+        val out = ArrayList<String>(words.size + shortcutHits.size + 1)
+        if (chip != null) out.add(chipLabel(chip))
         for (h in shortcutHits) {
             val label = ClipFormat.stripLabel(h.text)
             if (label.isNotEmpty() && label !in out) out.add(label)
@@ -721,6 +760,41 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         for (w in words) if (w !in out) out.add(w)
         return out
     }
+
+    // ---- recent copy chip (E3.10, D74)
+
+    /**
+     * The text copied in the last minute, offered as the first strip candidate while nothing is typed yet. Never while the clipboard lock is on, never when the owner
+     * switched it off; password fields have no strip, and what is never recorded (sensitive, vault) never reaches [RecentCopy].
+     */
+    private fun recentChipText(): String? {
+        val hub = clipHub ?: return null
+        if (!hub.recentChip || hub.lock.enabled || !answerFollows || avroActive || panelSearch) return null
+        if (composer?.isComposing == true || triggerRun.text.isNotEmpty() || tracker.typed.isNotEmpty()) return null
+        return hub.recent.current()
+    }
+
+    private fun chipLabel(text: String): String = CHIP_MARK + ClipFormat.stripLabel(text)
+
+    /** A strip candidate was tapped: when it is the recent copy chip, the whole copied text is pasted (and the chip is gone). */
+    private fun acceptRecent(word: String): Boolean {
+        val hub = clipHub ?: return false
+        val text = recentChipText() ?: return false
+        if (word != chipLabel(text)) return false
+        hub.recent.dismiss()
+        pasteClip(text)
+        requestPrediction()
+        refreshAutoCaps()
+        return true
+    }
+
+    /** A text was copied while the keyboard is up: show the chip at once, and take it away again when its minute is over. */
+    private fun refreshRecentChip() {
+        if (recentChipText() == null) return
+        setSuggestions(engineWords)
+    }
+
+    private val chipExpire = Runnable { setSuggestions(engineWords) }
 
     /** A strip candidate was tapped: when it is a shortcut, the typed trigger is replaced by the full text (checked against the editor first, no space follows). */
     private fun acceptShortcut(word: String): Boolean {
@@ -784,6 +858,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
         val ic = currentInputConnection ?: return
         lastFix = null // any typing ends the chance to undo the last fix
+        clipHub?.recent?.dismiss() // typing means the chip is not wanted
+        if (text != " ") skipTrigger = null
+        if (text == " " && applyDirectShortcut(ic)) return
         if (text == " " && applyAutoFix(ic)) return
         if (avroActive) {
             val comp = ensureComposer()
@@ -821,6 +898,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         if (panelSearch || suggestions.isEmpty()) return // empty = the strip only still paints the old words (G4)
         lastFix = null
         if (acceptShortcut(word)) return
+        if (acceptRecent(word)) return
         val ic = currentInputConnection ?: return
         val comp = composer
         if (comp == null || !comp.isComposing) {
@@ -1236,6 +1314,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             ImageShare.chooser(hub.images, clip)?.let { launch(it) }
         }
 
+        override fun shareClips(images: List<ClipItem>, text: String) {
+            val hub = clipHub ?: return
+            ImageShare.chooserMany(hub.images, images, text)?.let { launch(it) }
+        }
+
         override fun edit(clipId: Long) = launch(ClipEditActivity.intent(this@MonsoonIme, clipId))
 
         override fun openSettings() = launch(Intent(this@MonsoonIme, ClipboardSettingsActivity::class.java))
@@ -1399,6 +1482,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         const val RESYNC_CHARS = 80
         const val EMOJI_PRELOAD_MS = 3000L
         const val UNLOCK_OPEN_MS = 120_000L
+        const val CHIP_MARK = "\uD83D\uDCCB " // the clipboard sign in front of the recent copy chip (E3.10)
         const val MAX_SHORTCUT_CANDIDATES = 2 // of the strip's three slots; the third stays free for a word (E3.7)
         const val HELD_MS = 400L // how long the strip may keep painting dropped candidates while the next answer is computed (G4)
         const val MAX_QUERY = 40

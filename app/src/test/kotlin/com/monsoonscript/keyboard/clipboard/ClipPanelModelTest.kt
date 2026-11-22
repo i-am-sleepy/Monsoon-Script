@@ -17,6 +17,7 @@ class ClipPanelModelTest {
         val pastedImages = ArrayList<Long>()
         val copiedImages = ArrayList<Long>()
         val sharedImages = ArrayList<Long>()
+        val sharedMany = ArrayList<Pair<List<Long>, String>>()
         val edited = ArrayList<Long>()
         val columns = ArrayList<Int>()
         var settings = 0
@@ -38,6 +39,9 @@ class ClipPanelModelTest {
         }
         override fun shareImage(clip: ClipItem) {
             sharedImages.add(clip.id)
+        }
+        override fun shareClips(images: List<ClipItem>, text: String) {
+            sharedMany.add(Pair(images.map { it.id }, text))
         }
         override fun edit(clipId: Long) {
             edited.add(clipId)
@@ -64,6 +68,8 @@ class ClipPanelModelTest {
     private fun shown(): List<String> = model.cards.map { it.clip?.text ?: it.shortcut!!.trigger }
 
     private fun indexOf(text: String): Int = model.cards.indexOfFirst { it.clip?.text == text }
+
+    private fun indexOfId(id: Long): Int = model.cards.indexOfFirst { it.clip?.id == id }
 
     @Test
     fun opensOnAllWithNewestFirstAndTheFixedChips() {
@@ -194,6 +200,32 @@ class ClipPanelModelTest {
         model.exportSelected()
         assertEquals(listOf("third\n\nfirst"), host.shared)
         assertFalse(model.selecting)
+    }
+
+    @Test
+    fun exportWithPicturesSharesThemTogetherWithTheText() {
+        add("first", "second")
+        val a = store.addImage("a.png", "image/png")
+        val b = store.addImage("b.jpg", "image/jpeg")
+        model.open()
+        model.longPressCard(indexOf("first"))
+        model.tapCard(indexOfId(a.id))
+        model.tapCard(indexOfId(b.id))
+        model.exportSelected()
+        assertTrue(host.shared.isEmpty()) // not as plain text: the pictures go with it
+        assertEquals(1, host.sharedMany.size)
+        assertEquals(setOf(a.id, b.id), host.sharedMany[0].first.toSet())
+        assertEquals("first", host.sharedMany[0].second)
+        assertFalse(model.selecting)
+    }
+
+    @Test
+    fun exportOfOnlyPicturesHasNoText() {
+        val a = store.addImage("a.png", "image/png")
+        model.open()
+        model.longPressCard(indexOfId(a.id))
+        model.exportSelected()
+        assertEquals(listOf(Pair(listOf(a.id), "")), host.sharedMany)
     }
 
     @Test

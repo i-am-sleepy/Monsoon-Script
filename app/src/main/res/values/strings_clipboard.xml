@@ -114,6 +114,10 @@
     <string name="clip_set_group_summary">Today, Yesterday and Earlier headers in the app\'s History screen.</string>
     <string name="clip_set_hide_paste">Close the panel after pasting</string>
     <string name="clip_set_hide_paste_summary">Go back to the keys after you tap a clip.</string>
+    <string name="clip_set_shortcut_direct">Insert shortcuts directly</string>
+    <string name="clip_set_shortcut_direct_summary">Type a shortcut\'s trigger and press Space: it turns into the full text. Backspace right after brings the trigger back. Off: shortcuts show in the strip to tap.</string>
+    <string name="clip_set_recent_chip">Recent copy in the strip</string>
+    <string name="clip_set_recent_chip_summary">For a minute after you copy text, the suggestion strip shows it to tap and paste. Hidden while the clipboard lock is on.</string>
     <string name="clip_set_appearance">Appearance</string>
     <string name="clip_set_compact">Compact cards</string>
     <string name="clip_set_compact_summary">Less padding, more clips on screen.</string>

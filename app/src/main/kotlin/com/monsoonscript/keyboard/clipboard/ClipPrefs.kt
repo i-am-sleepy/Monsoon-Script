@@ -67,6 +67,16 @@ class ClipPrefs(context: Context) {
         get() = sp.getBoolean(K_IMAGES, true)
         set(v) = sp.edit().putBoolean(K_IMAGES, v).apply()
 
+    /** Typing a trigger and pressing Space puts the full text in (E3.10, D74). Off = the strip offers it as a candidate (D68). */
+    var directShortcuts: Boolean
+        get() = sp.getBoolean(K_SHORTCUT_DIRECT, false)
+        set(v) = sp.edit().putBoolean(K_SHORTCUT_DIRECT, v).apply()
+
+    /** The latest copied text shows as a chip in the suggestion strip for a minute (E3.10, D74). */
+    var recentChip: Boolean
+        get() = sp.getBoolean(K_RECENT_CHIP, true)
+        set(v) = sp.edit().putBoolean(K_RECENT_CHIP, v).apply()
+
     /** Automatic backup (E3.9, D71): [BACKUP_OFF], [BACKUP_DAILY] or [BACKUP_WEEKLY]. */
     var autoBackup: Int
         get() = sp.getInt(K_AUTO_BACKUP, BACKUP_OFF).let { if (it in BACKUP_OFF..BACKUP_WEEKLY) it else BACKUP_OFF }
@@ -136,6 +146,8 @@ class ClipPrefs(context: Context) {
         const val K_IMAGES = "save_images"
         const val K_IMAGE_CAP = "image_cap_mb"
         const val K_LOCK = "lock_enabled"
+        const val K_SHORTCUT_DIRECT = "shortcut_direct"
+        const val K_RECENT_CHIP = "recent_chip"
         const val K_AUTO_BACKUP = "auto_backup"
         const val K_BACKUP_FOLDER = "backup_folder"
         const val K_BACKUP_IMAGES = "backup_images"

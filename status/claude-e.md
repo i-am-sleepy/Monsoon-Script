@@ -25,7 +25,7 @@ E3 Clipboard [~] Owner rule for this task: ask him every implementation decision
     E3.9.2 [x] pure backup: `MiniJson`, `BackupData`, `ClipBackup` codec, store `snapshot`/`importBackup` (+ tests, 112 clipboard tests pass locally).
     E3.9.3 [x] Android, pushed (0d8b247; CI #50 green, owner test pending): `BackupIo` (zip, images), `ClipHub.exportBackup/importBackup/maybeAutoBackup`, `AutoBackup` (folder, Off/Daily/Weekly, keep 5), settings 'Backup' section via SAF.
     E3.9.4 [x] docs done, CI #50 green, owner has the E3.9 checklist (below). Known limits: backups are NOT encrypted (stated in settings); import only merges; automatic backup skips images unless the switch is on (my default, owner can change).
-  E3.10 [~] Extras (D74 answered): E3.10.1 [ ] direct shortcut insertion (switch in Behavior, off; Space after a full trigger; Backspace brings the trigger back; no strip candidates while on). E3.10.2 [ ] recent copy chip in the strip (switch, on; 1 min; not in password fields; hidden while the lock is on). E3.10.3 [ ] share several images (panel + app). E3.10.4 [ ] docs, CI, owner checklist.
+  E3.10 [~] Extras (D74 answered): E3.10.1 [x] direct shortcut insertion (switch in Behavior, off; Space after a full trigger; Backspace brings the trigger back; no strip candidates while on). E3.10.2 [x] recent copy chip in the strip (switch, on; 1 min; not in password fields; hidden while the lock is on). E3.10.3 [x] share several images (panel + app). All pushed together, 118 clipboard tests pass locally. E3.10.4 [~] docs done, CI + owner checklist pending.
 E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). Docs: docs/PASSWORD_MANAGER.md (design), PASSWORD_MANAGER_PHASE0.md (results), PASSWORD_MANAGER_BRIEF.md.
   E1.1-E1.11 [x] Design D25-D53 (signed off), Phase 0 feasibility on branch `e1-feasibility` (green run #12, GO).
   E1.12 [x] Foundation on main (merge 9330477, D64): submodule `third_party/keepassdx` @ 4.5.8, `:vault` + 14 emulator tests, `engine.yml`, build.yml scoped to `:app`, AGP 8.13.2 / Gradle 8.14.2. The app does not use it yet.
@@ -36,7 +36,7 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D65) and update the docs.
 
 ## Next step
-The owner tests E3.7, E3.8 and E3.9 together (CI #50 green on 0d8b247; lock was green in #49); wait for his report. Then, only after asking him: to test E3.7, E3.8 and E3.9 together (checklist below). The optional "recent clip" strip suggestion, bulk Share of images, E1 Phase 1 (E1.13). Before every push run `tools/compile_check.sh` (~30 s).
+The owner tests E3.7-E3.10 together (CI #50 green on 0d8b247; lock was green in #49); wait for his report. Then, only after asking him: to test E3.7, E3.8 and E3.9 together (checklist below). The optional "recent clip" strip suggestion, bulk Share of images, E1 Phase 1 (E1.13). Before every push run `tools/compile_check.sh` (~30 s).
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
 - Switch languages only through `MonsoonIme.setLanguage`. The strip has an arrow and shows suggestions instead of the icons (D23, D41: `Kind.STRIP` keys are hidden while suggestions show).
@@ -50,6 +50,12 @@ Side branch `e1-integrate` is merged (can be deleted); `e1-feasibility` is histo
 LESSON (mine): always re-read a notes file before rewriting it, other Claudes (and my other sessions) append to it.
 
 ## Test checklist for my latest build (owner)
+E3.10 extras (my commit: `[claude-e] E3.10` after the E3.9 ones; same APK link). Switches are in App > Clipboard > gear > Behavior.
+A. Direct shortcuts: make a shortcut `;sig` with a short text (App > Clipboard > Shortcuts). Turn on 'Insert shortcuts directly'. In a chat app type `;sig` then Space: the trigger becomes the full text with a space after it, and no strip candidate showed while typing. Press Backspace once right away: the text goes and `;sig` is back; press Space again: it stays `;sig` (not expanded a second time). Turn the switch off: `;sig` shows in the strip to tap again as before.
+B. Recent copy chip: with 'Recent copy in the strip' on (default), copy some text in any app, open a message field: the strip's first slot shows a clipboard sign and the text. Tap it: the whole text is pasted. Wait over a minute (or start typing): it is gone. Turn the setting off or turn the clipboard lock on: no chip.
+C. Share several images: History > long-press an image, tap another image (and a text clip), Share: the share sheet gets both pictures (and the text). Do the same from the keyboard's clipboard panel.
+Tell me if the chip shows in a password field, pasting the chip puts the wrong text, or `;sig` + Space does nothing in some app.
+
 E3.9 lock + backup (my commits: `[claude-e] E3.9.1` lock 5155402 and `[claude-e] E3.9.2-3` backup 0d8b247; take the APK at the `latest` link after CI is green). Earlier untested: E3.7 (type `;sig`, tap the suggestion) and E3.8 (below).
 LOCK (needs a screen lock set in the phone):
 1. App > Clipboard > gear > Privacy > 'Lock the clipboard': tap, your fingerprint/face/PIN prompt appears; after it succeeds the row says On. 'Lock again after': 1 min is the default, try Immediately and a longer one.

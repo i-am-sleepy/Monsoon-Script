@@ -567,6 +567,13 @@ class ClipStore(private val db: ClipDb, private val clock: () -> Long = { System
         return if (out.size > limit) out.subList(0, limit) else out
     }
 
+    /** The shortcut whose trigger is exactly [typed] (case-insensitive), for the direct insertion on Space (D74). */
+    fun shortcutFor(typed: String): ClipShortcut? {
+        if (typed.isEmpty()) return null
+        for (s in shortcutList) if (s.trigger.equals(typed, ignoreCase = true)) return s
+        return null
+    }
+
     companion object {
         const val ANY_FOLDER = -1L
         const val MAX_TEXT = 100_000

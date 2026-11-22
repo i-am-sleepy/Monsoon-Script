@@ -79,6 +79,8 @@ class ClipboardSettingsActivity : Activity() {
             page.content.add(switchRow(getString(R.string.clip_set_pinned_top), getString(R.string.clip_set_pinned_top_summary), ClipPrefs.K_PINNED_TOP, true))
             page.content.add(switchRow(getString(R.string.clip_set_group), getString(R.string.clip_set_group_summary), ClipPrefs.K_GROUP, true))
             page.content.add(switchRow(getString(R.string.clip_set_hide_paste), getString(R.string.clip_set_hide_paste_summary), ClipPrefs.K_HIDE_PASTE, false))
+            page.content.add(switchRow(getString(R.string.clip_set_shortcut_direct), getString(R.string.clip_set_shortcut_direct_summary), ClipPrefs.K_SHORTCUT_DIRECT, false))
+            page.content.add(switchRow(getString(R.string.clip_set_recent_chip), getString(R.string.clip_set_recent_chip_summary), ClipPrefs.K_RECENT_CHIP, true))
 
             page.content.add(header(getString(R.string.clip_set_images)))
             page.content.add(switchRow(getString(R.string.clip_set_save_images), getString(R.string.clip_set_save_images_summary), ClipPrefs.K_IMAGES, true))

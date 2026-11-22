@@ -259,6 +259,11 @@ class ClipStoreTest {
         assertEquals(1, s.matchShortcuts(";", 1).size)
         assertTrue(s.matchShortcuts("", 5).isEmpty())
         assertTrue(s.matchShortcuts("hello", 5).isEmpty())
+        assertEquals(em.id, s.shortcutFor(";EM")!!.id) // direct insertion: only the complete trigger, any case
+        assertEquals(email.id, s.shortcutFor(";email")!!.id)
+        assertNull(s.shortcutFor(";e")) // a prefix is not enough
+        assertNull(s.shortcutFor(";emails"))
+        assertNull(s.shortcutFor(""))
         assertTrue(s.updateShortcut(em.id, ";emm", "changed"))
         assertEquals("changed", db.shortcuts[em.id]!!.text)
         assertTrue(s.deleteShortcut(email.id))

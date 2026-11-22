@@ -46,6 +46,20 @@ internal class ClipActions(private val activity: Activity, private val store: Cl
         }
     }
 
+    /** Share a selection: its pictures (when there are any) together with its text; only text goes out as plain text as before. */
+    fun shareSelection(images: List<ClipItem>, text: String) {
+        if (images.isEmpty()) {
+            share(text)
+            return
+        }
+        val chooser = ImageShare.chooserMany(ClipHub.get(activity).images, images, text) ?: return
+        try {
+            activity.startActivity(chooser)
+        } catch (e: RuntimeException) {
+            // no app can take it
+        }
+    }
+
     fun share(text: String) {
         if (text.isEmpty()) return
         val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)

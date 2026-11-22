@@ -27,6 +27,9 @@ class ClipPanelModel(private val store: ClipStore, private val host: Host) : Cli
         /** Share this image with another app. */
         fun shareImage(clip: ClipItem)
 
+        /** Share several pictures in one go; [text] (may be empty) is the selected text clips and goes along as text. */
+        fun shareClips(images: List<ClipItem>, text: String)
+
         /** Open the editor for this text clip. */
         fun edit(clipId: Long)
 
@@ -309,7 +312,7 @@ class ClipPanelModel(private val store: ClipStore, private val host: Host) : Cli
         finishBulk()
     }
 
-    /** Share the selected text clips as one text (blank line between them), in list order. */
+    /** Share the selection (list order): the text clips as one text (blank line between them) and, when pictures are selected, the pictures with it (D74). */
     fun exportSelected() {
         if (selected.isEmpty()) return
         val clips = ArrayList<ClipItem>()
@@ -318,7 +321,8 @@ class ClipPanelModel(private val store: ClipStore, private val host: Host) : Cli
             if (clip.id in selected) clips.add(clip)
         }
         val text = ClipFormat.exportText(clips)
-        if (text.isNotEmpty()) host.share(text)
+        val images = ClipFormat.imageClips(clips)
+        if (images.isNotEmpty()) host.shareClips(images, text) else if (text.isNotEmpty()) host.share(text)
         finishBulk()
     }
 

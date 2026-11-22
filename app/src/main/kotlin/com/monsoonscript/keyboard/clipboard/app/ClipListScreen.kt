@@ -270,7 +270,7 @@ internal class ClipListScreen(
             for ((res, run) in listOf<Pair<Int, () -> Unit>>(
                 R.string.clip_bar_pin to { model.pinSelected(); selectionChanged() },
                 R.string.clip_bar_move to { actions.pickFolder { model.moveSelected(it); selectionChanged() } },
-                R.string.clip_bar_share to { actions.share(model.exportText()); endSelection() },
+                R.string.clip_bar_share to { actions.shareSelection(model.selectedImages(), model.exportText()); endSelection() },
                 R.string.clip_bar_delete to { actions.confirmDelete(model.selectionCount) { model.deleteSelected(); selectionChanged() } },
             )) {
                 addView(textButton(activity.getString(res), ui.accent, run), LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
