@@ -84,7 +84,8 @@ def cli_decode(cli, gguf, wav):
     t = time.time()
     r = subprocess.run([cli, "-m", gguf, str(wav)], capture_output=True, text=True)
     dt = time.time() - t
-    return r.stdout.strip(), r.stderr.strip(), r.returncode, dt
+    m = re.search(r"^text:[ \t]*(.*)$", r.stdout, re.M)
+    return (m.group(1).strip() if m else ""), (r.stdout + r.stderr).strip(), r.returncode, dt
 
 
 def score(name, refs, hyps):
@@ -113,7 +114,7 @@ def main():
         for n, (p, _, _) in enumerate(clips):
             out, err, rc, dt = cli_decode(cli, g, p)
             if n < 2:
-                print(f"[{key}] clip {n}: rc={rc}\n  stdout: {out[:300]!r}\n  stderr tail: {err[-400:]!r}", flush=True)
+                print(f"[{key}] clip {n}: rc={rc}\n  text: {out[:200]!r}\n  log tail: {err[-300:]!r}", flush=True)
             hyp[key].append(out)
             times[key].append(dt)
     print("\n=== results (light normalisation) ===")
