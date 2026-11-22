@@ -23,8 +23,8 @@ E3 Clipboard [~] Owner rule for this task: ask him every implementation decision
     E3.8.4 [~] pushed together, CI + owner test pending (checklist below). Known limits: bulk 'Share' (keyboard panel and app) sends text clips only; images are not searchable (no text); no gallery screen (owner chose summary + delete all).
   E3.9 [~] Lock + backup (D71 answered). E3.9.1 [x] pushed (CI + owner test pending): `LockState` (+11 tests, 90 clipboard tests pass), prefs, `ClipUnlockActivity` (BiometricPrompt on API 29+, confirm-credential below), `LockGate` in ClipboardActivity + settings, panel hook in MonsoonIme (onClipboardKey / showClipboard / closeClipboard / onFinishInputView / onStartInputView), settings rows (Privacy), USE_BIOMETRIC permission.
     E3.9.2 [x] pure backup: `MiniJson`, `BackupData`, `ClipBackup` codec, store `snapshot`/`importBackup` (+ tests, 112 clipboard tests pass locally).
-    E3.9.3 [x] Android, pushed (0d8b247; CI + owner test pending): `BackupIo` (zip, images), `ClipHub.exportBackup/importBackup/maybeAutoBackup`, `AutoBackup` (folder, Off/Daily/Weekly, keep 5), settings 'Backup' section via SAF.
-    E3.9.4 [~] docs done, waiting for CI on 0d8b247, then the owner gets the E3.9 checklist (below). Known limits: backups are NOT encrypted (stated in settings); import only merges; automatic backup skips images unless the switch is on (my default, owner can change).
+    E3.9.3 [x] Android, pushed (0d8b247; CI #50 green, owner test pending): `BackupIo` (zip, images), `ClipHub.exportBackup/importBackup/maybeAutoBackup`, `AutoBackup` (folder, Off/Daily/Weekly, keep 5), settings 'Backup' section via SAF.
+    E3.9.4 [x] docs done, CI #50 green, owner has the E3.9 checklist (below). Known limits: backups are NOT encrypted (stated in settings); import only merges; automatic backup skips images unless the switch is on (my default, owner can change).
 E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). Docs: docs/PASSWORD_MANAGER.md (design), PASSWORD_MANAGER_PHASE0.md (results), PASSWORD_MANAGER_BRIEF.md.
   E1.1-E1.11 [x] Design D25-D53 (signed off), Phase 0 feasibility on branch `e1-feasibility` (green run #12, GO).
   E1.12 [x] Foundation on main (merge 9330477, D64): submodule `third_party/keepassdx` @ 4.5.8, `:vault` + 14 emulator tests, `engine.yml`, build.yml scoped to `:app`, AGP 8.13.2 / Gradle 8.14.2. The app does not use it yet.
@@ -35,7 +35,7 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D65) and update the docs.
 
 ## Next step
-Check CI for 0d8b247 (E3.9 backup; lock 5155402 was green in #49), tell the owner to test E3.7, E3.8 and E3.9 together (checklist below). Then, only after asking him: the optional "recent clip" strip suggestion, bulk Share of images, E1 Phase 1 (E1.13). Before every push run `tools/compile_check.sh` (~30 s).
+The owner tests E3.7, E3.8 and E3.9 together (CI #50 green on 0d8b247; lock was green in #49); wait for his report. Then, only after asking him: to test E3.7, E3.8 and E3.9 together (checklist below). The optional "recent clip" strip suggestion, bulk Share of images, E1 Phase 1 (E1.13). Before every push run `tools/compile_check.sh` (~30 s).
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
 - Switch languages only through `MonsoonIme.setLanguage`. The strip has an arrow and shows suggestions instead of the icons (D23, D41: `Kind.STRIP` keys are hidden while suggestions show).
