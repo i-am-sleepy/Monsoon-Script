@@ -42,6 +42,40 @@ object ClipFormat {
         return text.substring(start, end)
     }
 
+    /**
+     * One short line of a text for the keyboard strip (a shortcut candidate): the first line with something on it, runs of white space turned into single
+     * spaces, at most [max] characters (never cut inside a surrogate pair). The strip itself shrinks and cuts what still does not fit.
+     */
+    fun stripLabel(text: String, max: Int = 40): String {
+        var lineStart = 0
+        while (lineStart <= text.length) {
+            var lineEnd = text.indexOf('\n', lineStart)
+            if (lineEnd < 0) lineEnd = text.length
+            val line = text.substring(lineStart, lineEnd)
+            if (line.isNotBlank()) {
+                val sb = StringBuilder()
+                var pendingSpace = false
+                for (ch in line) {
+                    if (ch.isWhitespace()) {
+                        pendingSpace = sb.isNotEmpty()
+                        continue
+                    }
+                    if (pendingSpace) {
+                        sb.append(' ')
+                        pendingSpace = false
+                    }
+                    sb.append(ch)
+                }
+                if (sb.length <= max) return sb.toString()
+                var end = max
+                if (Character.isHighSurrogate(sb[end - 1])) end--
+                return sb.substring(0, end)
+            }
+            lineStart = lineEnd + 1
+        }
+        return ""
+    }
+
     /** Selected text clips as one text: clips separated by a blank line, in the order given. Image clips are left out. */
     fun exportText(clips: List<ClipItem>): String {
         val sb = StringBuilder()

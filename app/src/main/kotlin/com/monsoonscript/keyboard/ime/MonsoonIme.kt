@@ -22,8 +22,11 @@ import android.widget.Toast
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.clipboard.ClipCapture
 import com.monsoonscript.keyboard.clipboard.ClipEditActivity
+import com.monsoonscript.keyboard.clipboard.ClipFormat
 import com.monsoonscript.keyboard.clipboard.ClipHub
 import com.monsoonscript.keyboard.clipboard.ClipPanelModel
+import com.monsoonscript.keyboard.clipboard.ClipShortcut
+import com.monsoonscript.keyboard.clipboard.TriggerRun
 import com.monsoonscript.keyboard.clipboard.app.ClipboardSettingsActivity
 import com.monsoonscript.keyboard.emoji.EmojiLoader
 import com.monsoonscript.keyboard.emoji.EmojiStore
@@ -74,6 +77,17 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** Strip candidates for the word being typed: the word as shown, the plain conversion, then dictionary words (D23). */
     private var suggestions: List<String> = emptyList()
+
+    // ---- text shortcuts in the strip (E3.7, D68): a typed `;sig` offers its saved text as a candidate; nothing is inserted until it is tapped
+
+    /** The characters typed since the last space: matched against the triggers. Fed next to [tracker]. */
+    private val triggerRun = TriggerRun()
+
+    /** The shortcuts offered right now. Their texts are the FIRST entries of [suggestions]: never use those for auto-correction. */
+    private var shortcutHits: List<ClipShortcut> = emptyList()
+
+    /** What the word engines last asked the strip to show, before the shortcut candidates were put in front. */
+    private var engineWords: List<String> = emptyList()
 
     /** Password, URL and e-mail fields get the typed letters as they are, even in a Bangla mode. */
     private var composingAllowed = true
@@ -294,6 +308,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         clipCapture?.fieldAllowed = emojiRecents // nothing copied while a password / incognito field has the keyboard is saved (D65)
         clipHub?.store?.purge() // apply the limit and auto-delete age
         tracker.reset(null)
+        triggerRun.clear()
+        shortcutHits = emptyList()
         hasSelection = false
         val v = keyboard ?: return
         applyPrefs()
@@ -315,6 +331,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         currentInputConnection?.finishComposingText()
         composer?.clear()
         tracker.reset(null)
+        triggerRun.clear()
+        shortcutHits = emptyList()
         dropSuggestions()
         predWorker?.flush() // save what was learned
         keyboard?.cancelAll()
@@ -472,6 +490,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         worker?.cancel()
         predWorker?.cancel()
         predSeq++ // an answer still on its way is stale now
+        engineWords = emptyList()
         val showing = suggestions.isNotEmpty() || stripHeld
         val kb = keyboard
         if (keepShown && kb != null && showing) {
@@ -488,7 +507,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** Rebuild the tracker from the text before the cursor (the last few dozen characters are enough). */
     private fun resyncTracker() {
-        tracker.reset(currentInputConnection?.getTextBeforeCursor(RESYNC_CHARS, 0))
+        val before = currentInputConnection?.getTextBeforeCursor(RESYNC_CHARS, 0)
+        tracker.reset(before)
+        triggerRun.reset(before)
     }
 
     private fun resyncAndPredict() {
@@ -502,6 +523,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** Ask the worker for completions of the word in progress, or for the next word when none is started. */
     private fun requestPrediction() {
+        refreshShortcuts()
         if (!predicting || !showSuggestions) {
             if (stripHeld) dropSuggestions() // nothing will answer: end the hold at once
             return
@@ -553,6 +575,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         lastEditAt = SystemClock.uptimeMillis()
         tracker.dropWord()
         tracker.appendAll("$word ") // the word is finished: it is the new context
+        triggerRun.clear()
         refreshAutoCaps()
         requestPrediction()
     }
@@ -562,8 +585,72 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             stripHeld = false
             keyboard?.removeCallbacks(heldClear)
         }
-        suggestions = list
-        keyboard?.setSuggestions(list)
+        engineWords = list
+        val shown = withShortcuts(list)
+        suggestions = shown
+        keyboard?.setSuggestions(shown)
+    }
+
+    // ---- text shortcuts (E3.7, D68)
+
+    /** Shortcuts are offered where the strip may show candidates and the characters are committed as typed (not while Avro composes). */
+    private fun shortcutsActive(): Boolean =
+        answerFollows && !avroActive && !panelSearch && clipHub?.store?.shortcuts?.isNotEmpty() == true
+
+    /** Match what was typed since the last space against the triggers; when the offer changed, repaint the strip. Called before every prediction request. */
+    private fun refreshShortcuts() {
+        val store = clipHub?.store
+        var hits: List<ClipShortcut> = emptyList()
+        if (store != null && shortcutsActive()) {
+            val typed = triggerRun.text
+            if (typed.isNotEmpty()) hits = store.matchShortcuts(typed, MAX_SHORTCUT_CANDIDATES)
+        }
+        if (hits.isEmpty() && shortcutHits.isEmpty()) return // the usual case: nothing offered, nothing to take back
+        if (hits.size == shortcutHits.size) {
+            var same = true
+            for (i in hits.indices) if (hits[i].id != shortcutHits[i].id || hits[i].text != shortcutHits[i].text) same = false
+            if (same) return
+        }
+        shortcutHits = hits
+        setSuggestions(engineWords) // merges the new offer in front of the engines' words
+    }
+
+    /** The strip list: the shortcut texts first (one line each), then what the word engines suggested. */
+    private fun withShortcuts(words: List<String>): List<String> {
+        if (shortcutHits.isEmpty()) return words
+        val out = ArrayList<String>(words.size + shortcutHits.size)
+        for (h in shortcutHits) {
+            val label = ClipFormat.stripLabel(h.text)
+            if (label.isNotEmpty() && label !in out) out.add(label)
+        }
+        for (w in words) if (w !in out) out.add(w)
+        return out
+    }
+
+    /** A strip candidate was tapped: when it is a shortcut, the typed trigger is replaced by the full text (checked against the editor first, no space follows). */
+    private fun acceptShortcut(word: String): Boolean {
+        if (shortcutHits.isEmpty()) return false
+        val hit = shortcutHits.firstOrNull { ClipFormat.stripLabel(it.text) == word } ?: return false
+        val ic = currentInputConnection ?: return true
+        val typed = triggerRun.text
+        if (typed.isNotEmpty()) {
+            val before = ic.getTextBeforeCursor(typed.length, 0)
+            if (before == null || before.toString() != typed) { // the editor is not what we thought: do not delete the wrong text
+                resyncTracker()
+                requestPrediction()
+                return true
+            }
+        }
+        ic.beginBatchEdit()
+        if (typed.isNotEmpty()) ic.deleteSurroundingText(typed.length, 0)
+        ic.commitText(hit.text, 1)
+        ic.endBatchEdit()
+        lastEditAt = SystemClock.uptimeMillis()
+        shortcutHits = emptyList()
+        resyncTracker() // the editor now holds the expanded text
+        refreshAutoCaps()
+        requestPrediction()
+        return true
     }
 
     /** What is shown is already the final Bangla text, so finishing just makes it normal (not underlined) text. */
@@ -584,6 +671,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     private fun setLanguage(l: Language) {
         language = l
+        triggerRun.clear() // what was typed in another layout cannot be a trigger of this one
         if (l.isBangla) lastBangla = l
         Prefs.saveLanguage(this, l, lastBangla)
         keyboard?.setLanguage(l)
@@ -622,6 +710,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         if (predicting) {
             lastEditAt = SystemClock.uptimeMillis()
             tracker.appendAll(text)
+            triggerRun.append(text)
             requestPrediction()
         }
         // getCursorCapsMode is a blocking call into the app: only ask when the text could start a new sentence/word.
@@ -631,6 +720,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** A strip suggestion was tapped (D23): it replaces the underlined word and a space follows. */
     override fun onSuggestion(word: String) {
         if (panelSearch || suggestions.isEmpty()) return // empty = the strip only still paints the old words (G4)
+        if (acceptShortcut(word)) return
         val ic = currentInputConnection ?: return
         val comp = composer
         if (comp == null || !comp.isComposing) {
@@ -643,6 +733,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         lastEditAt = SystemClock.uptimeMillis()
         if (predicting) {
             tracker.appendAll("$word ") // finished: learned, and the context for the next-word predictions
+            triggerRun.clear()
             requestPrediction()
         }
     }
@@ -670,7 +761,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         if (predicting) {
             lastEditAt = SystemClock.uptimeMillis()
             tracker.backspace()
-            if (selected || tracker.needsResync) resyncTracker() // more than one character went, or the cursor is in an earlier word now
+            val runKnown = triggerRun.backspace()
+            if (selected || tracker.needsResync || !runKnown) resyncTracker() // more than one character went, or the cursor is in an earlier word now
             requestPrediction()
         }
     }
@@ -692,6 +784,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         if (predicting) {
             lastEditAt = SystemClock.uptimeMillis()
             tracker.append('\n')
+            triggerRun.clear()
             requestPrediction()
         }
         refreshAutoCaps()
@@ -703,6 +796,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         sendDownUpKeyEvents(KeyEvent.KEYCODE_TAB)
         if (predicting) {
             tracker.append('\t')
+            triggerRun.clear()
             requestPrediction()
         }
     }
@@ -889,7 +983,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val ic = currentInputConnection ?: return
         ic.commitText(text, 1)
         lastEditAt = SystemClock.uptimeMillis()
-        if (predicting) tracker.append(' ') // an emoji ends the word before it; its own characters are not words
+        if (predicting) {
+            tracker.append(' ') // an emoji ends the word before it; its own characters are not words
+            triggerRun.clear()
+        }
         if (emojiRecents) emojiStore?.recordUse(text)
     }
 
@@ -1093,7 +1190,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val ic = currentInputConnection ?: return
         ic.commitText(text, 1)
         lastEditAt = SystemClock.uptimeMillis()
-        if (predicting) tracker.append(' ')
+        if (predicting) {
+            tracker.append(' ')
+            triggerRun.clear()
+        }
         if (clipHub?.prefs?.hideAfterPaste == true) {
             closeClipboard()
             refreshAutoCaps()
@@ -1131,6 +1231,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         const val DARI = "।"
         const val RESYNC_CHARS = 80
         const val EMOJI_PRELOAD_MS = 3000L
+        const val MAX_SHORTCUT_CANDIDATES = 2 // of the strip's three slots; the third stays free for a word (E3.7)
         const val HELD_MS = 400L // how long the strip may keep painting dropped candidates while the next answer is computed (G4)
         const val MAX_QUERY = 40
     }

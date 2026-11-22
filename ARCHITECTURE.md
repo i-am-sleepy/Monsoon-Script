@@ -145,6 +145,10 @@ The strip's mic icon is drawn but does nothing yet. Everything else below is pla
   field has the keyboard (`MonsoonIme.clipCapture.fieldAllowed`). No guessing from content.
 - `view/ClipboardPanelView`: one Canvas view like `EmojiPanelView` (toolbar, chip row, scrolling cards, bottom bar, popup for menu and folder picker); it only draws `ClipPanelModel` and forwards touches. One cached
   `StaticLayout` per card. Not Compose, no RecyclerView.
+- Text shortcuts in the strip (E3.7, D68): `TriggerRun` (pure) holds the characters typed since the last space and is fed next to `WordTracker` (onText, backspace, enter/tab, accepted suggestions, emoji, paste; rebuilt in `resyncTracker`). `refreshShortcuts()` runs at the
+  start of every `requestPrediction()`: `ClipStore.matchShortcuts` against the run -> `shortcutHits`; `setSuggestions` puts their one-line texts (`ClipFormat.stripLabel`) IN FRONT of what the word engines gave (`engineWords`), so a slow prediction answer
+  cannot drop them. Not active in Avro mode or where the strip is off. A tap goes to `acceptShortcut` first: it replaces the typed trigger with the full text (checked against the editor), no space. The first entries of `suggestions` are shortcuts while `shortcutHits` is
+  not empty: auto-correction must never use them.
 - `MonsoonIme`: the strip's clipboard icon -> `onClipboardKey` -> `showClipboard` (same swap as the emoji panel). `clipHost` (a `ClipPanelModel.Host`) does paste (`commitText`, no learning), copy again
   (`setPrimaryClip` with `EXTRA_NO_HISTORY`), share (chooser), edit (`ClipEditActivity`) and settings. Panel search reuses the emoji mechanism (typed text goes to the query, not the editor).
 
