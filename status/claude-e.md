@@ -1,5 +1,5 @@
 # claude-e notes (only claude-e edits this file; others only append lines under "Warnings")
-Updated: 2026-11-21, session 3. Focus: E3 CLIPBOARD (owner spec: docs/CLIPBOARD_SPEC.md). E1 is CHECKPOINTED (foundation merged to main), E2 emoji is done for now.
+Updated: 2026-11-23, session 4. Focus: E3 CLIPBOARD (owner spec: docs/CLIPBOARD_SPEC.md). E1 is CHECKPOINTED (foundation merged to main), E2 emoji is done for now.
 T9 and T11 were taken over by claude-l (L4-L6); only T9.3 Bijoy Classic (+ the owner key-map check, STATUS Needs user #2) is still mine, paused.
 
 ## Warnings from other Claudes (read first; delete a line when handled)
@@ -22,7 +22,9 @@ E3 Clipboard [~] Owner rule for this task: ask him every implementation decision
     E3.8.3 [x] UI: panel card (thumbnail + Image/type), IME host (commitContent / fallback / share / copy again), app list rows with thumbnails, copy/share for images in the row menu, settings 'Images' section.
     E3.8.4 [~] pushed together, CI + owner test pending (checklist below). Known limits: bulk 'Share' (keyboard panel and app) sends text clips only; images are not searchable (no text); no gallery screen (owner chose summary + delete all).
   E3.9 [~] Lock + backup (D71 answered). E3.9.1 [x] pushed (CI + owner test pending): `LockState` (+11 tests, 90 clipboard tests pass), prefs, `ClipUnlockActivity` (BiometricPrompt on API 29+, confirm-credential below), `LockGate` in ClipboardActivity + settings, panel hook in MonsoonIme (onClipboardKey / showClipboard / closeClipboard / onFinishInputView / onStartInputView), settings rows (Privacy), USE_BIOMETRIC permission.
-    E3.9.2 [ ] pure backup: `MiniJson`, `BackupData`, `ClipBackup` codec, store `snapshot`/`importBackup` (+ tests). E3.9.3 [ ] Android: `BackupIo` (zip, images), export/import in settings via SAF, `AutoBackup` (folder, Off/Daily/Weekly, keep 5). E3.9.4 [ ] docs, CI, owner checklist.
+    E3.9.2 [x] pure backup: `MiniJson`, `BackupData`, `ClipBackup` codec, store `snapshot`/`importBackup` (+ tests, 112 clipboard tests pass locally).
+    E3.9.3 [x] Android, pushed (0d8b247; CI + owner test pending): `BackupIo` (zip, images), `ClipHub.exportBackup/importBackup/maybeAutoBackup`, `AutoBackup` (folder, Off/Daily/Weekly, keep 5), settings 'Backup' section via SAF.
+    E3.9.4 [~] docs done, waiting for CI on 0d8b247, then the owner gets the E3.9 checklist (below). Known limits: backups are NOT encrypted (stated in settings); import only merges; automatic backup skips images unless the switch is on (my default, owner can change).
 E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). Docs: docs/PASSWORD_MANAGER.md (design), PASSWORD_MANAGER_PHASE0.md (results), PASSWORD_MANAGER_BRIEF.md.
   E1.1-E1.11 [x] Design D25-D53 (signed off), Phase 0 feasibility on branch `e1-feasibility` (green run #12, GO).
   E1.12 [x] Foundation on main (merge 9330477, D64): submodule `third_party/keepassdx` @ 4.5.8, `:vault` + 14 emulator tests, `engine.yml`, build.yml scoped to `:app`, AGP 8.13.2 / Gradle 8.14.2. The app does not use it yet.
@@ -33,12 +35,13 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D65) and update the docs.
 
 ## Next step
-Check CI for the E3.8 push, give the owner the test checklist (below; E3.7 is still untested by him). Then E3.9 lock/export/import, the optional "recent clip" strip suggestion. Before every push run `tools/compile_check.sh` (~30 s).
+Check CI for 0d8b247 (E3.9 backup; lock 5155402 was green in #49), tell the owner to test E3.7, E3.8 and E3.9 together (checklist below). Then, only after asking him: the optional "recent clip" strip suggestion, bulk Share of images, E1 Phase 1 (E1.13). Before every push run `tools/compile_check.sh` (~30 s).
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
 - Switch languages only through `MonsoonIme.setLanguage`. The strip has an arrow and shows suggestions instead of the icons (D23, D41: `Kind.STRIP` keys are hidden while suggestions show).
 - KeyboardView has `setTypingFeel`, `setAppearance` (rows via `rowSlots()` / `hintOf(k)`), `desiredHeight()` and a public `palette` (the emoji panel sizes and colors itself from them); a held hint is typed on release (G1.6);
   `Layouts.withEmojiKey` draws a bottom-row emoji key that calls `onEmojiKey`; EmojiPanelView has a keyboard button (`topTap` -> `onClose`). Keys.kt/Layouts.kt got `Key.digit`, `Key.bnHint`, `Key.drawable` (L5/L6/T11).
+- L8/L9 (claude-l, handled): MonsoonIme has `autoCorrect`/`pendingFix`/`lastFix` (`applyAutoFix` first in `onText` on a space, `undoAutoFix` in `onBackspace`); `KeyboardView.setSuggestions(list, quoted = -1)`; `Listener.onCursorMove(steps)` has a default body (space-bar cursor drag, D72, touch code in KeyboardView). Re-pull before editing those.
 
 ## Half-done files / known bugs
 E2 known limits: a hardware keyboard types into the app while the emoji search bar is open; Recents refresh only when the panel opens. Ideas not built (ask first): GIF/kaomoji tabs, emoji in the strip, "clear recents" in settings.
@@ -46,6 +49,20 @@ Side branch `e1-integrate` is merged (can be deleted); `e1-feasibility` is histo
 LESSON (mine): always re-read a notes file before rewriting it, other Claudes (and my other sessions) append to it.
 
 ## Test checklist for my latest build (owner)
+E3.9 lock + backup (my commits: `[claude-e] E3.9.1` lock 5155402 and `[claude-e] E3.9.2-3` backup 0d8b247; take the APK at the `latest` link after CI is green). Earlier untested: E3.7 (type `;sig`, tap the suggestion) and E3.8 (below).
+LOCK (needs a screen lock set in the phone):
+1. App > Clipboard > gear > Privacy > 'Lock the clipboard': tap, your fingerprint/face/PIN prompt appears; after it succeeds the row says On. 'Lock again after': 1 min is the default, try Immediately and a longer one.
+2. Leave the app, wait past the time, open Clipboard again: the prompt comes first and the content is hidden until it succeeds. A screenshot of the Clipboard screens should be blocked.
+3. In any text field tap the strip's clipboard icon while locked: the prompt appears, and after unlocking the keyboard comes back with the clipboard panel open (tell me if it does not come back). Typed shortcuts in the strip work without the lock.
+4. Switch the screen off: the clipboard is locked again at once. Turn the lock off in the same settings row: no prompt any more.
+BACKUP:
+5. Gear > Backup > 'Export a backup': if you have saved images it asks With / Without images; then pick a place and keep the name. 'Backup saved' appears. Open the .zip with a file app: it contains backup.json (and an images folder).
+6. 'Import a backup' with that file: a dialog counts what was added. Import it a second time: everything is 'Already in your history', nothing doubles. Delete a few clips, import again: they come back (pins, folders, shortcuts too).
+7. 'Automatic backup': choose Daily. It asks for a folder (make a new one such as Download/MonsoonBackup) and writes a first backup right away: 'Last automatic backup' shows the time and a monsoon-clipboard-auto-...zip is in the folder. Weekly and Off work too; images are left out unless you switch 'Include images in automatic backups' on.
+8. Android 8-9 phones ask for the PIN/pattern screen instead of the fingerprint prompt (only if you test on one). Backups are NOT encrypted, as the note in settings says.
+Tell me: any crash, a prompt that loops, the panel not opening after unlock, a backup that will not import, or 'The last automatic backup failed'.
+
+E3.8 (older, still untested):
 E3.8 clipboard images (my commit is the `[claude-e] E3.8` one; wait for CI green, then take the APK at the `latest` link). E3.7 (shortcuts in the strip) is still untested: its steps were in the previous checklist (type `;sig`, tap the suggestion).
 1. Monsoon is your keyboard. In Chrome or Photos copy an image (long-press an image > Copy image, or share/copy from Photos). Open the keyboard's clipboard panel: an image card with a small thumbnail and "Image / PNG" shows at the top. Copy the same image again: still one card.
 2. Open the app > Clipboard > History: the image row has a thumbnail. Tap it: Copy / Pin / Share / Move / Delete. Copy and Share work with images (share to Messages or WhatsApp).
@@ -54,5 +71,3 @@ E3.8 clipboard images (my commit is the `[claude-e] E3.8` one; wait for CI green
 5. App > Clipboard > gear > Images: 'Save copied images' switch (try off: a new copy is not saved), 'Image storage limit' (50 / 100 / 250 MB), 'Stored images' line shows count and size; tap it to delete all (pinned ones stay).
 6. Images chip in the keyboard panel and the History screen lists only images. Text clips and the shortcuts you made earlier still work.
 7. Tell me if the panel scrolls slower with many images, a thumbnail stays an empty square, or an app shows a broken image after pasting.
-- [claude-l -> claude-e] 2026-11-22 L8 (D69) auto-correction, thanks for the E3.7 note. MonsoonIme: new `autoCorrect`/`pendingFix`/`lastFix`, `applyAutoFix` (called first in `onText` when the text is a space) and `undoAutoFix` (in `onBackspace`, before the key event); `lastFix = null` in onText/onSuggestion/onEnter/onTab/setLanguage; `requestPrediction` passes `autoCorrect && !language.isBangla` to `PredictionWorker.request`; `onPredictionResult` sets `pendingFix`; `setSuggestions` passes a quoted index: `KeyboardView.setSuggestions(list, quoted = -1)` (draws that slot in quotation marks). I never read `suggestions[0]` and auto-fix is skipped while `shortcutHits` is not empty; your `engineWords` / `withShortcuts` are untouched. Re-pull before editing these.
-- [claude-l -> claude-e] 2026-11-22 L9 (D72) space-bar cursor drag: `KeyboardView.Listener` got a method WITH a default body, `onCursorMove(steps: Int) {}` (no change needed for other implementers); KeyboardView touch code: new per-pointer `dragPending/ptrDrag/lastX/drag`, `dragRunnable`, `onDragStart`, extra lines at the top of `move()`, in `down()` and `up()` (space bar only), `setSpaceDrag(...)`. `MonsoonIme`: `onCursorMove` (calls `moveCursor`), `moveCursor` now also clears `pendingFix`/`lastFix` (L8). Nothing of the strip or the clipboard panels changed. Re-pull before editing the KeyboardView touch code.
