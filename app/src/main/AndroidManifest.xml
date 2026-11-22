@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Voice typing (G5, D66): runtime permission, asked on the first use of the mic key by the see-through VoicePermissionActivity. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Clipboard lock (E3.9, D71): normal permission (no prompt) for the phone's fingerprint / face prompt on Android 9+; only used when the lock is switched on. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
     <!-- Android 11+: without this the keyboard cannot see the phone's speech service and SpeechRecognizer.isRecognitionAvailable lies. -->
     <queries>
@@ -70,6 +72,15 @@
 
         <activity
             android:name=".voice.VoicePermissionActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!-- The prompt of the clipboard lock (E3.9, D71): no screen of its own, shows the phone's fingerprint / face / screen lock prompt over the caller. -->
+        <activity
+            android:name=".clipboard.ClipUnlockActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
             android:exported="false"
             android:excludeFromRecents="true"
             android:taskAffinity=""

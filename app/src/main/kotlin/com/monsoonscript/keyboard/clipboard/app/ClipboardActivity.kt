@@ -30,6 +30,7 @@ class ClipboardActivity : Activity() {
     private lateinit var actions: ClipActions
     private lateinit var content: FrameLayout
     private lateinit var tabBar: LinearLayout
+    private lateinit var gate: LockGate
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,7 +60,8 @@ class ClipboardActivity : Activity() {
             tabBar.addView(t, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         }
         root.addView(tabBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        setContentView(root)
+        gate = LockGate(this, ui, hub, root) // the biometric lock (D71)
+        setContentView(gate.root)
         select(savedInstanceState?.getInt(KEY_TAB, 0)?.coerceIn(0, TAB_COUNT - 1) ?: 0)
     }
 
@@ -114,13 +116,20 @@ class ClipboardActivity : Activity() {
 
     override fun onStart() {
         super.onStart()
+        gate.start()
         started = true
         screens[current]?.show()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        gate.resume()
     }
 
     override fun onStop() {
         screens[current]?.hide()
         started = false
+        gate.stop()
         super.onStop()
     }
 

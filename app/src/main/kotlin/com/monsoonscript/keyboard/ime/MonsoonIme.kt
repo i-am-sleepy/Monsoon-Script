@@ -27,6 +27,7 @@ import com.monsoonscript.keyboard.clipboard.ClipCapture
 import com.monsoonscript.keyboard.clipboard.ClipEditActivity
 import com.monsoonscript.keyboard.clipboard.ClipFormat
 import com.monsoonscript.keyboard.clipboard.ClipHub
+import com.monsoonscript.keyboard.clipboard.ClipUnlockActivity
 import com.monsoonscript.keyboard.clipboard.ClipItem
 import com.monsoonscript.keyboard.clipboard.ImageMime
 import com.monsoonscript.keyboard.clipboard.ImageShare
@@ -92,6 +93,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** The shortcuts offered right now. Their texts are the FIRST entries of [suggestions]: never use those for auto-correction. */
     private var shortcutHits: List<ClipShortcut> = emptyList()
+    private var openClipboardAfterUnlock = 0L // uptime of the clipboard key press that started the unlock prompt (D71), 0 = none
 
     /** What the word engines last asked the strip to show, before the shortcut candidates were put in front. */
     private var engineWords: List<String> = emptyList()
@@ -348,10 +350,16 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         refreshAutoCaps()
         // Read what is already in the field once the keyboard is on screen (a blocking call into the app, so not before the first frame).
         if (predicting) v.post { resyncAndPredict() }
+        if (openClipboardAfterUnlock != 0L) { // the clipboard key was pressed while locked and the prompt ran: show the panel now (within two minutes)
+            val fresh = SystemClock.uptimeMillis() - openClipboardAfterUnlock < UNLOCK_OPEN_MS
+            openClipboardAfterUnlock = 0L
+            if (fresh && clipHub?.lock?.isOpen() == true) v.post { showClipboard() }
+        }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        clipHub?.lock?.setPanelOpen(false) // the keyboard went away: the lock timer starts now
         currentInputConnection?.finishComposingText()
         composer?.clear()
         tracker.reset(null)
@@ -1159,6 +1167,12 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     override fun onClipboardKey() {
         commitComposingIfAny()
+        val hub = clipHub
+        if (hub != null && !hub.lock.isOpen()) { // the clipboard lock (D71): the prompt first; the panel opens by itself when the keyboard comes back
+            openClipboardAfterUnlock = SystemClock.uptimeMillis()
+            launch(ClipUnlockActivity.intent(this))
+            return
+        }
         showClipboard()
     }
 
@@ -1246,6 +1260,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun showClipboard() {
         val kb = keyboard ?: return
         val hub = clipHub ?: return
+        if (!hub.lock.isOpen()) return
         val panel = ensureClipPanel() ?: return
         val model = clipModel ?: return
         closeEmoji()
@@ -1255,6 +1270,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         composer?.clear()
         dropSuggestions()
         hub.start() // reads the saved clips if that has not happened yet
+        hub.lock.setPanelOpen(true)
         val prefs = hub.prefs
         panel.setStyle(prefs.previewLines, prefs.compact, prefs.showTime)
         model.columns = prefs.columns
@@ -1271,6 +1287,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** Back to the keys (ABC key, new field, keyboard hidden). Safe to call when the panel was never shown. */
     private fun closeClipboard() {
+        clipHub?.lock?.setPanelOpen(false)
         val panel = clipPanel ?: return
         if (panel.visibility != View.VISIBLE) return
         if (panelSearch) composer?.clear()
@@ -1372,6 +1389,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         const val DARI = "।"
         const val RESYNC_CHARS = 80
         const val EMOJI_PRELOAD_MS = 3000L
+        const val UNLOCK_OPEN_MS = 120_000L
         const val MAX_SHORTCUT_CANDIDATES = 2 // of the strip's three slots; the third stays free for a word (E3.7)
         const val HELD_MS = 400L // how long the strip may keep painting dropped candidates while the next answer is computed (G4)
         const val MAX_QUERY = 40

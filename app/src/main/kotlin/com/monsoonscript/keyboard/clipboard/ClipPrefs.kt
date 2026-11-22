@@ -67,6 +67,18 @@ class ClipPrefs(context: Context) {
         get() = sp.getBoolean(K_IMAGES, true)
         set(v) = sp.edit().putBoolean(K_IMAGES, v).apply()
 
+    /** The biometric lock on the clipboard (E3.9, D71). */
+    var lockEnabled: Boolean
+        get() = sp.getBoolean(K_LOCK, false)
+        set(v) = sp.edit().putBoolean(K_LOCK, v).apply()
+
+    /** Minutes the clipboard stays unlocked after it is left: one of [LOCK_MINUTES], 0 = lock at once. */
+    var lockMinutes: Int
+        get() = sp.getInt(K_LOCK_MIN, 1).let { if (it in LOCK_MINUTES) it else 1 }
+        set(v) = sp.edit().putInt(K_LOCK_MIN, v).apply()
+
+    val lockTimeoutMs: Long get() = lockMinutes * 60_000L
+
     /** The room the saved images may take, in MB: 50, 100 (default) or 250. */
     var imageCapMb: Int
         get() = sp.getInt(K_IMAGE_CAP, 100).let { if (it in IMAGE_CAPS) it else 100 }
@@ -95,9 +107,12 @@ class ClipPrefs(context: Context) {
         const val K_GROUP = "group_by_date"
         const val K_IMAGES = "save_images"
         const val K_IMAGE_CAP = "image_cap_mb"
+        const val K_LOCK = "lock_enabled"
+        const val K_LOCK_MIN = "lock_minutes"
 
         val LIMITS = intArrayOf(50, 100, 200, 500)
         val IMAGE_CAPS = intArrayOf(50, 100, 250)
+        val LOCK_MINUTES = intArrayOf(0, 1, 5, 15, 30, 60, 240)
         private const val HOUR = 3_600_000L
         val AUTO_DELETE = longArrayOf(0L, HOUR, 24 * HOUR, 7 * 24 * HOUR, 30 * 24 * HOUR)
     }

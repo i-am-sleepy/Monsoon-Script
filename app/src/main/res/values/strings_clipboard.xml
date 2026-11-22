@@ -137,4 +137,23 @@
     <string name="clip_stored_images_many">%1$d images, %2$s. Tap to delete them.</string>
     <string name="clip_delete_images_ask">Delete all saved images? Pinned images and images in folders stay.</string>
     <string name="clip_image_not_accepted">This field takes no images. The image is copied: long-press the field and tap Paste.</string>
+    <!-- Lock (E3.9, D71) -->
+    <string name="clip_set_lock">Lock the clipboard</string>
+    <string name="clip_set_lock_off">Off. Turn on to ask for your fingerprint, face or screen lock before the clipboard opens, in this app and on the keyboard.</string>
+    <string name="clip_set_lock_on">On. Asks for your fingerprint, face or screen lock. The Clipboard screens also block screenshots.</string>
+    <string name="clip_set_lock_after">Lock again after</string>
+    <string name="clip_set_lock_after_summary">%1$s after you leave the clipboard. The screen turning off locks it at once.</string>
+    <string name="clip_lock_now">Immediately</string>
+    <string name="clip_lock_1m">1 minute</string>
+    <string name="clip_lock_5m">5 minutes</string>
+    <string name="clip_lock_15m">15 minutes</string>
+    <string name="clip_lock_30m">30 minutes</string>
+    <string name="clip_lock_1h">1 hour</string>
+    <string name="clip_lock_4h">4 hours</string>
+    <string name="clip_locked_title">Clipboard is locked</string>
+    <string name="clip_locked_hint">Unlock with your fingerprint, face or screen lock.</string>
+    <string name="clip_unlock_button">Unlock</string>
+    <string name="clip_unlock_title">Unlock the clipboard</string>
+    <string name="clip_unlock_subtitle">Monsoon Script</string>
+    <string name="clip_unlock_no_screen_lock">Set a screen lock in your phone\'s settings first.</string>
 </resources>

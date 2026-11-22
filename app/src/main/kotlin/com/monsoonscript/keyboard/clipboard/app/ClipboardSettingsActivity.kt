@@ -2,6 +2,7 @@ package com.monsoonscript.keyboard.clipboard.app
 
 import android.app.Activity
 import android.app.AlertDialog
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
@@ -11,6 +12,7 @@ import com.monsoonscript.keyboard.clipboard.ClipFormat
 import com.monsoonscript.keyboard.clipboard.ClipHub
 import com.monsoonscript.keyboard.clipboard.ClipPrefs
 import com.monsoonscript.keyboard.clipboard.ClipStore
+import com.monsoonscript.keyboard.clipboard.ClipUnlockActivity
 import com.monsoonscript.keyboard.settings.SettingsUi
 
 /**
@@ -19,7 +21,9 @@ import com.monsoonscript.keyboard.settings.SettingsUi
  */
 class ClipboardSettingsActivity : Activity() {
     private lateinit var hub: ClipHub
+    private lateinit var gate: LockGate
     private var storedText: TextView? = null
+    private var lockText: TextView? = null
 
     /** The saved clips are read in the background, and they change: keep the "N images" line right. */
     private val storeListener = object : ClipStore.Listener {
@@ -85,17 +89,71 @@ class ClipboardSettingsActivity : Activity() {
             page.content.add(switchRow(getString(R.string.clip_set_time), getString(R.string.clip_set_time_summary), ClipPrefs.K_TIME, true))
 
             page.content.add(header(getString(R.string.clip_set_privacy)))
+            val lockTexts = texts(getString(R.string.clip_set_lock), "")
+            lockText = lockTexts.getChildAt(1) as TextView
+            page.content.add(
+                row().apply {
+                    addView(lockTexts, weighted())
+                    setOnClickListener { toggleLock() }
+                },
+            )
+            refreshLock()
+            val waits = listOf(R.string.clip_lock_now, R.string.clip_lock_1m, R.string.clip_lock_5m, R.string.clip_lock_15m, R.string.clip_lock_30m, R.string.clip_lock_1h, R.string.clip_lock_4h)
+                .map { getString(it) }
+            page.content.add(
+                pickRow(ui, getString(R.string.clip_set_lock_after), waits, { ClipPrefs.LOCK_MINUTES.indexOf(prefs.lockMinutes).coerceAtLeast(0) },
+                    { getString(R.string.clip_set_lock_after_summary, waits[it]) }) { prefs.lockMinutes = ClipPrefs.LOCK_MINUTES[it] },
+            )
             page.content.add(note(getString(R.string.clip_privacy_stays)))
             page.content.add(note(getString(R.string.clip_privacy_never)))
             page.content.add(note(getString(R.string.clip_privacy_limit)))
         }
-        setContentView(page.root)
+        gate = LockGate(this, ui, hub, page.root) // the biometric lock (D71)
+        setContentView(gate.root)
+    }
+
+    override fun onStart() {
+        super.onStart()
+        gate.start()
+    }
+
+    override fun onStop() {
+        gate.stop()
+        super.onStop()
     }
 
     override fun onResume() {
         super.onResume()
+        gate.resume()
         hub.store.addListener(storeListener)
         refreshStored()
+    }
+
+    /** Off -> on only after one successful prompt (so the owner cannot lock himself out with a prompt that does not work); on -> off needs no prompt, this page is behind the lock already. */
+    private fun toggleLock() {
+        if (hub.prefs.lockEnabled) {
+            hub.prefs.lockEnabled = false
+            refreshLock()
+        } else {
+            @Suppress("DEPRECATION")
+            startActivityForResult(ClipUnlockActivity.intent(this, verify = true), REQUEST_VERIFY)
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_VERIFY && resultCode == RESULT_OK) {
+            hub.prefs.lockEnabled = true
+            hub.lock.enabled = true
+            hub.lock.grant() // the prompt just succeeded: no second one right away
+            refreshLock()
+        }
+    }
+
+    private fun refreshLock() {
+        lockText?.text = getString(if (hub.prefs.lockEnabled) R.string.clip_set_lock_on else R.string.clip_set_lock_off)
     }
 
     override fun onPause() {
@@ -130,6 +188,10 @@ class ClipboardSettingsActivity : Activity() {
                     .show()
             }
         }
+    }
+
+    private companion object {
+        const val REQUEST_VERIFY = 7
     }
 
     private fun confirm(question: Int, action: () -> Unit) {

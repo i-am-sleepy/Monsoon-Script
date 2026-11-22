@@ -1,10 +1,15 @@
 package com.monsoonscript.keyboard.clipboard
 
 import android.content.Context
+import android.content.BroadcastReceiver
+import android.content.Intent
+import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.net.Uri
 import android.os.Handler
+import android.os.Build
 import android.os.Looper
+import android.os.SystemClock
 import java.util.concurrent.Executors
 
 /**
@@ -31,6 +36,9 @@ class ClipHub private constructor(private val app: Context) {
         }
     }
 
+    /** Is the clipboard unlocked right now (E3.9, D71)? The screen turning off locks it. */
+    val lock = LockState(SystemClock::elapsedRealtime)
+
     /** The private picture folder, and the thumbnails of the pictures in it (E3.8). */
     val images = ImageFiles(app)
     val thumbs = ThumbCache(images, io, main)
@@ -45,6 +53,13 @@ class ClipHub private constructor(private val app: Context) {
         }
         applySettings()
         prefs.sp.registerOnSharedPreferenceChangeListener(prefsListener)
+        val screenOff = object : BroadcastReceiver() {
+            override fun onReceive(context: Context?, intent: Intent?) {
+                lock.lockNow()
+            }
+        }
+        val filter = IntentFilter(Intent.ACTION_SCREEN_OFF)
+        if (Build.VERSION.SDK_INT >= 33) app.registerReceiver(screenOff, filter, Context.RECEIVER_NOT_EXPORTED) else app.registerReceiver(screenOff, filter)
     }
 
     /** Read the saved clips in the background (once). */
@@ -75,6 +90,8 @@ class ClipHub private constructor(private val app: Context) {
         store.keepPinned = prefs.keepPinned
         store.dedupe = prefs.dedupe
         store.pinnedOnTop = prefs.pinnedOnTop
+        lock.timeoutMs = prefs.lockTimeoutMs
+        lock.enabled = prefs.lockEnabled
         if (store.loaded) {
             store.purge()
             trimImages()
