@@ -79,6 +79,7 @@ class ClipHub private constructor(private val app: Context) {
                 trimImages()
                 val known = store.imageNames()
                 io.execute { images.sweep(known) }
+                maybeAutoBackup()
             }
         }
     }
@@ -95,6 +96,7 @@ class ClipHub private constructor(private val app: Context) {
         if (store.loaded) {
             store.purge()
             trimImages()
+            maybeAutoBackup()
         }
     }
 
@@ -141,10 +143,96 @@ class ClipHub private constructor(private val app: Context) {
         if (got.fresh) io.execute { images.delete(listOf(got.name)) }
     }
 
+    /** What an import did: [error] is [ClipBackup.OK] or a reason ([ClipBackup.NOT_A_BACKUP] ... or [ERROR_LOADING]); [result] only when it worked. */
+    class ImportOutcome(val error: Int, val result: ImportResult?)
+
+    private var autoBackupRunning = false
+
+    /** Write a backup file to [uri] (the owner picked it with the system "save as" screen). [done] runs on the main thread with true when it was written. */
+    fun exportBackup(uri: Uri, includeImages: Boolean, done: (Boolean) -> Unit) {
+        if (!store.loaded) {
+            done(false)
+            return
+        }
+        val data = store.snapshot(includeImages)
+        val resolver = app.contentResolver
+        io.execute {
+            val ok = try {
+                resolver.openOutputStream(uri)?.use { BackupIo.write(it, data, images) } != null
+            } catch (e: Exception) {
+                false
+            }
+            main.post { done(ok) }
+        }
+    }
+
+    /** Merge the backup at [uri] into the history ([ClipStore.importBackup]). [done] runs on the main thread. */
+    fun importBackup(uri: Uri, done: (ImportOutcome) -> Unit) {
+        if (!store.loaded) {
+            done(ImportOutcome(ERROR_LOADING, null))
+            return
+        }
+        val resolver = app.contentResolver
+        io.execute {
+            val read = try {
+                resolver.openInputStream(uri)?.use { BackupIo.read(it, images) }
+            } catch (e: Exception) {
+                null
+            }
+            main.post {
+                val data = read?.decoded?.data
+                if (read == null || data == null) {
+                    done(ImportOutcome(read?.decoded?.error ?: ClipBackup.DAMAGED, null))
+                    return@post
+                }
+                val result = store.importBackup(data, read.imageFiles)
+                trimImages()
+                val keep = store.imageNames()
+                val unused = read.fresh.filter { it !in keep } // pictures that came with the file but no clip uses
+                if (unused.isNotEmpty()) io.execute { images.delete(unused) }
+                done(ImportOutcome(ClipBackup.OK, result))
+            }
+        }
+    }
+
+    /**
+     * The automatic backup (D71): when it is switched on, a folder is chosen and the last one is older than a day / a week (and at least an hour since the last
+     * try), write one into the folder on the worker thread. No timers or services: this runs when the clipboard loads and when settings change.
+     */
+    fun maybeAutoBackup() {
+        if (autoBackupRunning || !store.loaded) return
+        val mode = prefs.autoBackup
+        val folder = prefs.backupFolder
+        if (mode == ClipPrefs.BACKUP_OFF || folder.isEmpty()) return
+        if (store.size == 0 && store.folders.isEmpty() && store.shortcuts.isEmpty()) return
+        val now = System.currentTimeMillis()
+        val period = if (mode == ClipPrefs.BACKUP_DAILY) DAY_MS else 7 * DAY_MS
+        if (now - prefs.lastBackup < period || now - prefs.lastBackupTry < HOUR_MS) return
+        autoBackupRunning = true // before the preferences below change: that calls applySettings again
+        prefs.lastBackupTry = now
+        val withImages = prefs.backupImages
+        val data = store.snapshot(withImages)
+        io.execute {
+            val ok = try {
+                AutoBackup.write(app, Uri.parse(folder), data, if (withImages) images else null, now)
+            } catch (e: Exception) {
+                false
+            }
+            main.post {
+                autoBackupRunning = false
+                if (ok) prefs.lastBackup = now
+                prefs.backupFailed = !ok
+            }
+        }
+    }
+
     /** Number and disk space of the saved pictures (settings summary). Main thread, a few file lookups. */
     fun imageStats(): Pair<Int, Long> = Pair(store.imageCount(), store.imageBytes(images::sizeOf))
 
     companion object {
+        const val ERROR_LOADING = 100
+        private const val HOUR_MS = 3_600_000L
+        private const val DAY_MS = 24 * HOUR_MS
         private const val MAX_PENDING = 10
 
         @Volatile

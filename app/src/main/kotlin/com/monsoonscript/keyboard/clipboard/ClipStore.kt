@@ -423,6 +423,97 @@ class ClipStore(private val db: ClipDb, private val clock: () -> Long = { System
         return true
     }
 
+    // ---------------------------------------------------------------- backup and import (E3.9, D71)
+
+    /** Everything for a backup file: all clips (image clips only when [includeImages]), the folders and the shortcuts. */
+    fun snapshot(includeImages: Boolean): BackupData {
+        val list = ArrayList<BackupClip>(clips.size)
+        for (c in clips) {
+            if (c.isImage && !includeImages) continue
+            list.add(BackupClip(c.kind, c.text, c.image, c.mime, c.pinned, c.folder, c.created, c.used))
+        }
+        return BackupData(
+            clock(),
+            includeImages,
+            folderList.map { BackupFolder(it.id, it.name, it.created) },
+            list,
+            shortcutList.map { BackupShortcut(it.trigger, it.text) },
+        )
+    }
+
+    /**
+     * Merge a backup into what is here, never replacing: a text that is saved already is skipped, so is an image that is saved already; a folder is matched by
+     * its name (case-insensitive) or made new; a shortcut whose trigger exists is skipped (the existing one wins). Pins, folders and the original times of the
+     * clips are kept. [imageFiles] maps the image names of the backup to the names of the files that were saved here (the file name is the SHA-256 of the
+     * picture, so normally the same); an image clip without an entry is skipped. The limit and auto-delete apply afterwards, so clips over the limit
+     * are reported in [ImportResult.trimmed].
+     */
+    fun importBackup(b: BackupData, imageFiles: Map<String, String>): ImportResult {
+        val now = clock()
+        val folderMap = HashMap<Long, Long>()
+        var foldersAdded = 0
+        for (f in b.folders) {
+            val name = f.name.trim()
+            if (name.isEmpty() || name.length > MAX_FOLDER_NAME) continue
+            val same = folderList.firstOrNull { it.name.equals(name, ignoreCase = true) }
+            if (same != null) {
+                folderMap[f.id] = same.id
+                continue
+            }
+            val made = ClipFolder(nextFolderId++, name, minOf(maxOf(f.created, 0L), now))
+            folderList.add(made)
+            db.saveFolder(made)
+            folderMap[f.id] = made.id
+            foldersAdded++
+        }
+        val added = ArrayList<ClipItem>()
+        var skipped = 0
+        for (c in b.clips) {
+            val used = minOf(maxOf(c.used, 0L), now).let { if (it == 0L) now else it }
+            val created = minOf(maxOf(c.created, 0L), used).let { if (it == 0L) used else it }
+            val folder = if (c.folder == 0L) 0L else folderMap[c.folder] ?: 0L
+            if (c.kind == ClipKind.IMAGE) {
+                val file = c.image?.let { imageFiles[it] }
+                if (file == null || indexOfImage(file) >= 0) {
+                    skipped++
+                    continue
+                }
+                val item = ClipItem(nextClipId++, ClipKind.IMAGE, "", file, c.mime ?: "image/*", c.pinned, folder, created, used)
+                clips.add(item)
+                added.add(item)
+            } else {
+                if (c.text.isBlank() || c.text.length > MAX_TEXT || indexOfText(c.text) >= 0) {
+                    skipped++
+                    continue
+                }
+                val item = ClipItem(nextClipId++, ClipKind.TEXT, c.text, null, null, c.pinned, folder, created, used)
+                clips.add(item)
+                added.add(item)
+            }
+        }
+        clips.sortWith(compareByDescending<ClipItem> { it.used }.thenByDescending { it.id })
+        if (added.isNotEmpty()) db.saveClips(added)
+        var shortcutsAdded = 0
+        var shortcutsSkipped = 0
+        for (s in b.shortcuts) {
+            if (checkShortcut(s.trigger, s.text) != SHORTCUT_OK) {
+                shortcutsSkipped++
+                continue
+            }
+            val made = ClipShortcut(nextShortcutId++, s.trigger.trim(), s.text)
+            shortcutList.add(made)
+            db.saveShortcut(made)
+            shortcutsAdded++
+        }
+        enforce(now)
+        val kept = HashSet<Long>()
+        for (c in clips) kept.add(c.id)
+        var trimmed = 0
+        for (c in added) if (c.id !in kept) trimmed++
+        changed()
+        return ImportResult(added.size - trimmed, skipped, trimmed, foldersAdded, shortcutsAdded, shortcutsSkipped)
+    }
+
     // ---------------------------------------------------------------- text shortcuts
 
     /** [SHORTCUT_OK] or the reason a shortcut cannot be saved. [exceptId] = the shortcut being edited (0 for a new one). */

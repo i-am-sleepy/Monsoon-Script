@@ -67,6 +67,34 @@ class ClipPrefs(context: Context) {
         get() = sp.getBoolean(K_IMAGES, true)
         set(v) = sp.edit().putBoolean(K_IMAGES, v).apply()
 
+    /** Automatic backup (E3.9, D71): [BACKUP_OFF], [BACKUP_DAILY] or [BACKUP_WEEKLY]. */
+    var autoBackup: Int
+        get() = sp.getInt(K_AUTO_BACKUP, BACKUP_OFF).let { if (it in BACKUP_OFF..BACKUP_WEEKLY) it else BACKUP_OFF }
+        set(v) = sp.edit().putInt(K_AUTO_BACKUP, v).apply()
+
+    /** The folder (a document tree address) the automatic backups go to, empty = not chosen. */
+    var backupFolder: String
+        get() = sp.getString(K_BACKUP_FOLDER, "") ?: ""
+        set(v) = sp.edit().putString(K_BACKUP_FOLDER, v).apply()
+
+    /** Pictures in the automatic backups (off by default: they make the files big). */
+    var backupImages: Boolean
+        get() = sp.getBoolean(K_BACKUP_IMAGES, false)
+        set(v) = sp.edit().putBoolean(K_BACKUP_IMAGES, v).apply()
+
+    /** When the last automatic backup was written (0 = never), and when one was last tried. */
+    var lastBackup: Long
+        get() = sp.getLong(K_LAST_BACKUP, 0L)
+        set(v) = sp.edit().putLong(K_LAST_BACKUP, v).apply()
+    var lastBackupTry: Long
+        get() = sp.getLong(K_LAST_TRY, 0L)
+        set(v) = sp.edit().putLong(K_LAST_TRY, v).apply()
+
+    /** True while the last automatic backup attempt failed. */
+    var backupFailed: Boolean
+        get() = sp.getBoolean(K_BACKUP_FAILED, false)
+        set(v) = sp.edit().putBoolean(K_BACKUP_FAILED, v).apply()
+
     /** The biometric lock on the clipboard (E3.9, D71). */
     var lockEnabled: Boolean
         get() = sp.getBoolean(K_LOCK, false)
@@ -108,6 +136,15 @@ class ClipPrefs(context: Context) {
         const val K_IMAGES = "save_images"
         const val K_IMAGE_CAP = "image_cap_mb"
         const val K_LOCK = "lock_enabled"
+        const val K_AUTO_BACKUP = "auto_backup"
+        const val K_BACKUP_FOLDER = "backup_folder"
+        const val K_BACKUP_IMAGES = "backup_images"
+        const val K_LAST_BACKUP = "last_backup"
+        const val K_LAST_TRY = "last_backup_try"
+        const val K_BACKUP_FAILED = "backup_failed"
+        const val BACKUP_OFF = 0
+        const val BACKUP_DAILY = 1
+        const val BACKUP_WEEKLY = 2
         const val K_LOCK_MIN = "lock_minutes"
 
         val LIMITS = intArrayOf(50, 100, 200, 500)

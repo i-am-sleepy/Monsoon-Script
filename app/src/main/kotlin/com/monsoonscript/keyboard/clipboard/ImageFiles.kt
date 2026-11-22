@@ -7,6 +7,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import java.io.File
 import java.io.FileOutputStream
+import java.io.InputStream
 import java.security.MessageDigest
 
 /**
@@ -48,11 +49,19 @@ class ImageFiles(context: Context) {
      * Copy the picture behind [uri] into the folder. Returns null when it cannot be read, is larger than [MAX_BYTES], or is not a picture Android can decode.
      * The type is read from the bytes, not taken from what the clip announced.
      */
-    fun import(resolver: ContentResolver, uri: Uri): Imported? {
+    fun import(resolver: ContentResolver, uri: Uri): Imported? =
+        try {
+            resolver.openInputStream(uri)?.use { importStream(it) }
+        } catch (e: Exception) {
+            null // unreadable, permission gone ...
+        }
+
+    /** Same as [import] for a picture that arrives as a stream (a backup file); the caller closes [input]. */
+    fun importStream(input: InputStream): Imported? {
         if (!dir.isDirectory && !dir.mkdirs()) return null
         val tmp = File(dir, TMP_PREFIX + System.nanoTime())
         try {
-            val sha = copyLimited(resolver, uri, tmp) ?: return null
+            val sha = copyLimited(input, tmp) ?: return null
             if (tmp.length() == 0L) return null
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeFile(tmp.path, bounds)
@@ -94,22 +103,19 @@ class ImageFiles(context: Context) {
         }
     }
 
-    /** Copy [uri] into [out]; the SHA-256 in hex, or null when it is bigger than [MAX_BYTES] or cannot be opened. */
-    private fun copyLimited(resolver: ContentResolver, uri: Uri, out: File): String? {
+    /** Copy [src] into [out]; the SHA-256 in hex, or null when it is bigger than [MAX_BYTES]. */
+    private fun copyLimited(src: InputStream, out: File): String? {
         val md = MessageDigest.getInstance("SHA-256")
         var total = 0L
-        val input = resolver.openInputStream(uri) ?: return null
-        input.use { src ->
-            FileOutputStream(out).use { dst ->
-                val buf = ByteArray(16 * 1024)
-                while (true) {
-                    val n = src.read(buf)
-                    if (n < 0) break
-                    total += n
-                    if (total > MAX_BYTES) return null
-                    md.update(buf, 0, n)
-                    dst.write(buf, 0, n)
-                }
+        FileOutputStream(out).use { dst ->
+            val buf = ByteArray(16 * 1024)
+            while (true) {
+                val n = src.read(buf)
+                if (n < 0) break
+                total += n
+                if (total > MAX_BYTES) return null
+                md.update(buf, 0, n)
+                dst.write(buf, 0, n)
             }
         }
         val sb = StringBuilder(64)
