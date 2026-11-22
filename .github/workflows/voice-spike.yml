@@ -37,3 +37,22 @@ jobs:
           name: moonshine-base-bn-q8
           path: ${{ runner.temp }}/voice-res/gguf/
           if-no-files-found: ignore
+  parakeet:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq cmake build-essential
+      - name: Check the English Parakeet model
+        run: RES=$RUNNER_TEMP/pk-res bash tools/voice/check_parakeet.sh
+      - name: Publish the log
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/pk-pub" && cp "$RUNNER_TEMP/pk-res/log.txt" "$RUNNER_TEMP/pk-pub/log.txt" 2>/dev/null || echo "no log" > "$RUNNER_TEMP/pk-pub/log.txt"
+          cd "$RUNNER_TEMP/pk-pub" && git init -q && git checkout -q -b voice-results-parakeet && git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "parakeet check for ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" voice-results-parakeet
