@@ -1,0 +1,39 @@
+name: voice-spike
+# G5.2 (claude-g): can the optional Bangla local model (moonshine-base-bn) run on transcribe.cpp? Not part of the app build.
+# Runs when its own files change, or by hand. The log goes to the branch `voice-results` (file log.txt), the Q8_0 model is kept as an artifact.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'tools/voice/**'
+      - '.github/workflows/voice-spike.yml'
+permissions:
+  contents: write
+jobs:
+  spike:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build tools
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq cmake build-essential
+      - name: Run the spike
+        run: RES=$RUNNER_TEMP/voice-res bash tools/voice/run_bn_spike.sh
+      - name: Publish the log
+        if: always()
+        run: |
+          cd "$RUNNER_TEMP/voice-res" 2>/dev/null || { mkdir -p "$RUNNER_TEMP/voice-res" && cd "$RUNNER_TEMP/voice-res"; }
+          mkdir -p ../pub && cp log.txt ../pub/log.txt 2>/dev/null || echo "no log" > ../pub/log.txt
+          cd ../pub && git init -q && git checkout -q -b voice-results && git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "voice spike log for ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" voice-results
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: moonshine-base-bn-q8
+          path: ${{ runner.temp }}/voice-res/gguf/
+          if-no-files-found: ignore
