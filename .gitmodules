@@ -2,3 +2,7 @@
 	path = third_party/keepassdx
 	url = https://github.com/Kunzisoft/KeePassDX.git
 	shallow = true
+[submodule "third_party/transcribe.cpp"]
+	path = third_party/transcribe.cpp
+	url = https://github.com/handy-computer/transcribe.cpp.git
+	shallow = true

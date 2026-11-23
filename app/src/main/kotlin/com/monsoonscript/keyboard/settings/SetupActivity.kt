@@ -8,6 +8,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.clipboard.app.ClipboardActivity
+import com.monsoonscript.keyboard.voice.VoiceSettingsActivity
 
 /**
  * The main screen (and the keyboard's settings entry): setup status and the two setup steps on top, then the list of settings pages (D55):
@@ -35,6 +36,7 @@ class SetupActivity : Activity() {
             page.content.add(navRow(getString(R.string.settings_suggestions), getString(R.string.settings_suggestions_summary)) { open(SettingsPageActivity.SUGGESTIONS) })
             page.content.add(navRow(getString(R.string.settings_appearance), getString(R.string.settings_appearance_summary)) { open(SettingsPageActivity.APPEARANCE) })
             page.content.add(navRow(getString(R.string.clip_title), getString(R.string.clip_row_summary)) { startActivity(Intent(this@SetupActivity, ClipboardActivity::class.java)) })
+            page.content.add(navRow(getString(R.string.voice_settings_title), getString(R.string.voice_settings_summary)) { startActivity(Intent(this@SetupActivity, VoiceSettingsActivity::class.java)) })
             page.content.add(navRow(getString(R.string.settings_about), getString(R.string.settings_about_summary)) { open(SettingsPageActivity.ABOUT) })
         }
         setContentView(page.root)

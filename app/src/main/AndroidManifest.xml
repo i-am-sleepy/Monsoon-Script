@@ -5,6 +5,8 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Voice typing (G5, D66): runtime permission, asked on the first use of the mic key by the see-through VoicePermissionActivity. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- The optional offline voice model download (G5, D66). Nothing else uses the network; Offline mode (D10) blocks even that. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Clipboard lock (E3.9, D71): normal permission (no prompt) for the phone's fingerprint / face prompt on Android 9+; only used when the lock is switched on. -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
@@ -69,6 +71,11 @@
             android:label="@string/clip_edit_title"
             android:taskAffinity=""
             android:windowSoftInputMode="adjustResize|stateVisible" />
+
+        <activity
+            android:name=".voice.VoiceSettingsActivity"
+            android:exported="false"
+            android:label="@string/voice_settings_title" />
 
         <activity
             android:name=".voice.VoicePermissionActivity"

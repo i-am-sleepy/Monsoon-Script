@@ -20,7 +20,8 @@ class VoicePermissionActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Prefs.of(this).getBoolean(Prefs.VOICE_NOTICE_OK, false)) {
+        // The notice is about Google's speech service: it is only needed when the owner uses that engine (a local model sends nothing anywhere).
+        if (!intent.getBooleanExtra(EXTRA_NOTICE, true) || Prefs.of(this).getBoolean(Prefs.VOICE_NOTICE_OK, false)) {
             askMicrophone()
             return
         }
@@ -53,9 +54,12 @@ class VoicePermissionActivity : Activity() {
 
     companion object {
         private const val REQUEST = 71
+        private const val EXTRA_NOTICE = "notice"
 
-        fun open(context: Context) {
-            context.startActivity(Intent(context, VoicePermissionActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        fun open(context: Context, showNotice: Boolean = true) {
+            context.startActivity(
+                Intent(context, VoicePermissionActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK).putExtra(EXTRA_NOTICE, showNotice),
+            )
         }
     }
 }

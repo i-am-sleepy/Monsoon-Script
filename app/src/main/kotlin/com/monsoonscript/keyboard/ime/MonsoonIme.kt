@@ -408,7 +408,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         worker = null
         predWorker?.stop()
         predWorker = null
-        voice?.cancel()
+        voice?.release()
         voice = null
         super.onDestroy()
     }
@@ -1030,8 +1030,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private val voiceHost = object : VoiceInput.Host {
         override fun voiceText(text: String) = typeVoiceText(text)
 
-        override fun voiceListening(on: Boolean) {
-            keyboard?.setMicActive(on)
+        override fun voiceState(state: Int) {
+            keyboard?.setMicState(state)
         }
     }
 

@@ -55,6 +55,11 @@ object Prefs {
 
     // voice typing (G5, D66)
     const val VOICE_NOTICE_OK = "voice_notice_ok" // the one-time notice about Google's speech service was accepted
+    const val VOICE_ENGINE_EN = "voice_engine_en" // Int: ENGINE_GOOGLE (default) or ENGINE_LOCAL, per language (D66)
+    const val VOICE_ENGINE_BN = "voice_engine_bn"
+    const val ENGINE_GOOGLE = 0
+    const val ENGINE_LOCAL = 1
+    const val VOICE_OFFLINE = "voice_offline_mode" // D10: never use the internet (blocks the model download and Google voice), default off
 
     // suggestion strip (G1.3): all default on
     const val SHOW_SUGGESTIONS = "suggest_show"

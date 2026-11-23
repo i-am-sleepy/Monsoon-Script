@@ -7,6 +7,10 @@ plugins {
 // Without them the release build falls back to the debug key (installs, but cannot update over a differently signed build).
 val releaseKeystore: String? = System.getenv("KEYSTORE_PATH")?.takeIf { it.isNotBlank() }
 
+// The native voice engine (G5, D66: transcribe.cpp + a small JNI layer, arm64 only) is built only when its submodule is checked out,
+// like the vault engine (D64): a plain checkout still builds the keyboard without it, and the app then offers no local voice model.
+val withVoiceNative = File(rootDir, "third_party/transcribe.cpp/CMakeLists.txt").exists()
+
 android {
     namespace = "com.monsoonscript.keyboard"
     compileSdk = 35
@@ -18,6 +22,19 @@ android {
         // Must increase on every build so a new APK can update the installed one.
         versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
         versionName = "0.1.1"
+        if (withVoiceNative) {
+            ndk { abiFilters += "arm64-v8a" }
+        }
+    }
+
+    if (withVoiceNative) {
+        ndkVersion = "25.2.9519653" // the NDK the engine workflow already installs (E1)
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
+        }
     }
 
     signingConfigs {

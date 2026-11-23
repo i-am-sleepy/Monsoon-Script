@@ -6,7 +6,7 @@ enum class VoiceLang(val tag: String) {
     BANGLA("bn-BD"),
 }
 
-enum class VoiceError { NO_PERMISSION, NOT_AVAILABLE, NO_SPEECH, NETWORK, LANGUAGE, BUSY, OTHER }
+enum class VoiceError { NO_PERMISSION, NOT_AVAILABLE, NO_SPEECH, NETWORK, LANGUAGE, BUSY, NO_MODEL, OTHER }
 
 /**
  * One way of turning speech into text (G5, D66): Google's recognizer today, the optional local models later. All calls and all callbacks are on the

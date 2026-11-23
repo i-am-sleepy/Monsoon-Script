@@ -131,7 +131,7 @@ class KeyboardView(context: Context) : View(context) {
     private val ptrLong = BooleanArray(MAX_PTR)
     private var micSlot = -1 // the pointer that holds the mic key after a long press (G5): recording lasts as long as it stays down
     private var micOutside = false // that finger slid away from the key: releasing now cancels
-    private var micActive = false // the microphone is open: the icon turns into an accent circle
+    private var micState = 0 // 0 idle, 1 the microphone is open (accent circle), 2 the text is being worked out (grey circle)
     private val micRect = RectF()
     private val ptrHint = BooleanArray(MAX_PTR) // a long press armed the key's hint: its bubble shows the hint, which is typed on release (G1.6)
     private val downX = FloatArray(MAX_PTR)
@@ -509,10 +509,10 @@ class KeyboardView(context: Context) : View(context) {
         invalidate() // a finger already down on a slot keeps its press: the tap delivers whatever the slot shows on release
     }
 
-    /** The IME says the microphone opened or closed (G5). */
-    fun setMicActive(on: Boolean) {
-        if (micActive == on) return
-        micActive = on
+    /** The IME says what the microphone is doing (G5): 0 idle, 1 listening, 2 working. */
+    fun setMicState(state: Int) {
+        if (micState == state) return
+        micState = state
         invalidate()
     }
 
@@ -862,16 +862,16 @@ class KeyboardView(context: Context) : View(context) {
             drawLanguagePill(c, r, pressed)
             return
         }
-        val recording = k.code == Codes.MIC && micActive
+        val recording = k.code == Codes.MIC && micState != 0
         if (recording) {
-            fillPaint.color = if (micOutside) pal.special else pal.accent
+            fillPaint.color = if (micOutside || micState == 2) pal.special else pal.accent
             c.drawCircle(r.centerX(), r.centerY(), stripH * 0.44f, fillPaint)
         } else if (pressed) {
             fillPaint.color = pal.specialPressed
             c.drawCircle(r.centerX(), r.centerY(), stripH * 0.42f, fillPaint)
         }
         val size = dp(24f)
-        iconPaint.color = if (recording && !micOutside) pal.onAccent else pal.text
+        iconPaint.color = if (recording && !micOutside && micState == 1) pal.onAccent else pal.text
         iconPaint.style = Paint.Style.STROKE
         c.save()
         c.translate(r.centerX() - size / 2, r.centerY() - size / 2)
