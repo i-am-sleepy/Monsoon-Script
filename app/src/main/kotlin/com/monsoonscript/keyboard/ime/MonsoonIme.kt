@@ -8,6 +8,8 @@ import android.graphics.drawable.ColorDrawable
 import android.inputmethodservice.InputMethodService
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.text.InputType
 import android.view.KeyEvent
@@ -94,6 +96,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** The shortcuts offered right now. Their texts are the FIRST entries of [suggestions]: never use those for auto-correction. */
     private var shortcutHits: List<ClipShortcut> = emptyList()
     private var openClipboardAfterUnlock = 0L // uptime of the clipboard key press that started the unlock prompt (D71), 0 = none
+    private var unlockEndedAt = 0L // uptime when that prompt ended (unlocked or cancelled), 0 = still running or none (E3.12)
+    private var unlockOk = false
+    private var unlockRetries = 0
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     /** What the word engines last asked the strip to show, before the shortcut candidates were put in front. */
     private var engineWords: List<String> = emptyList()
@@ -239,6 +245,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         Prefs.of(this).registerOnSharedPreferenceChangeListener(prefsListener)
         val hub = ClipHub.get(this)
         clipHub = hub
+        hub.onUnlockFinished = { ok -> unlockFinished(ok) }
         hub.start()
         clipCapture = ClipCapture(this, hub).also { it.start() }
         hub.onCopied = { refreshRecentChip() }
@@ -280,12 +287,47 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     /**
-     * The keyboard was open when the clipboard key started the unlock prompt (D71), and the prompt took the screen. Android asks for the keyboard again when the app comes
-     * back, but only implicitly, which "Open the keyboard automatically: off" refuses; here it is let through (until [onStartInputView] takes the mark away, or two minutes)
-     * so the keyboard returns by itself, with the clipboard panel when the unlock worked (E3.11).
+     * The keyboard was open when the clipboard key started the unlock prompt (D71), the prompt took the screen and is over now (unlocked or cancelled). For [RETURN_MS] the
+     * keyboard comes back by itself even with "Open the keyboard automatically: off": Android's own implicit request is let through, and [showKeyboardAfterUnlock] asks too
+     * because some apps never do. Not while the prompt is still up (E3.11, E3.12).
      */
     private fun returningFromUnlock(): Boolean =
-        openClipboardAfterUnlock != 0L && SystemClock.uptimeMillis() - openClipboardAfterUnlock < UNLOCK_OPEN_MS
+        unlockEndedAt != 0L && SystemClock.uptimeMillis() - unlockEndedAt < RETURN_MS
+
+    /** The unlock prompt of the clipboard key ended ([ClipHub.onUnlockFinished]). */
+    private fun unlockFinished(ok: Boolean) {
+        val pressed = openClipboardAfterUnlock
+        if (pressed == 0L || SystemClock.uptimeMillis() - pressed >= UNLOCK_OPEN_MS) return // not ours, or too long ago
+        unlockEndedAt = SystemClock.uptimeMillis()
+        unlockOk = ok
+        unlockRetries = 0
+        if (isInputViewShown) openPanelAfterUnlock() else showKeyboardAfterUnlock()
+    }
+
+    /** The keyboard is up after the prompt: the clipboard panel opens when it worked, on cancel the keys stay. May run more than once (a field can start twice). */
+    private fun openPanelAfterUnlock() {
+        if (!unlockOk || clipHub?.lockOpen() != true) return
+        mainHandler.post { if (shownPanel?.visibility != View.VISIBLE) showClipboard() }
+    }
+
+    /** Ask the system to show the keyboard again a few times (the app's field may not be back yet the first time). */
+    private fun showKeyboardAfterUnlock() {
+        if (!returningFromUnlock() || isInputViewShown) return
+        try {
+            requestShowSelf(0) // an explicit request: allowed by "Open the keyboard automatically: off" too
+        } catch (e: RuntimeException) {
+            // no field to show it for
+        }
+        if (++unlockRetries < SHOW_RETRIES) mainHandler.postDelayed({ showKeyboardAfterUnlock() }, SHOW_RETRY_MS)
+    }
+
+    override fun onStartInput(attribute: EditorInfo?, restarting: Boolean) {
+        super.onStartInput(attribute, restarting)
+        if (returningFromUnlock() && !isInputViewShown) { // the app's field is back after the prompt
+            unlockRetries = 0
+            mainHandler.postDelayed({ showKeyboardAfterUnlock() }, SHOW_RETRY_MS / 3)
+        }
+    }
 
     // ---- volume buttons move the cursor (G2): the IME sees key events before the app while the keyboard is up
 
@@ -371,11 +413,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         refreshAutoCaps()
         // Read what is already in the field once the keyboard is on screen (a blocking call into the app, so not before the first frame).
         if (predicting) v.post { resyncAndPredict() }
-        if (openClipboardAfterUnlock != 0L) { // the clipboard key was pressed while locked and the prompt ran: show the panel now (within two minutes)
-            val fresh = SystemClock.uptimeMillis() - openClipboardAfterUnlock < UNLOCK_OPEN_MS
-            openClipboardAfterUnlock = 0L
-            if (fresh && clipHub?.lock?.isOpen() == true) v.post { showClipboard() }
-        }
+        if (returningFromUnlock()) openPanelAfterUnlock() // the prompt of the clipboard key is over: the panel opens (E3.12; the mark ends by itself)
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -401,6 +439,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     override fun onDestroy() {
         clipHub?.onCopied = null
+        clipHub?.onUnlockFinished = null
         clipCapture?.stop()
         clipCapture = null
         Prefs.of(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
@@ -777,7 +816,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
      */
     private fun recentChipText(): String? {
         val hub = clipHub ?: return null
-        if (!hub.recentChip || hub.lock.enabled || !answerFollows || avroActive || panelSearch) return null
+        if (!hub.recentChip || hub.lockOn() || !answerFollows || avroActive || panelSearch) return null
         if (composer?.isComposing == true || triggerRun.text.isNotEmpty() || tracker.typed.isNotEmpty()) return null
         return hub.recent.current()
     }
@@ -1263,8 +1302,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     override fun onClipboardKey() {
         commitComposingIfAny()
         val hub = clipHub
-        if (hub != null && !hub.lock.isOpen()) { // the clipboard lock (D71): the prompt first; the panel opens by itself when the keyboard comes back
+        if (hub != null && !hub.lockOpen()) { // the clipboard lock (D71): the prompt first; the panel opens by itself when the keyboard comes back
             openClipboardAfterUnlock = SystemClock.uptimeMillis()
+            unlockEndedAt = 0L
             launch(ClipUnlockActivity.intent(this))
             return
         }
@@ -1360,7 +1400,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun showClipboard() {
         val kb = keyboard ?: return
         val hub = clipHub ?: return
-        if (!hub.lock.isOpen()) return
+        if (!hub.lockOpen()) return
         val panel = ensureClipPanel() ?: return
         val model = clipModel ?: return
         closeEmoji()
@@ -1490,6 +1530,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         const val RESYNC_CHARS = 80
         const val EMOJI_PRELOAD_MS = 3000L
         const val UNLOCK_OPEN_MS = 120_000L
+        const val RETURN_MS = 10_000L // after the unlock prompt: how long the keyboard and its panel come back by themselves (E3.12)
+        const val SHOW_RETRY_MS = 350L
+        const val SHOW_RETRIES = 5
         const val CHIP_MARK = "\uD83D\uDCCB " // the clipboard sign in front of the recent copy chip (E3.10)
         const val MAX_SHORTCUT_CANDIDATES = 2 // of the strip's three slots; the third stays free for a word (E3.7)
         const val HELD_MS = 400L // how long the strip may keep painting dropped candidates while the next answer is computed (G4)

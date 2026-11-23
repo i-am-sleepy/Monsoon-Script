@@ -79,7 +79,7 @@ internal class LockGate(private val activity: Activity, private val ui: Settings
     private fun refresh(autoPrompt: Boolean) {
         val flags = WindowManager.LayoutParams.FLAG_SECURE
         if (hub.prefs.lockEnabled) activity.window.addFlags(flags) else activity.window.clearFlags(flags)
-        val open = hub.lock.isOpen()
+        val open = hub.lockOpen()
         content.visibility = if (open) View.VISIBLE else View.INVISIBLE
         overlay.visibility = if (open) View.GONE else View.VISIBLE
         if (!open && autoPrompt && !autoAsked) {

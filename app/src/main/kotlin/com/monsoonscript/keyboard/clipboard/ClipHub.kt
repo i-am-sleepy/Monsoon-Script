@@ -84,6 +84,28 @@ class ClipHub private constructor(private val app: Context) {
         }
     }
 
+    /**
+     * The keyboard and the screens ask the lock through [lockOpen] / [lockOn]: the switch and the timer are read from the settings every time, so a change made in the
+     * app counts at once and no stale copy can keep asking for the fingerprint (E3.12).
+     */
+    fun lockOpen(): Boolean {
+        syncLock()
+        return lock.isOpen()
+    }
+
+    fun lockOn(): Boolean {
+        syncLock()
+        return lock.enabled
+    }
+
+    private fun syncLock() {
+        lock.enabled = prefs.lockEnabled
+        lock.timeoutMs = prefs.lockTimeoutMs
+    }
+
+    /** The unlock prompt of the keyboard's clipboard key is over: true = unlocked, false = cancelled or failed. The keyboard listens (E3.12). */
+    var onUnlockFinished: ((Boolean) -> Unit)? = null
+
     /** The keyboard reads these on every key, so they are copied here when a setting changes (D77). */
     @Volatile var directShortcuts = false
         private set

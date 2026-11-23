@@ -26,7 +26,7 @@ class ClipUnlockActivity : Activity() {
         super.onCreate(savedInstanceState)
         val hub = ClipHub.get(this)
         val verify = intent.getBooleanExtra(EXTRA_VERIFY, false)
-        if (!verify && hub.lock.isOpen()) { // nothing to unlock any more
+        if (!verify && hub.lockOpen()) { // nothing to unlock any more (also when the lock was switched off in the meantime)
             finishWith(true)
             return
         }
@@ -91,8 +91,10 @@ class ClipUnlockActivity : Activity() {
     private fun finishWith(ok: Boolean) {
         if (done) return
         done = true
-        if (ok) ClipHub.get(this).lock.grant()
+        val hub = ClipHub.get(this)
+        if (ok) hub.lock.grant()
         setResult(if (ok) RESULT_OK else RESULT_CANCELED)
+        if (!intent.getBooleanExtra(EXTRA_VERIFY, false)) hub.onUnlockFinished?.invoke(ok) // the keyboard brings itself and its panel back (E3.12)
         finish()
     }
 
