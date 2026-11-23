@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.parcelize) // the data classes in VaultModel.kt cross the process boundary as Parcelables
 }
 
 // E1: the thin interface between our app and the KeePassDX engine (D26). The engine modules come from the git submodule

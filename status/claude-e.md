@@ -15,9 +15,13 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
   E1.1-E1.11 [x] Design D25-D53 (signed off), Phase 0 feasibility on branch `e1-feasibility` (green run #12, GO).
   E1.12 [x] Foundation on main (merge 9330477, D64): submodule `third_party/keepassdx` @ 4.5.8, `:vault` + 14 emulator tests, `engine.yml`, build.yml scoped to `:app`, AGP 8.13.2 / Gradle 8.14.2. The app does not use it yet.
             (A previous session wrote "merged" in these notes while the work was still on branch `e1-integrate`; this session did the real merge after both runs on 9a2512d were green.)
-  E1.13 [ ] Resume here: Phase 1 (D51): (a) `VaultEngine` -> thin interface + one serialized executor; (b) `:vault` service in its own process (D44), app depends on `:vault` (compileSdk 36, drop the conditional include,
-            shrunk-build smoke test in CI); (c) app screens in the keyboard's style (D30, D33, D34), file picker (D35), unlock, list/search/view/add/edit/delete, generator; (d) auto-lock + FLAG_SECURE (D38, D43);
-            (the old step (e) LICENSE is done by claude-l, L11). Then Phase 2 (picker in the keyboard). Ask before any UI decision. Weekly watcher (D48) when convenient.
+  E1.13 [~] Phase 1 (D51), started 2026-11-24 on the owner's order ("integrate KeePassDX as agreed"). Steps:
+    E1.13.1 [~] (a) in `:vault`: `VaultModel.kt` (parcelable data), `VaultStore` (file abstraction + backups), `VaultSession` (create/open/lock/list/search/entry CRUD/groups/save, one thread) + emulator tests `VaultSessionTest`
+    E1.13.2 [ ] (b) `IVault.aidl` + `VaultService` (android:process=":vault", D44) + app-side client; app depends on `:vault` (compileSdk 36, drop the conditional include); build.yml: checkout keepassdx submodule + platform 36
+                (workflow files need the owner's token, see Warnings of the session); shrunk-build smoke test in CI
+    E1.13.3 [ ] ask the owner the Phase 1 screen questions (file picker, create-vault wizard, entry view/edit, generator); answers -> DECISIONS D80+
+    E1.13.4 [ ] (c) app screens in the keyboard's style (D30, D33, D34), file picker (D35), unlock (reuse clipboard biometric pattern), list/search/view/add/edit/delete, generator
+    E1.13.5 [ ] (d) auto-lock + FLAG_SECURE (D38, D43). Then Phase 2 (picker in the keyboard). Weekly watcher (D48) when convenient. (LICENSE step is done, claude-l L11.)
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D80) and update the docs.
 
 ## Next step
