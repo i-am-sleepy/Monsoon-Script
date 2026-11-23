@@ -1,0 +1,141 @@
+transcribe.cpp commit: cfa237c2551a4b2d3a56ff8fe5461e3c67c51772
+== build transcribe.cpp (CPU only, no BLAS, like a phone) ==
+cli: /tmp/transcribe.cpp/build/bin/transcribe-cli  quantize: /tmp/transcribe.cpp/build/bin/transcribe-quantize
+== convert ==
+Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Fetching 7 files: 100%|██████████| 7/7 [00:01<00:00,  5.33it/s]Fetching 7 files: 100%|██████████| 7/7 [00:01<00:00,  5.33it/s]
+source files: ['.gitattributes', 'README.md', 'config.json', 'generation_config.json', 'model.safetensors', 'tokenizer.json', 'tokenizer_config.json']
+config: {'vocab_size': 32000, 'tie_word_embeddings': True, 'hidden_size': 416, 'model_type': 'moonshine', 'bos_token_id': 2, 'eos_token_id': 3, 'decoder_start_token_id': 2, 'pad_token_id': 0}
+tokenizer.json model type: WordPiece
+wordpiece pieces: 32000 config vocab_size: 32000 max id: 31999
+special ids: {'[PAD]': 0, '[UNK]': 1, '[CLS]': 2, '[SEP]': 3, '[MASK]': 4}
+relabelled pieces: 32000 examples: ['##াকা -> াকা', 'দিন -> ▁দিন', 'রাজ -> ▁রাজ', 'বাং -> ▁বাং', 'এখন -> ▁এখন', '##মান -> মান']
+generation_config: {'bos_token_id': 2, 'eos_token_id': 3, 'pad_token_id': 0, 'decoder_start_token_id': 2}
+run: /opt/hostedtoolcache/Python/3.12.16/x64/bin/python /tmp/transcribe.cpp/scripts/convert-moonshine.py /tmp/voice-work/patched /tmp/voice-work/moonshine-base-bn-F32.gguf --repo-id Sanjidh090/moonshine-base-bn --variant moonshine-base --language bn
+Output dtype: F32 (source/reference dtype)
+Languages: ['bn']
+Encoder: 8 layers, hidden=416, heads=8, ffn=1664, act=gelu
+Decoder: 8 layers, hidden=416, heads=8, ffn=1664, act=silu
+Vocab: 32000; max_position_embeddings=194; partial_rotary=0.62, theta=10000.0
+Variant: moonshine-base
+Reading tokenizer from /tmp/voice-work/patched
+Opening safetensors at /tmp/voice-work/patched/model.safetensors
+Total params: 61,194,432 -> size_label=61M
+Writing GGUF to /tmp/voice-work/moonshine-base-bn-F32.gguf
+Added 210 tensors (233.4 MB fp32 -> 233.4 MB on disk)
+Writing header + KV + tensor info...
+Writing tensor data...
+Done. Wrote /tmp/voice-work/moonshine-base-bn-F32.gguf (234.4 MB)
+wrote /tmp/voice-work/moonshine-base-bn-F32.gguf 245736000
+== quantize ==
+  q8_0        129       58.4
+              210       72.0 total (output)
+
+processed: 129 requantized, 81 copied
+done. wrote /tmp/voice-work/moonshine-base-bn-Q8_0.gguf
+  q8_0        129       58.4
+              210       72.0 total (output)
+
+processed: 129 requantized, 81 copied
+done. wrote /tmp/voice-work/moonshine-base-bn-Q4_K_M.gguf
+-rw-r--r-- 1 runner runner 245736000 Nov 23 03:20 /tmp/voice-work/moonshine-base-bn-F32.gguf
+-rw-r--r-- 1 runner runner  76493888 Nov 23 03:20 /tmp/voice-work/moonshine-base-bn-Q4_K_M.gguf
+-rw-r--r-- 1 runner runner  76493888 Nov 23 03:20 /tmp/voice-work/moonshine-base-bn-Q8_0.gguf
+== evaluate ==
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+fleurs bn_in test rows: 920
+clips: 60 total seconds: 797.3
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/210 [00:00<?, ?it/s]Loading weights: 100%|██████████| 210/210 [00:00<00:00, 8124.82it/s]
+[gguf F32.gguf] clip 0: rc=0
+  text: 'মিউজিক জার্মানির অনেক বেগ করা খাবারগুলিতে বাদাম হ্যাজনেল এবং অন্যান্য বাড়ালমের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাপ ভাড়া মিউজিক'
+  log tail: 'ের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাপ ভাড়া মিউজিক\n  realtime:   28x (588.8 ms for 16.2 s)\n[info] moonshine: weights memory-mapped: 233.4 MiB in CPU_Mapped\n[debug] moonshine@383: sched buffer CPU -> 30.2 MB\n[info] timings: load=9.37 ms  mel=0.00 ms  encode=337.49 ms  decode=251.34 ms'
+[gguf F32.gguf] clip 1: rc=0
+  text: 'মিউজিক একজন শুধুমাত্র আশ্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে'
+  log tail: '্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে\n  realtime:   30x (350.9 ms for 10.4 s)\n[info] moonshine: weights memory-mapped: 233.4 MiB in CPU_Mapped\n[debug] moonshine@383: sched buffer CPU -> 19.5 MB\n[info] timings: load=9.48 ms  mel=0.00 ms  encode=206.33 ms  decode=144.53 ms'
+[gguf Q4_K_M.gguf] clip 0: rc=0
+  text: 'মিউজিক জার্মানির অনেক বেগ করা খাবারগুলিতে বাদাম হ্যাজনেল এবং অন্যান্য বাড়ালমের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাপ ভরা মিউজিক'
+  log tail: 'ালমের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাপ ভরা মিউজিক\n  realtime:   32x (500.4 ms for 16.2 s)\n[info] moonshine: weights memory-mapped: 72.0 MiB in CPU_Mapped\n[debug] moonshine@383: sched buffer CPU -> 30.2 MB\n[info] timings: load=9.48 ms  mel=0.00 ms  encode=351.21 ms  decode=149.14 ms'
+[gguf Q4_K_M.gguf] clip 1: rc=0
+  text: 'মিউজিক একজন শুধুমাত্র আশ্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে'
+  log tail: 'আশ্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে\n  realtime:   35x (295.2 ms for 10.4 s)\n[info] moonshine: weights memory-mapped: 72.0 MiB in CPU_Mapped\n[debug] moonshine@383: sched buffer CPU -> 19.5 MB\n[info] timings: load=9.05 ms  mel=0.00 ms  encode=216.77 ms  decode=78.46 ms'
+[gguf Q8_0.gguf] clip 0: rc=0
+  text: 'মিউজিক জার্মানির অনেক বেগ করা খাবারগুলিতে বাদাম হ্যাজনেল এবং অন্যান্য বাড়ালমের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাপ ভরা মিউজিক'
+  log tail: 'ালমের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাপ ভরা মিউজিক\n  realtime:   31x (519.0 ms for 16.2 s)\n[info] moonshine: weights memory-mapped: 72.0 MiB in CPU_Mapped\n[debug] moonshine@383: sched buffer CPU -> 30.2 MB\n[info] timings: load=8.97 ms  mel=0.00 ms  encode=359.70 ms  decode=159.30 ms'
+[gguf Q8_0.gguf] clip 1: rc=0
+  text: 'মিউজিক একজন শুধুমাত্র আশ্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে'
+  log tail: 'আশ্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে\n  realtime:   35x (298.2 ms for 10.4 s)\n[info] moonshine: weights memory-mapped: 72.0 MiB in CPU_Mapped\n[debug] moonshine@383: sched buffer CPU -> 19.5 MB\n[info] timings: load=8.98 ms  mel=0.00 ms  encode=218.50 ms  decode=79.70 ms'
+
+=== results (light normalisation) ===
+hf-beam5 (authors' recipe)         WER  31.30   CER  12.34
+hf-greedy                          WER  31.56   CER  12.69
+gguf F32.gguf                      WER  31.56   CER  12.69
+gguf Q4_K_M.gguf                   WER  31.30   CER  12.92
+gguf Q8_0.gguf                     WER  31.30   CER  12.92
+gguf F32.gguf: mean 0.52 s per clip (whole process incl. model load; CI x86, not a phone)
+gguf Q4_K_M.gguf: mean 0.45 s per clip (whole process incl. model load; CI x86, not a phone)
+gguf Q8_0.gguf: mean 0.45 s per clip (whole process incl. model load; CI x86, not a phone)
+
+=== first 8 clips: reference / authors' recipe / hf greedy / each gguf ===
+--- clip 0
+REF : জার্মানির অনেক বেক করা খাবারগুলিতে বাদাম হ্যাজনেলট এবং অন্যান্য বাদামের উপাদান পাওয়া যায় পছন্দের কেকগুলি প্রায়শই একটি কাপ ভরা কফির সাথে ভাল মানায়
+hf-beam5 (au: মিউজিক জার্মানির অনেক বেগ করা খাবারগুলিতে বাদাম হ্যাজনেল এবং অন্যান্য ম্যাডামের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাভ ভাড়া উকিল সাথে ভালো আনা
+hf-greedy   : মিউজিক জার্মানির অনেক বেগ করা খাবারগুলিতে বাদাম হ্যাজনেল এবং অন্যান্য বাড়ালমের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাপ ভাড়া মিউজিক
+gguf F32.ggu: মিউজিক জার্মানির অনেক বেগ করা খাবারগুলিতে বাদাম হ্যাজনেল এবং অন্যান্য বাড়ালমের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাপ ভাড়া মিউজিক
+gguf Q4_K_M.: মিউজিক জার্মানির অনেক বেগ করা খাবারগুলিতে বাদাম হ্যাজনেল এবং অন্যান্য বাড়ালমের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাপ ভরা মিউজিক
+gguf Q8_0.gg: মিউজিক জার্মানির অনেক বেগ করা খাবারগুলিতে বাদাম হ্যাজনেল এবং অন্যান্য বাড়ালমের উপাদান পাওয়া যায় পছন্দের কেগলি প্রায়শই একটি কাপ ভরা মিউজিক
+--- clip 1
+REF : একজন শুধুমাত্র আশ্চর্য হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন কী-বোর্ড কীরকম হবে
+hf-beam5 (au: মিউজিক একজন শুধুমাত্র আশ্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে
+hf-greedy   : মিউজিক একজন শুধুমাত্র আশ্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে
+gguf F32.ggu: মিউজিক একজন শুধুমাত্র আশ্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে
+gguf Q4_K_M.: মিউজিক একজন শুধুমাত্র আশ্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে
+gguf Q8_0.gg: মিউজিক একজন শুধুমাত্র আশ্চর্যজনক হতে পারে এই ভেবে যে যখন নতুন কিছু আসে তখন জীবন কি রকম হবে
+--- clip 2
+REF : হাইতিয়ান ইনস্টিটিউট ফর জাস্টিস অ্যান্ড ডেমোক্রেসি এর স্বতন্ত্র সমীক্ষাতে উল্লেখ করা হয়েছে যে নেপালি জাতিসংঘের শান্তিরক্ষা বাহিনী অজান্তেই হাইতিতে এই রোগটি নিয়ে এসেছিল
+hf-beam5 (au: না হাইতিয়ান ইনস্টিটিউট ফর জাস্টিস এন্ড ডেমোক্রেসি এর স্বতন্ত্র সমীক্ষাতে উল্লেখ করা হয়েছে যে নেপালি জাতিসংঘের শান্তি রক্ষা বাহিনী অজান্তেই হাইতিতে এই রোগটি নিয়ে এসেছিল
+hf-greedy   : না হাইতিয়ান ইনস্টিটিউট ফর জাস্টিস এন্ড ডেমোক্রেটিক এর স্বতন্ত্র সমীক্ষাতে উল্লেখ করা হয়েছে যে নেপালি জাতিসংঘের শান্তি রক্ষা বাহিনী অজান্তেই হাইতিতে এই রোগটি নিয়ে এসেছিল
+gguf F32.ggu: না হাইতিয়ান ইনস্টিটিউট ফর জাস্টিস এন্ড ডেমোক্রেটিক এর স্বতন্ত্র সমীক্ষাতে উল্লেখ করা হয়েছে যে নেপালি জাতিসংঘের শান্তি রক্ষা বাহিনী অজান্তেই হাইতিতে এই রোগটি নিয়ে এসেছিল
+gguf Q4_K_M.: না হাইতিয়ান ইনস্টিটিউট ফর জাস্টিস এন্ড ডেমোক্রেটিক এর স্বতন্ত্র সমীক্ষাতে উল্লেখ করা হয়েছে যে নেপালি জাতিসংঘের শান্তি রক্ষা বাহিনী অজান্তেই হাইতিতে এই রোগটি নিয়ে এসেছিল
+gguf Q8_0.gg: না হাইতিয়ান ইনস্টিটিউট ফর জাস্টিস এন্ড ডেমোক্রেটিক এর স্বতন্ত্র সমীক্ষাতে উল্লেখ করা হয়েছে যে নেপালি জাতিসংঘের শান্তি রক্ষা বাহিনী অজান্তেই হাইতিতে এই রোগটি নিয়ে এসেছিল
+--- clip 3
+REF : দুটি পয়েন্টের মাঝে দুজন ড্রাইভার এবং তাদের যানের মধ্যে যে চলন ও কথাবার্তা চলে সেই বিদ্যাকেই ট্রাফিক ফ্লো বলে
+hf-beam5 (au: না দুটি পয়েন্টের মাঝে দুজন ড্রাইভার এবং তাদের জানের মধ্যে যে চলন ও কথাবার্তারা চলে সেই বিদ্যাকেই ট্রাফিক ফ্লো বলে
+hf-greedy   : না দুটি পয়েন্টের মাঝে দুজন ড্রাইভার এবং তাদের জানের মধ্যে যে চলন ও কথাবার্তারা চলে সেই বিদ্যাকেই ট্রাফিক ফ্লো বলে
+gguf F32.ggu: না দুটি পয়েন্টের মাঝে দুজন ড্রাইভার এবং তাদের জানের মধ্যে যে চলন ও কথাবার্তারা চলে সেই বিদ্যাকেই ট্রাফিক ফ্লো বলে
+gguf Q4_K_M.: না দুটি পয়েন্টের মাঝে দুজন ড্রাইভার এবং তাদের জানের মধ্যে যে চলন ও কথাবার্তারা চলে সেই বিদ্যাকেই ট্রাফিক ফ্লো বলে
+gguf Q8_0.gg: না দুটি পয়েন্টের মাঝে দুজন ড্রাইভার এবং তাদের জানের মধ্যে যে চলন ও কথাবার্তারা চলে সেই বিদ্যাকেই ট্রাফিক ফ্লো বলে
+--- clip 4
+REF : পুলিশ সুপার চন্দ্র শেখর সোলঙ্কি জানিয়েছিলেন অভিযুক্তরা মুখ ঢাকা অবস্থায় আদালতে হাজির হয়েছিল
+hf-beam5 (au: মিউজিক পুলিশ সুপারচন্দ্র শেখর সল কি জানিয়েছিলেন অভিযুক্তরা মুখ ঢাকা অবস্থায় আদালতে হাজির হয়েছিল মিউজিক
+hf-greedy   : মিউজিক পুলিশ সুপারচন্দ্রশিকর সল কি জানিয়েছিলেন অভিযুক্তরা মুখ ঢাকা অবস্থায় আদালতে হাজির হয়েছিল
+gguf F32.ggu: মিউজিক পুলিশ সুপারচন্দ্রশিকর সল কি জানিয়েছিলেন অভিযুক্তরা মুখ ঢাকা অবস্থায় আদালতে হাজির হয়েছিল
+gguf Q4_K_M.: মিউজিক পুলিশ সুপারচন্দ্রশিকার সল কি জানিয়েছিলেন অভিযুক্তরা মুখ ঢাকা অবস্থায় আদালতে হাজির হয়েছিল
+gguf Q8_0.gg: মিউজিক পুলিশ সুপারচন্দ্রশিকার সল কি জানিয়েছিলেন অভিযুক্তরা মুখ ঢাকা অবস্থায় আদালতে হাজির হয়েছিল
+--- clip 5
+REF : জাপানের পারমানবিক সংস্থার সূত্রে জানা গিয়েছে প্ল্যান্টটিতে তেজস্ক্রিয় সিজিয়াম এবং আয়োডিন চিহ্নিত করা হয়েছে
+hf-beam5 (au: মিউজিক জাপানের পারমাণবিক সংস্থার সত্যের জানা গিয়েছে লান্টিতে তেজস্ক্রিয়ে ওসি জিয়াম এবং আয়োর্ডিম চিহ্নিত করা হয়েছে
+hf-greedy   : মিউজিক জাপানের পারমাণবিক সংস্থার সত্যের জানা গিয়েছে লান্টিতে তেজস্বী রশি জিয়াম এবং আয়োরেম চিহ্নিত করা হয়েছে
+gguf F32.ggu: মিউজিক জাপানের পারমাণবিক সংস্থার সত্যের জানা গিয়েছে লান্টিতে তেজস্বী রশি জিয়াম এবং আয়োরেম চিহ্নিত করা হয়েছে
+gguf Q4_K_M.: না জাপানের পারমাণবিক সংস্থার সত্যের জানা গিয়েছে লান্টিতে তেজস্বী রশি জিয়াম এবং আয়োরেম চিহ্নিত করা হয়েছে
+gguf Q8_0.gg: না জাপানের পারমাণবিক সংস্থার সত্যের জানা গিয়েছে লান্টিতে তেজস্বী রশি জিয়াম এবং আয়োরেম চিহ্নিত করা হয়েছে
+--- clip 6
+REF : বার্সেলোনার সরকারী ভাষা হলো কাতালান এবং স্প্যানিশ প্রায় অর্ধেক জনগোষ্ঠী কাতালান ভাষায় কথা বলে থাকে বহু সংখ্যক মানুষ এই ভাষা বোঝে এবং কার্যত সবাই স্প্যানিশ ভাষা জানে
+hf-beam5 (au: মিউজিক পার্সোনাল সরকারি ভাষা হলো কাতালাম এবং স্প্যানিশ অর্ধেক জনগোষ্ঠী কাতালাম ভাষায় কথা বলে থাকে বহু সংখ্যক মানুষ এই ভাষা বোঝে এবং কার্যত সবাই স্প্যানিশ ভাষা যাবে
+hf-greedy   : মিউজিক পার্সোনাল সরকারি ভাষা হলো কাতালাম এবং স্প্যানিশ অর্ধেক জনগোষ্ঠী কাতালাম ভাষায় কথা বলে থাকে বহু সংখ্যক মানুষ এই ভাষা বোঝে এবং কার্যত সবাই স্প্যানিশ ভাষা যাবে
+gguf F32.ggu: মিউজিক পার্সোনাল সরকারি ভাষা হলো কাতালাম এবং স্প্যানিশ অর্ধেক জনগোষ্ঠী কাতালাম ভাষায় কথা বলে থাকে বহু সংখ্যক মানুষ এই ভাষা বোঝে এবং কার্যত সবাই স্প্যানিশ ভাষা যাবে
+gguf Q4_K_M.: মিউজিক পার্সোনাল সরকারি ভাষা হলো কাতালাম এবং স্প্যানিশ অর্ধেক জনগোষ্ঠী কাতালাম ভাষায় কথা বলে থাকে বহু সংখ্যক মানুষ এই ভাষা বোঝে এবং কার্যত সবাই স্প্যানিশ ভাষা যাবে
+gguf Q8_0.gg: মিউজিক পার্সোনাল সরকারি ভাষা হলো কাতালাম এবং স্প্যানিশ অর্ধেক জনগোষ্ঠী কাতালাম ভাষায় কথা বলে থাকে বহু সংখ্যক মানুষ এই ভাষা বোঝে এবং কার্যত সবাই স্প্যানিশ ভাষা যাবে
+--- clip 7
+REF : আনুষ্ঠানিকভাবে ফকল্যান্ডস এর মুদ্রা হল ফকল্যান্ড পাউন্ড এফকেপি যার মান 1 ব্রিটিশ পাউন্ড জিবিপি এর সমান।
+hf-beam5 (au: মিউজিক আনুষ্ঠানিকভাবে ফোকল্যান্ডস এর মুদ্রা হলো ফোকল্যান্ড পাউন্ড এর ক্যাপি জার্মান এক ব্রিটিশ পাউন্ড জি বিপি এর সমান
+hf-greedy   : মিউজিক আনুষ্ঠানিকভাবে ফোকল্যান্ডস এর মুদ্রা হলো ফোকল্যান্ড পাউন্ড এর ক্যাপি জার্মান এক ব্রিটিশ পাউন্ড জি বিপি এর সমান
+gguf F32.ggu: মিউজিক আনুষ্ঠানিকভাবে ফোকল্যান্ডস এর মুদ্রা হলো ফোকল্যান্ড পাউন্ড এর ক্যাপি জার্মান এক ব্রিটিশ পাউন্ড জি বিপি এর সমান
+gguf Q4_K_M.: মিউজিক আনুষ্ঠানিকভাবে ফোকল্যান্ডস এর মুদ্রা হলো ফোকল্যান্ড পাউন্ড এর ক্যাপি জার্মান এক ব্রিটিশ পাউন্ড জি বিপি এর সমান
+gguf Q8_0.gg: মিউজিক আনুষ্ঠানিকভাবে ফোকল্যান্ডস এর মুদ্রা হলো ফোকল্যান্ড পাউন্ড এর ক্যাপি জার্মান এক ব্রিটিশ পাউন্ড জি বিপি এর সমান
+== done ==
+== release asset ==
+-rw-r--r-- 1 runner runner 76493888 Nov 23 03:20 /tmp/voice-work/moonshine-base-bn-Q8_0.gguf
+9b90dfd2cc934b15d49bf7335ce98fb654191e3a9273e51e7f162636ffc16f95  /tmp/voice-work/moonshine-base-bn-Q8_0.gguf
+https://github.com/i-am-sleepy/Monsoon-Script/releases/tag/voice-models
+published
