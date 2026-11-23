@@ -20,6 +20,7 @@ class VoiceModel(
     val bytes: Long,
     val sha256: String,
     val credit: String,
+    val maxSeconds: Int, // one recording; the Moonshine models accept 48 s per run, Parakeet takes a whole clip
 )
 
 object VoiceModels {
@@ -32,9 +33,24 @@ object VoiceModels {
         bytes = 89_989_600L,
         sha256 = "486414fd90185a8c8a4ced7c123cfb133ff4f7958426c6b8bd9049946b56b448",
         credit = "NVIDIA Parakeet TDT-CTC 110M, 4-bit GGUF by the transcribe.cpp project (CC-BY-4.0)",
+        maxSeconds = 120,
     )
 
-    fun forLang(lang: VoiceLang): VoiceModel? = if (lang == VoiceLang.ENGLISH) ENGLISH else null
+    val BANGLA = VoiceModel(
+        id = "moonshine-bn",
+        title = "Bangla: Moonshine Base (fine-tuned)",
+        lang = VoiceLang.BANGLA,
+        file = "moonshine-base-bn-Q8_0.gguf",
+        url = "https://github.com/i-am-sleepy/Monsoon-Script/releases/download/voice-models/moonshine-base-bn-Q8_0.gguf",
+        bytes = 76_493_888L,
+        sha256 = "9b90dfd2cc934b15d49bf7335ce98fb654191e3a9273e51e7f162636ffc16f95",
+        credit = "Sanjidh090/moonshine-base-bn (MIT), a fine-tune of Moonshine Base by Useful Sensors (MIT), converted to GGUF (Q8_0)",
+        maxSeconds = 40,
+    )
+
+    val ALL = listOf(ENGLISH, BANGLA)
+
+    fun forLang(lang: VoiceLang): VoiceModel = if (lang == VoiceLang.ENGLISH) ENGLISH else BANGLA
 
     fun dir(context: Context): File = File(context.filesDir, "voice").also { it.mkdirs() }
 

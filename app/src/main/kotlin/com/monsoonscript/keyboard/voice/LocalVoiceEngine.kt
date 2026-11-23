@@ -77,7 +77,7 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
             post(mine) { callback.onError(VoiceError.NO_PERMISSION) }
             return
         }
-        val pcm = FloatArray(MAX_SECONDS * RATE)
+        val pcm = FloatArray(model.maxSeconds * RATE)
         var n = 0
         try {
             rec.startRecording()
@@ -122,7 +122,7 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
         if (text == null) post(mine) { callback.onError(VoiceError.OTHER) } else post(mine) { callback.onFinal(clean(text)) }
     }
 
-    private fun clean(t: String): String = t.trim().replace(Regex("\\s+"), " ")
+    private fun clean(t: String): String = VoiceText.clean(t, model.lang)
 
     private fun post(mine: Int, r: () -> Unit) {
         main.post { if (session == mine) r() }
@@ -155,7 +155,6 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
 
     private companion object {
         const val RATE = 16_000
-        const val MAX_SECONDS = 120 // one recording; Parakeet takes a whole clip in one pass
         const val MIN_SAMPLES = RATE * 4 / 10 // under 0.4 s is a mis-tap
         const val IDLE_MS = 60_000L
         val LOCK = Any()

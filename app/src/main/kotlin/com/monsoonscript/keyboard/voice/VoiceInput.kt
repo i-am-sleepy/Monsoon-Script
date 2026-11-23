@@ -43,7 +43,7 @@ class VoiceInput(private val context: Context, private val host: Host) {
         val key = if (l == VoiceLang.BANGLA) Prefs.VOICE_ENGINE_BN else Prefs.VOICE_ENGINE_EN
         if (prefs().getInt(key, Prefs.ENGINE_GOOGLE) == Prefs.ENGINE_LOCAL) {
             val m = VoiceModels.forLang(l)
-            if (m == null || !NativeVoice.available || !VoiceModels.installed(context, m)) {
+            if (!NativeVoice.available || !VoiceModels.installed(context, m)) {
                 say(R.string.voice_err_no_model)
                 return null
             }
