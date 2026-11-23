@@ -5,6 +5,12 @@ Updated: 2026-11-22, session 7. Doing: L9 space-bar cursor drag (owner go-ahead;
 (none)
 
 ## Tasks and steps
+L11 LICENSE file [x] (owner order 2026-11-22 during the themes request; D74)
+  L11.1 [x] `LICENSE` = GPL-3.0 text from the FSF original (copied from KeePassDX's LICENSE, 35,150 bytes, checked for the first and last sections); README License section; all 15 Avro files have the plain MPL-2.0 notice, none has "Incompatible With Secondary Licenses". Not touched: a GPL header in every source file (not required; only Avro files have headers).
+  L11.2 [x] Open question for the owner, not blocking: the copyright line says "the Monsoon Script contributors"; give a legal name if he wants one. One thing to look at later: hermitdave/FrequencyWords (listed in prediction-data.txt) is derived from OpenSubtitles; its own license is CC BY-SA 4.0 but the subtitles source has non-commercial terms in places (see L2 facts), keep an eye on it.
+L10 Themes [~] (owner request 2026-11-22: complete freedom to customize, no theme store; discuss and ask first, Needs user #18)
+  L10.1 [x] Read how colors work: `KeyboardView.Palette` (11 colors) + `DARK`/`LIGHT`, `refreshTheme()`, panels get `kb.palette`, radius fixed 8 dp, text sizes are fractions of row height, Appearance page has a live preview (`setAppearance`, `Prefs.THEME` 0/1/2).
+  L10.2 [~] Plan proposed to the owner (phases: A engine = ThemeSpec JSON + presets, no visible change; B colors editor + day/night; C shape + text; D background picture, wallpaper colors, import/export) and the design questions asked. After the answers: D-record, then build phase by phase, each with CI green.
 L9 Space-bar cursor drag [~] (owner go-ahead 2026-11-22; roadmap v0.6; design asked first, Needs user #17)
   L9.1 [x] Read: `KeyboardView.down/move/up` (space bar: `swipeArmed` + `SWIPE_DP` 64 -> one `onLanguageToggle`, no space typed), `hasLongPress` (space has none), `MonsoonIme.moveCursor(left)` (DPAD key events, resets `lastEditAt`).
   L9.2 [x] Design answered 2026-11-22, recorded as D72: hold then slide moves the cursor, a quick slide still switches language, hold-time and speed sliders in Settings, a tick per character.
