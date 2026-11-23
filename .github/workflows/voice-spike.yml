@@ -23,6 +23,24 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y -qq cmake build-essential
       - name: Run the spike
         run: RES=$RUNNER_TEMP/voice-res bash tools/voice/run_bn_spike.sh
+      - name: Publish the Bangla model as a release asset (only when it is not there yet)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          F=/tmp/voice-work/moonshine-base-bn-Q8_0.gguf
+          [ -f "$F" ] || { echo "no Q8_0 file, nothing to publish"; exit 0; }
+          {
+            echo "== release asset =="
+            ls -l "$F"; sha256sum "$F"
+            if gh release view voice-models >/dev/null 2>&1 && gh release view voice-models --json assets -q '.assets[].name' | grep -qx moonshine-base-bn-Q8_0.gguf; then
+              echo "already published: kept the existing file"
+            else
+              gh release view voice-models >/dev/null 2>&1 || gh release create voice-models --latest=false --title "Voice models (optional downloads)" \
+                --notes "Optional offline speech models the keyboard can download (G5). moonshine-base-bn-Q8_0.gguf: Bangla, converted to GGUF (Q8_0) from Sanjidh090/moonshine-base-bn (MIT), which is a fine-tune of Moonshine Base by Useful Sensors (MIT). Conversion: tools/voice/make_bn_gguf.py."
+              gh release upload voice-models "$F"
+              echo "published"
+            fi
+          } 2>&1 | tee -a "$RUNNER_TEMP/voice-res/log.txt"
       - name: Publish the log
         if: always()
         run: |
