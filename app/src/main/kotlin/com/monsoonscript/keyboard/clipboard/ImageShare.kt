@@ -11,7 +11,7 @@ object ImageShare {
 
     /**
      * The chooser for one or more picture clips, with [text] (may be empty) along as the message; null when none of them has a file. One picture is a normal
-     * send, several are one "send multiple" so the other app gets them all (D74).
+     * send, several are one "send multiple" so the other app gets them all (D77).
      */
     fun chooserMany(images: ImageFiles, clips: List<ClipItem>, text: String): Intent? {
         val uris = ArrayList<Uri>(clips.size)

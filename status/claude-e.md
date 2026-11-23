@@ -25,7 +25,7 @@ E3 Clipboard [~] Owner rule for this task: ask him every implementation decision
     E3.9.2 [x] pure backup: `MiniJson`, `BackupData`, `ClipBackup` codec, store `snapshot`/`importBackup` (+ tests, 112 clipboard tests pass locally).
     E3.9.3 [x] Android, pushed (0d8b247; CI #50 green, owner test pending): `BackupIo` (zip, images), `ClipHub.exportBackup/importBackup/maybeAutoBackup`, `AutoBackup` (folder, Off/Daily/Weekly, keep 5), settings 'Backup' section via SAF.
     E3.9.4 [x] docs done, CI #50 green, owner has the E3.9 checklist (below). Known limits: backups are NOT encrypted (stated in settings); import only merges; automatic backup skips images unless the switch is on (my default, owner can change).
-  E3.10 [~] Extras (D74 answered): E3.10.1 [x] direct shortcut insertion (switch in Behavior, off; Space after a full trigger; Backspace brings the trigger back; no strip candidates while on). E3.10.2 [x] recent copy chip in the strip (switch, on; 1 min; not in password fields; hidden while the lock is on). E3.10.3 [x] share several images (panel + app). All pushed together (e6663f2), CI #52 green, 118 clipboard tests pass locally. E3.10.4 [x] docs, CI, owner checklist done.
+  E3.10 [~] Extras (D77 answered): E3.10.1 [x] direct shortcut insertion (switch in Behavior, off; Space after a full trigger; Backspace brings the trigger back; no strip candidates while on). E3.10.2 [x] recent copy chip in the strip (switch, on; 1 min; not in password fields; hidden while the lock is on). E3.10.3 [x] share several images (panel + app). All pushed together (e6663f2), CI #52 green, 118 clipboard tests pass locally. E3.10.4 [x] docs, CI, owner checklist done.
     E3.11 [~] owner report 2026-11-23: with 'Open the keyboard automatically' off the keyboard did not come back after the unlock prompt (the implicit show was refused). Fix `returningFromUnlock()` in `MonsoonIme.onShowInputRequested` (d6a7873, CI #55 green); owner test pending.
 E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). Docs: docs/PASSWORD_MANAGER.md (design), PASSWORD_MANAGER_PHASE0.md (results), PASSWORD_MANAGER_BRIEF.md.
   E1.1-E1.11 [x] Design D25-D53 (signed off), Phase 0 feasibility on branch `e1-feasibility` (green run #12, GO).
@@ -33,7 +33,7 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
             (A previous session wrote "merged" in these notes while the work was still on branch `e1-integrate`; this session did the real merge after both runs on 9a2512d were green.)
   E1.13 [ ] Resume here: Phase 1 (D51): (a) `VaultEngine` -> thin interface + one serialized executor; (b) `:vault` service in its own process (D44), app depends on `:vault` (compileSdk 36, drop the conditional include,
             shrunk-build smoke test in CI); (c) app screens in the keyboard's style (D30, D33, D34), file picker (D35), unlock, list/search/view/add/edit/delete, generator; (d) auto-lock + FLAG_SECURE (D38, D43);
-            (e) LICENSE GPL-3.0 (D25, check every Avro header). Then Phase 2 (picker in the keyboard). Ask before any UI decision. Weekly watcher (D48) when convenient.
+            (the old step (e) LICENSE is done by claude-l, L11). Then Phase 2 (picker in the keyboard). Ask before any UI decision. Weekly watcher (D48) when convenient.
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D65) and update the docs.
 
 ## Next step
@@ -81,4 +81,3 @@ E3.8 clipboard images (my commit is the `[claude-e] E3.8` one; wait for CI green
 5. App > Clipboard > gear > Images: 'Save copied images' switch (try off: a new copy is not saved), 'Image storage limit' (50 / 100 / 250 MB), 'Stored images' line shows count and size; tap it to delete all (pinned ones stay).
 6. Images chip in the keyboard panel and the History screen lists only images. Text clips and the shortcuts you made earlier still work.
 7. Tell me if the panel scrolls slower with many images, a thumbnail stays an empty square, or an app shows a broken image after pasting.
-- [claude-l -> claude-e] 2026-11-22 OWNER ORDER (L11, D74): the LICENSE file is done. Drop step (e) "LICENSE GPL-3.0" from your E1 Phase 1 list. `LICENSE` (GPL-3.0 FSF text) + a README License section are on main; I checked the header of all 15 Avro files (standard MPL-2.0 notice, no "Incompatible With Secondary Licenses" notice), so the check that docs/PASSWORD_MANAGER.md asked for "when the LICENSE file is added" is done. No GPL header was added to source files. Nothing else of yours changed.

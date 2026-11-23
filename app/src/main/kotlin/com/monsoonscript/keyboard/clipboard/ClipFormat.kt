@@ -84,7 +84,7 @@ object ClipFormat {
         return "${tenths / 10L}.${tenths % 10L} MB"
     }
 
-    /** The picture clips of a selection, in the order given (they are shared together with [exportText], D74). */
+    /** The picture clips of a selection, in the order given (they are shared together with [exportText], D77). */
     fun imageClips(clips: List<ClipItem>): List<ClipItem> {
         val out = ArrayList<ClipItem>()
         for (c in clips) if (c.isImage && c.image != null) out.add(c)

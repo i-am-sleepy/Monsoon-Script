@@ -67,12 +67,12 @@ class ClipPrefs(context: Context) {
         get() = sp.getBoolean(K_IMAGES, true)
         set(v) = sp.edit().putBoolean(K_IMAGES, v).apply()
 
-    /** Typing a trigger and pressing Space puts the full text in (E3.10, D74). Off = the strip offers it as a candidate (D68). */
+    /** Typing a trigger and pressing Space puts the full text in (E3.10, D77). Off = the strip offers it as a candidate (D68). */
     var directShortcuts: Boolean
         get() = sp.getBoolean(K_SHORTCUT_DIRECT, false)
         set(v) = sp.edit().putBoolean(K_SHORTCUT_DIRECT, v).apply()
 
-    /** The latest copied text shows as a chip in the suggestion strip for a minute (E3.10, D74). */
+    /** The latest copied text shows as a chip in the suggestion strip for a minute (E3.10, D77). */
     var recentChip: Boolean
         get() = sp.getBoolean(K_RECENT_CHIP, true)
         set(v) = sp.edit().putBoolean(K_RECENT_CHIP, v).apply()

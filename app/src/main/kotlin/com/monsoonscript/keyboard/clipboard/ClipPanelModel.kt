@@ -312,7 +312,7 @@ class ClipPanelModel(private val store: ClipStore, private val host: Host) : Cli
         finishBulk()
     }
 
-    /** Share the selection (list order): the text clips as one text (blank line between them) and, when pictures are selected, the pictures with it (D74). */
+    /** Share the selection (list order): the text clips as one text (blank line between them) and, when pictures are selected, the pictures with it (D77). */
     fun exportSelected() {
         if (selected.isEmpty()) return
         val clips = ArrayList<ClipItem>()

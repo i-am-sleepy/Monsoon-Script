@@ -147,7 +147,7 @@ class ClipListModel(private val store: ClipStore) {
     /** The selected text clips as one text (blank line between), for sharing. */
     fun exportText(): String = ClipFormat.exportText(selectedClips())
 
-    /** The selected pictures, shared together with [exportText] (D74). */
+    /** The selected pictures, shared together with [exportText] (D77). */
     fun selectedImages(): List<ClipItem> = ClipFormat.imageClips(selectedClips())
 
     companion object {

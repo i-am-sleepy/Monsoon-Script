@@ -150,7 +150,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private class DoneFix(val original: String, val fixed: String, val stamp: Long)
     private var lastFix: DoneFix? = null
 
-    /** After Backspace brought a trigger back, the next Space must not turn it into the text again (D74). */
+    /** After Backspace brought a trigger back, the next Space must not turn it into the text again (D77). */
     private var skipTrigger: String? = null
 
     /** Typing settings (G2, G3), cached by [applyPrefs]; [autoShow] is also read before the view exists, so [onCreate] sets it too. */
@@ -696,7 +696,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         ic.endBatchEdit()
         lastEditAt = SystemClock.uptimeMillis()
         predWorker?.reject(TextNorm.key(d.original))
-        skipTrigger = d.original // a shortcut trigger comes back as typed: the next Space leaves it alone (D74)
+        skipTrigger = d.original // a shortcut trigger comes back as typed: the next Space leaves it alone (D77)
         resyncTracker()
         requestPrediction()
         refreshAutoCaps()
@@ -710,7 +710,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         answerFollows && !avroActive && !panelSearch && clipHub?.store?.shortcuts?.isNotEmpty() == true
 
     /**
-     * Direct insertion (E3.10, D74): Space after a complete trigger replaces the trigger with the full text, the space follows. Uses [lastFix], so Backspace right after
+     * Direct insertion (E3.10, D77): Space after a complete trigger replaces the trigger with the full text, the space follows. Uses [lastFix], so Backspace right after
      * brings the trigger back (without the space) like an auto-correction. Goes before auto-correction; no strip candidates are shown while it is on.
      */
     private fun applyDirectShortcut(ic: InputConnection): Boolean {
@@ -769,7 +769,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         return out
     }
 
-    // ---- recent copy chip (E3.10, D74)
+    // ---- recent copy chip (E3.10, D77)
 
     /**
      * The text copied in the last minute, offered as the first strip candidate while nothing is typed yet. Never while the clipboard lock is on, never when the owner

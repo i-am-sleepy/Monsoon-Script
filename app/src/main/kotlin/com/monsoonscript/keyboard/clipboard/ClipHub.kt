@@ -84,7 +84,7 @@ class ClipHub private constructor(private val app: Context) {
         }
     }
 
-    /** The keyboard reads these on every key, so they are copied here when a setting changes (D74). */
+    /** The keyboard reads these on every key, so they are copied here when a setting changes (D77). */
     @Volatile var directShortcuts = false
         private set
     @Volatile var recentChip = true
@@ -113,7 +113,7 @@ class ClipHub private constructor(private val app: Context) {
         store.trimImages(prefs.imageCapBytes, images::sizeOf)
     }
 
-    /** The latest copied text for the strip chip (D74), and who wants to know when a new one arrives (the keyboard). */
+    /** The latest copied text for the strip chip (D77), and who wants to know when a new one arrives (the keyboard). */
     val recent = RecentCopy(SystemClock::elapsedRealtime)
     var onCopied: (() -> Unit)? = null
 

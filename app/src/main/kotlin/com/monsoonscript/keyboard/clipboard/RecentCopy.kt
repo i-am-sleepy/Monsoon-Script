@@ -1,7 +1,7 @@
 package com.monsoonscript.keyboard.clipboard
 
 /**
- * The text that was copied a moment ago, for the chip in the suggestion strip (E3.10, D74). It is offered for [WINDOW_MS] after the copy, until the owner taps it,
+ * The text that was copied a moment ago, for the chip in the suggestion strip (E3.10, D77). It is offered for [WINDOW_MS] after the copy, until the owner taps it,
  * starts typing, or copies something else. Memory only; the clock is handed in so the rule is unit tested. Pure Kotlin.
  */
 class RecentCopy(private val clock: () -> Long) {
