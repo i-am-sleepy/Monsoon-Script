@@ -53,8 +53,9 @@ claude-l = Avro typing + suggestions, claude-e = layouts, claude-g = settings, c
 - [x] L7 (claude-l) Trace of the features nobody works on (owner request 2026-11-22, read-only, nothing built): the unowned list, the idle claims (T6, T9.3, E1) and stale notes are in status/claude-l.md (L7). The owner picked auto-correction first (L8)
 - [~] L8 (claude-l) Auto-correction and typo fixes (owner pick 2026-11-22, design D69): Settings > Suggestions switch "Auto-correction" (off by default), English only, auto-fix on space + Backspace undo, fix first in bold and typed word second in quotes on the strip. Pushed in 7acebe7 (CI #47 green); the owner found it too weak and D73 makes it stronger (two slips, rare listed words, context), pushed in 085e217 (CI #51 green), owner test pending. Steps in status/claude-l.md
 - [~] L9 (claude-l) Space-bar cursor drag (owner go-ahead 2026-11-22, design D72): hold the space bar, then slide moves the cursor; a quick slide still switches language; Settings > Typing > Space bar (switch, hold time, speed); a tick per character. Pushed in 874ef94, CI #49 green; owner test pending. Steps in status/claude-l.md
-- [~] L10 (claude-l) Themes (owner request 2026-11-22; no theme store): complete freedom to customize the look (colors, shape, text, more). Design answered (D75). Step 1 (colors + presets) in progress; then background picture, wallpaper colors + share/import, key shape + text. Steps in status/claude-l.md
+- [~] L10 (claude-l) Themes (D75, no theme store): STEP 1 colors + presets DONE (bd26704, CI #64 green, owner: works); day and night theme, editor with live preview, color picker. Still to do, after the app revamp: step 2 background picture, step 3 wallpaper colors + share/import as text, step 4 key shape (roundness, border, shadow) + text size. Steps in status/claude-l.md
 - [x] L11 (claude-l) LICENSE file (owner order 2026-11-22, taken over from claude-e's E1.13(e)): GNU GPL v3 text in `LICENSE`, README License section, Avro MPL headers checked (D74)
+- [~] L12 (claude-l) App revamp (owner request 2026-11-23): the launcher app (main screen + settings pages) modernised and themed like the keyboard (High contrast preset the default for both), highlighted setup card, no black status/notch strip, new icon and logo with a start animation, floating Try-it and Live-preview windows, interactive preview. Design questions asked (Needs user #19); nothing built yet. Steps in status/claude-l.md
 
 ## Hand-offs between Claudes (keep these; warn the others if you must break one)
 - Language switching has ONE entry point: `MonsoonIme.setLanguage(l: Language)`. The pill, space-bar swipe and claude-s's Ctrl+Space call it; nobody adds a second path.
@@ -86,6 +87,7 @@ Password manager (E1): Phase 0 done (go recommended); Phase 1 onward (D51) after
 16. (answered 2026-11-22: auto-correction is a switch, off by default; auto-fix on space with Backspace undo; English only; fix first in bold, typed word second in quotes, see D69)
 17. (answered 2026-11-22: hold then slide moves the cursor, quick slide still switches language, hold time and speed sliders, a tick per character, see D72)
 18. (answered 2026-11-22: themes order colors+presets, background picture, wallpaper colors+share/import, shape+text; one theme for day and one for night; simple 5 colors first, Advanced for all 11, see D75)
+19. App revamp design (L12, claude-l): menu layout, how the floating preview window behaves, how the interactive preview is built, extras. Asked 2026-11-23, waiting. (claude-l)
 
 ## Known notes
 Long-press on the language pill does nothing until T9 adds a second Bangla layout (claude-e). Launcher icon and setup screen are placeholders.
