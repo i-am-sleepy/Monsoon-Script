@@ -22,6 +22,7 @@ import android.widget.OverScroller
 import com.monsoonscript.keyboard.clipboard.CardGrid
 import com.monsoonscript.keyboard.clipboard.ClipFormat
 import com.monsoonscript.keyboard.clipboard.ClipPanelModel
+import com.monsoonscript.keyboard.clipboard.ClipPrefs
 import com.monsoonscript.keyboard.clipboard.ImageMime
 import com.monsoonscript.keyboard.clipboard.ThumbLoader
 import kotlin.math.abs
@@ -196,7 +197,8 @@ class ClipboardPanelView(
 
     // ---- state
     private var searching = false
-    private var lines = 3 // lines of text per card
+    private var lines = ClipPrefs.DEFAULT_LINES // lines of text per card (with [autoFit]: the most a card may show)
+    private var autoFit = true // E3.13: one column, every card as tall as its text up to [lines] lines
     private var compact = false
     private var showTime = true
     private var scrollPos = 0f // vertical scroll of the cards, px
@@ -216,7 +218,8 @@ class ClipboardPanelView(
     private var cardPadTop = dp(8f)
     private var padH = dp(10f)
     private var lineH = 0f
-    private var bodyH = 0f // height of the text area of a card: [lines] lines, but room for a thumbnail when the list has pictures
+    private var bodyH = 0f // height of the text area of a card: [lines] lines, but room for a thumbnail when the list has pictures (Auto fit: the height of a picture card)
+    private var heights = FloatArray(0) // Auto fit: the measured height of every card
     private var resCardW = dp(150f)
     private var resLines = 3
     private val footerH = dp(20f)
@@ -241,9 +244,13 @@ class ClipboardPanelView(
     private class Entry(
         val layout: StaticLayout?, val time: String, val title: String?,
         // what the layout was built for: a different text (edit), width (1 / 2 columns) or time (copied again) rebuilds it
-        val raw: String, val width: Int, val nLines: Int, val used: Long,
+        val raw: String, val width: Int, val nLines: Int, val used: Long, val fit: Boolean,
     )
     private val cache = LongSparseArray<Entry>()
+
+    /** Auto fit: the measured text height of a card, kept for the whole list so a re-layout is a lookup per card (a layout is only rebuilt for the cards in view). */
+    private class Fit(val raw: String, val width: Int, val cap: Int, val body: Float)
+    private val fitCache = LongSparseArray<Fit>()
 
     // ---- popup (the 3-dot menu or the folder list)
     private var popKind = P_NONE
@@ -291,14 +298,16 @@ class ClipboardPanelView(
         invalidate()
     }
 
-    /** Card look from the settings: lines of text (1-5), compact padding, whether the time is shown. */
-    fun setStyle(lines: Int, compact: Boolean, showTime: Boolean) {
-        val l = lines.coerceIn(1, 5)
-        if (l == this.lines && compact == this.compact && showTime == this.showTime) return
+    /** Card look from the settings: lines of text (1-10), Auto fit (one column, cards as tall as their text, [lines] is the cap), compact padding, whether the time is shown. */
+    fun setStyle(lines: Int, autoFit: Boolean, compact: Boolean, showTime: Boolean) {
+        val l = lines.coerceIn(1, ClipPrefs.MAX_LINES)
+        if (l == this.lines && autoFit == this.autoFit && compact == this.compact && showTime == this.showTime) return
         this.lines = l
+        this.autoFit = autoFit
         this.compact = compact
         this.showTime = showTime
         cache.clear()
+        fitCache.clear()
         relayout()
         invalidate()
     }
@@ -321,7 +330,7 @@ class ClipboardPanelView(
     fun close() {
         cancelAll()
         model.close()
-        cache.clear()
+        cache.clear() // fitCache stays: it is tiny and makes the next opening a lookup per card, not a measuring of the whole history
     }
 
     /** The model changed (list, selection, popup, columns): lay out again and redraw. Called by the keyboard service's host. */
@@ -381,14 +390,18 @@ class ClipboardPanelView(
         chipBase = baselineOf(chipPaint)
         labelBase = baselineOf(labelPaint)
         botW = (w - 2f * sideW) / 4f
-        var anyImage = false
-        for (card in model.cards) if (card.clip?.isImage == true) {
-            anyImage = true
-            break
+        if (autoFit && !searching) {
+            layoutFit(w)
+        } else {
+            var anyImage = false
+            for (card in model.cards) if (card.clip?.isImage == true) {
+                anyImage = true
+                break
+            }
+            bodyH = if (anyImage) maxOf(lines * lineH, dp(40f)) else lines * lineH
+            val cardH = cardPadTop + bodyH + footerH + dp(2f)
+            grid.layout(model.cards.size, model.columns, w, cardH, gap, edge)
         }
-        bodyH = if (anyImage) maxOf(lines * lineH, dp(40f)) else lines * lineH
-        val cardH = cardPadTop + bodyH + footerH + dp(2f)
-        grid.layout(model.cards.size, model.columns, w, cardH, gap, edge)
         resCardW = dp(150f)
         val resCardH = resRowH - dp(12f)
         resLines = ((resCardH - 2f * dp(6f)) / lineH).toInt().coerceIn(1, 3)
@@ -404,6 +417,34 @@ class ClipboardPanelView(
         layoutChips()
         emptyLines = model.emptyMessage.split('\n')
         layoutPopup()
+    }
+
+    /** Auto fit: one column; every card gets the height of its own text (a picture card keeps the height of its thumbnail). */
+    private fun layoutFit(w: Float) {
+        val n = model.cards.size
+        if (heights.size < n) heights = FloatArray(n + 64)
+        if (fitCache.size() > n + 100) fitCache.clear() // clips that were deleted leave entries behind
+        bodyH = maxOf(2f * lineH, dp(40f))
+        val chrome = cardPadTop + footerH + dp(2f)
+        val cw = w - 2f * edge
+        for (i in 0 until n) heights[i] = chrome + fitBody(model.cards[i], cw)
+        grid.layoutFit(n, w, heights, gap, edge)
+    }
+
+    /** The height of the text area of a card of width [cw] when Auto fit is on: its whole text up to [lines] lines (a shortcut also has its trigger line). */
+    private fun fitBody(card: ClipPanelModel.Card, cw: Float): Float {
+        val clip = card.clip
+        if (clip != null && clip.isImage) return bodyH
+        val sc = card.shortcut
+        val raw = clip?.text ?: sc?.text ?: ""
+        val width = (cw - 2f * padH).toInt().coerceAtLeast(1)
+        val hit = fitCache.get(card.key)
+        if (hit != null && hit.width == width && hit.cap == lines && hit.raw == raw) return hit.body
+        val src = ClipFormat.fitSource(raw)
+        val layout = buildLayout(src, width, textLinesFor(false, sc != null, lines))
+        val body = maxOf((if (sc != null) lineH else 0f) + (layout?.height ?: 0), lineH)
+        fitCache.put(card.key, Fit(raw, width, lines, body))
+        return body
     }
 
     private fun layoutChips() {
@@ -467,8 +508,22 @@ class ClipboardPanelView(
 
     // ---------------------------------------------------------------- card text
 
-    /** [side] is the width of the thumbnail beside the text of an image card, 0 for other cards. */
-    private fun entryFor(card: ClipPanelModel.Card, w: Float, nLines: Int, side: Float): Entry {
+    /** Lines the text of a card may use: a picture card shows 2 (its name and type), a shortcut card gives one of its [nLines] to the trigger. */
+    private fun textLinesFor(image: Boolean, shortcut: Boolean, nLines: Int): Int =
+        if (image) 2 else if (shortcut) (nLines - 1).coerceAtLeast(1) else nLines
+
+    private fun buildLayout(src: String, width: Int, maxLines: Int): StaticLayout? {
+        if (src.isEmpty()) return null
+        return StaticLayout.Builder.obtain(src, 0, src.length, textPaint, width)
+            .setMaxLines(maxLines)
+            .setEllipsize(TextUtils.TruncateAt.END)
+            .setIncludePad(false)
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .build()
+    }
+
+    /** [side] is the width of the thumbnail beside the text of an image card, 0 for other cards. [fit] = laid out for Auto fit (a longer text source). */
+    private fun entryFor(card: ClipPanelModel.Card, w: Float, nLines: Int, side: Float, fit: Boolean): Entry {
         val key = card.key
         val clip = card.clip
         val sc = card.shortcut
@@ -477,22 +532,12 @@ class ClipboardPanelView(
         val width = (w - 2f * padH - (if (image) side + dp(8f) else 0f)).toInt().coerceAtLeast(1)
         val used = clip?.used ?: 0L
         val hit = cache.get(key)
-        if (hit != null && hit.width == width && hit.nLines == nLines && hit.used == used && hit.raw == raw) return hit
+        if (hit != null && hit.width == width && hit.nLines == nLines && hit.used == used && hit.fit == fit && hit.raw == raw) return hit
         if (cache.size() > 80) cache.clear()
-        val src = if (image) "Image\n" + ImageMime.label(raw) else ClipFormat.previewSource(raw)
-        val textLines = if (image) 2 else if (sc != null) (nLines - 1).coerceAtLeast(1) else nLines
-        val layout = if (src.isEmpty()) {
-            null
-        } else {
-            StaticLayout.Builder.obtain(src, 0, src.length, textPaint, width)
-                .setMaxLines(textLines)
-                .setEllipsize(TextUtils.TruncateAt.END)
-                .setIncludePad(false)
-                .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-                .build()
-        }
+        val src = if (image) "Image\n" + ImageMime.label(raw) else if (fit) ClipFormat.fitSource(raw) else ClipFormat.previewSource(raw)
+        val layout = buildLayout(src, width, textLinesFor(image, sc != null, nLines))
         val time = if (clip != null && showTime) ClipFormat.ago(clip.used, System.currentTimeMillis()) else ""
-        val e = Entry(layout, time, sc?.trigger, raw, width, nLines, used)
+        val e = Entry(layout, time, sc?.trigger, raw, width, nLines, used, fit)
         cache.put(key, e)
         return e
     }
@@ -532,7 +577,7 @@ class ClipboardPanelView(
                 val x = grid.left(i)
                 val y = listTop + grid.top(i) - scrollPos
                 val pressed = i == pressedCard && region == R_LIST && !dragging && pressKind == PK_CARD
-                drawCard(c, model.cards[i], x, y, grid.cardW, grid.cardH, lines, true, pressed)
+                drawCard(c, model.cards[i], x, y, grid.cardW, grid.heightOf(i), lines, true, pressed)
             }
         }
         c.restore()
@@ -564,7 +609,7 @@ class ClipboardPanelView(
         }
         val image = clip != null && clip.isImage
         val side = if (!image) 0f else if (footer) bodyH else h - 2f * cardPadTop
-        val e = entryFor(card, w, nLines, side)
+        val e = entryFor(card, w, nLines, side, footer && autoFit)
         var ty = y + cardPadTop
         val title = e.title
         val layout = e.layout
@@ -925,7 +970,7 @@ class ClipboardPanelView(
                     val left = grid.left(pressedCard)
                     val top = grid.top(pressedCard)
                     val inDots = !model.selecting && model.cards[pressedCard].clip != null &&
-                        px > left + grid.cardW - dp(40f) && cy > top + grid.cardH - dp(34f)
+                        px > left + grid.cardW - dp(40f) && cy > top + grid.heightOf(pressedCard) - dp(34f)
                     pressKind = if (inDots) PK_DOTS else PK_CARD
                     if (!inDots && model.cards[pressedCard].clip != null) postDelayed(longPressRunnable, LONG_PRESS_MS)
                 }
@@ -1154,8 +1199,8 @@ class ClipboardPanelView(
     private fun openMenuFor(i: Int) {
         anchorL = grid.left(i) + grid.cardW - dp(40f)
         anchorR = grid.left(i) + grid.cardW
-        anchorT = listTop + grid.top(i) - scrollPos + grid.cardH - dp(34f)
-        anchorB = listTop + grid.top(i) - scrollPos + grid.cardH
+        anchorT = listTop + grid.top(i) - scrollPos + grid.heightOf(i) - dp(34f)
+        anchorB = listTop + grid.top(i) - scrollPos + grid.heightOf(i)
         model.openMenu(i)
     }
 

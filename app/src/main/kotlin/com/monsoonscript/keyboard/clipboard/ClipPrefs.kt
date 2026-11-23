@@ -43,10 +43,18 @@ class ClipPrefs(context: Context) {
         get() = if (sp.getInt(K_COLUMNS, 2) == 1) 1 else 2
         set(v) = sp.edit().putInt(K_COLUMNS, if (v == 1) 1 else 2).apply()
 
-    /** Lines of text shown per card, 1-5. */
+    /**
+     * Lines of text shown per card, 1-[MAX_LINES]. With [autoFit] on it is the CAP (a card is only as tall as its text, up to this many lines, then an
+     * ellipsis); with it off every card shows exactly this many lines.
+     */
     var previewLines: Int
-        get() = sp.getInt(K_LINES, 3).coerceIn(1, 5)
-        set(v) = sp.edit().putInt(K_LINES, v.coerceIn(1, 5)).apply()
+        get() = sp.getInt(K_LINES, DEFAULT_LINES).coerceIn(1, MAX_LINES)
+        set(v) = sp.edit().putInt(K_LINES, v.coerceIn(1, MAX_LINES)).apply()
+
+    /** Auto fit (E3.13, D79): one column, each card as tall as its text (up to [previewLines] lines); the column setting is ignored while it is on. */
+    var autoFit: Boolean
+        get() = sp.getBoolean(K_AUTO_FIT, true)
+        set(v) = sp.edit().putBoolean(K_AUTO_FIT, v).apply()
 
     /** Compact cards: less padding. */
     var compact: Boolean
@@ -139,6 +147,9 @@ class ClipPrefs(context: Context) {
         const val K_PINNED_TOP = "pinned_top"
         const val K_COLUMNS = "columns"
         const val K_LINES = "preview_lines"
+        const val K_AUTO_FIT = "auto_fit"
+        const val MAX_LINES = 10
+        const val DEFAULT_LINES = 10
         const val K_COMPACT = "compact"
         const val K_TIME = "show_time"
         const val K_HIDE_PASTE = "hide_after_paste"

@@ -103,7 +103,12 @@ class ClipboardSettingsActivity : Activity() {
 
             page.content.add(header(getString(R.string.clip_set_appearance)))
             page.content.add(switchRow(getString(R.string.clip_set_compact), getString(R.string.clip_set_compact_summary), ClipPrefs.K_COMPACT, false))
-            page.content.add(sliderRow(getString(R.string.clip_set_lines), ClipPrefs.K_LINES, 1, 5, 3) { getString(R.string.clip_lines_format, it) })
+            page.content.add(switchRow(getString(R.string.clip_set_autofit), getString(R.string.clip_set_autofit_summary), ClipPrefs.K_AUTO_FIT, true))
+            page.content.add(
+                sliderRow(getString(R.string.clip_set_lines), ClipPrefs.K_LINES, 1, ClipPrefs.MAX_LINES, ClipPrefs.DEFAULT_LINES) {
+                    getString(R.string.clip_lines_format, it)
+                },
+            )
             page.content.add(switchRow(getString(R.string.clip_set_time), getString(R.string.clip_set_time_summary), ClipPrefs.K_TIME, true))
 
             page.content.add(header(getString(R.string.clip_set_privacy)))

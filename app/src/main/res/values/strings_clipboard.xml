@@ -121,7 +121,9 @@
     <string name="clip_set_appearance">Appearance</string>
     <string name="clip_set_compact">Compact cards</string>
     <string name="clip_set_compact_summary">Less padding, more clips on screen.</string>
-    <string name="clip_set_lines">Preview length</string>
+    <string name="clip_set_autofit">Auto fit</string>
+    <string name="clip_set_autofit_summary">Each card is as tall as its text, so you see exactly what was copied. One card per row; the 1 / 2 column button does nothing while this is on.</string>
+    <string name="clip_set_lines">Lines per card</string>
     <string name="clip_lines_format">%1$d lines</string>
     <string name="clip_set_time">Show time</string>
     <string name="clip_set_time_summary">How long ago a clip was copied.</string>

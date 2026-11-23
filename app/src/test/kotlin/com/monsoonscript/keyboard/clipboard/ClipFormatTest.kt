@@ -55,6 +55,18 @@ class ClipFormatTest {
     }
 
     @Test
+    fun fitSourceKeepsLineBreaksAndMarksACutText() {
+        assertEquals("one\ntwo\n\nthree", ClipFormat.fitSource("  one\ntwo\n\nthree"))
+        assertEquals("", ClipFormat.fitSource("   "))
+        assertEquals("abc", ClipFormat.fitSource("abc", 3)) // exactly the limit: nothing was cut
+        assertEquals("abc\u2026", ClipFormat.fitSource("abcd", 3))
+        assertEquals("abc\u2026", ClipFormat.fitSource("  abcdef", 3)) // leading white space does not count
+        val emoji = "a\uD83D\uDE00b" // cut between the two halves of the emoji: the half is dropped, the cut is still marked
+        assertEquals("a\u2026", ClipFormat.fitSource(emoji, 2))
+        assertEquals(1500 + 1, ClipFormat.fitSource("x".repeat(2000)).length)
+    }
+
+    @Test
     fun exportJoinsTextClipsWithABlankLineAndSkipsImages() {
         val a = ClipItem(1, ClipKind.TEXT, "one", null, null, false, 0, 0, 0)
         val img = ClipItem(2, ClipKind.IMAGE, "", "f.png", "image/png", false, 0, 0, 0)

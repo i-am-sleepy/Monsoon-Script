@@ -43,6 +43,17 @@ object ClipFormat {
     }
 
     /**
+     * The text a card shows when Auto fit is on (E3.13): like [previewSource] but long enough for the 10-line cap on any screen width, and a text that is
+     * still longer ends in an ellipsis of its own (the layout adds its own where the line cap cuts first).
+     */
+    fun fitSource(text: String, max: Int = 1500): String {
+        val s = previewSource(text, max)
+        var start = 0
+        while (start < text.length && text[start].isWhitespace()) start++
+        return if (start + s.length < text.length) s + "\u2026" else s
+    }
+
+    /**
      * One short line of a text for the keyboard strip (a shortcut candidate): the first line with something on it, runs of white space turned into single
      * spaces, at most [max] characters (never cut inside a surrogate pair). The strip itself shrinks and cuts what still does not fit.
      */

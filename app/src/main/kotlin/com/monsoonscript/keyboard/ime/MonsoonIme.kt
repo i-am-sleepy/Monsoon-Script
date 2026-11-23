@@ -1539,7 +1539,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         hub.start() // reads the saved clips if that has not happened yet
         hub.lock.setPanelOpen(true)
         val prefs = hub.prefs
-        panel.setStyle(prefs.previewLines, prefs.compact, prefs.showTime)
+        panel.setStyle(prefs.previewLines, prefs.autoFit, prefs.compact, prefs.showTime)
         model.columns = prefs.columns
         model.historyEnabled = prefs.historyEnabled
         panel.setSearching(false)
