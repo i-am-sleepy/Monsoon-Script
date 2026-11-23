@@ -9,6 +9,7 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import android.view.MotionEvent
+import android.view.ViewConfiguration
 import android.view.View
 import com.monsoonscript.keyboard.R
 import kotlin.math.sin
@@ -30,8 +31,8 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
         /** ABC: back to the keys, the text is dropped. */
         fun onClose()
 
-        /** The text box was tapped: show the keys below the panel. */
-        fun onBoxTap()
+        /** The text box was tapped at [offset] (a position in the text): put the caret there, and show the keys below the panel if they are not up. */
+        fun onBoxTap(offset: Int)
 
         /** "Done" while typing: hide the keys again. */
         fun onDoneEditing()
@@ -56,6 +57,14 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
     private var layout: StaticLayout? = null
     private var layoutW = -1
     private var pressed = NONE
+    private var caret = 0 // the caret's position in [text]
+    private var scrollY = 0f // how far the text is scrolled up inside the box
+    private var follow = true // scroll so that the caret is visible (until the owner drags the text by hand)
+    private var downX = 0f
+    private var downY = 0f
+    private var lastY = 0f
+    private var dragging = false
+    private val slop = ViewConfiguration.get(context).scaledTouchSlop
 
     fun setPalette(p: KeyboardView.Palette) {
         pal = p
@@ -78,6 +87,9 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
         layout = null
         searching = false
         state = 0
+        caret = 0
+        scrollY = 0f
+        follow = true
         wave.reset()
         pressed = NONE
     }
@@ -86,8 +98,15 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
 
     override fun setQuery(q: String) {
         if (q == text) return
-        text = q
+        setText(q, minOf(caret, q.length))
+    }
+
+    /** The whole text and where the caret is in it (the keyboard service owns both). */
+    fun setText(t: String, caretAt: Int) {
+        text = t
+        caret = caretAt.coerceIn(0, t.length)
         layout = null
+        follow = true
         invalidate()
     }
 
@@ -98,7 +117,7 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
         invalidate()
     }
 
-    override fun compactHeight(): Int = (132f * d).toInt()
+    override fun compactHeight(): Int = (148f * d).toInt()
 
     // ---------------------------------------------------------------- drawing
 
@@ -146,16 +165,22 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
             }
             val lay = layout!!
             val visible = box.height() - 2 * padY
-            val shift = if (lay.height > visible) lay.height - visible else 0f
+            val maxScroll = if (lay.height > visible) lay.height - visible else 0f
+            if (follow) { // keep the caret's line in view (typing, a tap, new text from the microphone)
+                val line = lay.getLineForOffset(caret)
+                if (lay.getLineTop(line) < scrollY) scrollY = lay.getLineTop(line).toFloat() else if (lay.getLineBottom(line) > scrollY + visible) scrollY = lay.getLineBottom(line) - visible
+                follow = false
+            }
+            scrollY = scrollY.coerceIn(0f, maxScroll)
             c.save()
             c.clipRect(box.left + dp(4f), box.top + dp(4f), box.right - dp(4f), box.bottom - dp(4f))
-            c.translate(box.left + padX, box.top + padY - shift)
+            c.translate(box.left + padX, box.top + padY - scrollY)
             lay.draw(c)
-            if (searching) { // typing: the caret at the end of the text
-                val last = lay.lineCount - 1
-                val x = lay.getLineRight(last)
+            if (searching) { // typing: the caret where the next letter goes
+                val line = lay.getLineForOffset(caret)
+                val x = lay.getPrimaryHorizontal(caret)
                 fill.color = pal.accent
-                tmp.set(x + dp(1f), lay.getLineTop(last).toFloat(), x + dp(3f), lay.getLineBottom(last).toFloat())
+                tmp.set(x - dp(1f), lay.getLineTop(line).toFloat(), x + dp(1f), lay.getLineBottom(line).toFloat())
                 c.drawRect(tmp, fill)
             }
             c.restore()
@@ -224,11 +249,35 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
         }
     }
 
+    /** The text position under a touch in the box. */
+    private fun offsetAt(x: Float, y: Float): Int {
+        val lay = layout ?: return text.length
+        val lx = (x - box.left - dp(14f)).coerceAtLeast(0f)
+        val ly = (y - box.top - dp(10f) + scrollY).toInt().coerceIn(0, maxOf(0, lay.height - 1))
+        return lay.getOffsetForHorizontal(lay.getLineForVertical(ly), lx)
+    }
+
     override fun onTouchEvent(e: MotionEvent): Boolean {
         when (e.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 pressed = regionAt(e.x, e.y)
+                downX = e.x
+                downY = e.y
+                lastY = e.y
+                dragging = false
                 invalidate()
+                return true
+            }
+            MotionEvent.ACTION_MOVE -> {
+                if (pressed == BOX) { // dragging the text scrolls it, a tap puts the caret
+                    if (!dragging && kotlin.math.abs(e.y - downY) > slop) dragging = true
+                    if (dragging) {
+                        scrollY -= e.y - lastY
+                        follow = false
+                        invalidate()
+                    }
+                    lastY = e.y
+                }
                 return true
             }
             MotionEvent.ACTION_UP -> {
@@ -241,13 +290,15 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
                         LEFT -> if (searching) listener?.onDoneEditing() else listener?.onClose()
                         MIC -> listener?.onMicTap()
                         INSERT -> if (text.isNotBlank() && state == 0) listener?.onInsert()
-                        BOX -> if (!searching) listener?.onBoxTap()
+                        BOX -> if (!dragging) listener?.onBoxTap(offsetAt(e.x, e.y))
                     }
                 }
+                dragging = false
                 return true
             }
             MotionEvent.ACTION_CANCEL -> {
                 pressed = NONE
+                dragging = false
                 invalidate()
                 return true
             }

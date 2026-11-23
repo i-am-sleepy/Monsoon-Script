@@ -195,6 +195,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Typing into a panel's search bar: [searchBuf] holds the finished part of the query, the Avro composer the word in progress. */
     private var panelSearch = false
     private val searchBuf = StringBuilder()
+    private var searchCaret = 0 // the voice panel's text box has a caret that can be moved; other panels always type at the end of the query
 
     /** Recents are not kept in password fields or when the app asks for no personalized learning (incognito). */
     private var emojiRecents = true
@@ -1142,7 +1143,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             resyncAndPredict()
         }
 
-        override fun onBoxTap() = startVoiceEditing()
+        override fun onBoxTap(offset: Int) = if (panelSearch) moveVoiceCaret(offset) else startVoiceEditing(offset)
 
         override fun onDoneEditing() = endSearchTyping(clear = false)
     }
@@ -1170,6 +1171,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         searchBuf.setLength(0)
         composer?.clear()
         dropSuggestions()
+        searchCaret = 0
         panel.reset()
         panel.setSearching(false)
         panel.setQuery("")
@@ -1190,6 +1192,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         if (panelSearch) composer?.clear()
         panelSearch = false
         searchBuf.setLength(0)
+        searchCaret = 0
         panel.reset()
         panel.setQuery("")
         panel.visibility = View.GONE
@@ -1206,10 +1209,18 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         if (v.isListening()) v.panelStop() else v.panelStart(voiceLang())
     }
 
-    /** The text box was tapped: the keys come back below a smaller panel; a running recording ends first. */
-    private fun startVoiceEditing() {
+    /** The text box was tapped at [offset]: the caret goes there, the keys come back below a smaller panel; a running recording ends first. */
+    private fun startVoiceEditing(offset: Int) {
         voice?.let { if (it.isListening()) it.panelStop() }
+        searchCaret = offset.coerceIn(0, searchBuf.length)
         startSearchTyping()
+    }
+
+    /** A tap in the text box while typing: the caret moves there (a word being composed becomes plain text first, which keeps the offsets valid). */
+    private fun moveVoiceCaret(offset: Int) {
+        flushSearchComposing()
+        searchCaret = offset.coerceIn(0, searchBuf.length)
+        updateSearchQuery()
     }
 
     private fun voicePanelInsert() {
@@ -1225,8 +1236,12 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Recognized text joins the text box: a space between pieces, no limit on the length. */
     private fun appendToVoicePanel(text: String) {
         if (panelSearch) flushSearchComposing()
-        if (searchBuf.isNotEmpty() && !searchBuf[searchBuf.length - 1].isWhitespace()) searchBuf.append(' ')
-        searchBuf.append(text)
+        val at = caretPos()
+        val lead = at > 0 && !searchBuf[at - 1].isWhitespace()
+        val trail = at < searchBuf.length && !searchBuf[at].isWhitespace()
+        val piece = (if (lead) " " else "") + text + (if (trail) " " else "")
+        searchBuf.insert(at, piece)
+        searchCaret = at + piece.length
         updateSearchQuery()
     }
 
@@ -1383,16 +1398,29 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun flushSearchComposing() {
         val comp = composer ?: return
         if (comp.isComposing) {
-            searchBuf.append(comp.text())
+            val t = comp.text()
+            val at = caretPos()
+            searchBuf.insert(at, t)
+            if (voicePanelUp()) searchCaret = at + t.length
             comp.clear()
         }
         updateSearchQuery()
     }
 
+    private fun voicePanelUp() = voicePanel != null && shownPanel === voicePanel
+
+    /** Where typing goes in [searchBuf]: at the caret in the voice panel's text box, at the end for every other panel. */
+    private fun caretPos(): Int = if (voicePanelUp()) searchCaret.coerceIn(0, searchBuf.length) else searchBuf.length
+
     private fun updateSearchQuery() {
         val comp = composer
-        val q = if (comp != null && comp.isComposing) searchBuf.toString() + comp.text() else searchBuf.toString()
-        searchPanel?.setQuery(q)
+        val composing = if (comp != null && comp.isComposing) comp.text() else ""
+        if (voicePanelUp()) { // text before the caret + the word being composed + text after it
+            val at = caretPos()
+            voicePanel?.setText(StringBuilder(searchBuf).insert(at, composing).toString(), at + composing.length)
+            return
+        }
+        searchPanel?.setQuery(searchBuf.toString() + composing)
     }
 
     private fun searchText(text: String) {
@@ -1407,7 +1435,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             }
             flushSearchComposing()
         }
-        if (searchBuf.length + text.length <= queryLimit()) searchBuf.append(text)
+        if (searchBuf.length + text.length <= queryLimit()) {
+            val at = caretPos()
+            searchBuf.insert(at, text)
+            if (voicePanelUp()) searchCaret = at + text.length
+        }
         updateSearchQuery()
     }
 
@@ -1417,6 +1449,13 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val comp = composer
         if (comp != null && comp.isComposing) {
             comp.deleteLast()
+        } else if (voicePanelUp()) { // delete the letter before the caret
+            val at = caretPos()
+            if (at > 0) {
+                val from = searchBuf.offsetByCodePoints(at, -1)
+                searchBuf.delete(from, at)
+                searchCaret = from
+            }
         } else if (searchBuf.isNotEmpty()) {
             searchBuf.setLength(searchBuf.offsetByCodePoints(searchBuf.length, -1))
         }
