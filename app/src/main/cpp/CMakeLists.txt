@@ -13,5 +13,7 @@ set(TRANSCRIBE_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(${TRANSCRIBE_DIR} transcribe EXCLUDE_FROM_ALL)
 
 add_library(monsoonvoice SHARED voice_jni.cpp)
+# transcribe.cpp's own include path points at CMAKE_SOURCE_DIR, which is this project when it is added as a subdirectory: say where transcribe.h is.
+target_include_directories(monsoonvoice PRIVATE ${TRANSCRIBE_DIR}/include)
 target_link_libraries(monsoonvoice PRIVATE transcribe log)
 target_link_options(monsoonvoice PRIVATE -Wl,--exclude-libs,ALL -Wl,--gc-sections)
