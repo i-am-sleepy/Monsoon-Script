@@ -275,9 +275,17 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
      * their own cannot be told from a tap and still open it.
      */
     override fun onShowInputRequested(flags: Int, configChange: Boolean): Boolean {
-        if (!autoShow && !configChange && (flags and InputMethod.SHOW_EXPLICIT) == 0) return false
+        if (!autoShow && !configChange && (flags and InputMethod.SHOW_EXPLICIT) == 0 && !returningFromUnlock()) return false
         return super.onShowInputRequested(flags, configChange)
     }
+
+    /**
+     * The keyboard was open when the clipboard key started the unlock prompt (D71), and the prompt took the screen. Android asks for the keyboard again when the app comes
+     * back, but only implicitly, which "Open the keyboard automatically: off" refuses; here it is let through (until [onStartInputView] takes the mark away, or two minutes)
+     * so the keyboard returns by itself, with the clipboard panel when the unlock worked (E3.11).
+     */
+    private fun returningFromUnlock(): Boolean =
+        openClipboardAfterUnlock != 0L && SystemClock.uptimeMillis() - openClipboardAfterUnlock < UNLOCK_OPEN_MS
 
     // ---- volume buttons move the cursor (G2): the IME sees key events before the app while the keyboard is up
 
