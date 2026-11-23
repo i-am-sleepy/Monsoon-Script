@@ -22,7 +22,7 @@ class GoogleVoiceEngine(private val context: Context) : VoiceEngine {
 
     fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
 
-    override fun start(lang: VoiceLang, callback: VoiceEngine.Callback) {
+    override fun start(lang: VoiceLang, callback: VoiceEngine.Callback, autoStop: Boolean) {
         cancel()
         if (!isAvailable()) {
             callback.onError(VoiceError.NOT_AVAILABLE)
@@ -48,7 +48,9 @@ class GoogleVoiceEngine(private val context: Context) : VoiceEngine {
 
             override fun onBeginningOfSpeech() {}
 
-            override fun onRmsChanged(rmsdB: Float) {}
+            override fun onRmsChanged(rmsdB: Float) {
+                if (live()) callback.onLevel(((rmsdB + 2f) / 12f).coerceIn(0f, 1f))
+            }
 
             override fun onBufferReceived(buffer: ByteArray?) {}
 

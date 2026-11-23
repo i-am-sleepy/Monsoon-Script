@@ -59,6 +59,7 @@ object Prefs {
     const val VOICE_ENGINE_BN = "voice_engine_bn"
     const val ENGINE_GOOGLE = 0
     const val ENGINE_LOCAL = 1
+    const val VOICE_BN_PUNCT = "voice_bn_punct" // Bangla: understand spoken marks (দাঁড়ি, কমা ...) and end a sentence with a danda, default on
     const val VOICE_OFFLINE = "voice_offline_mode" // D10: never use the internet (blocks the model download and Google voice), default off
 
     // suggestion strip (G1.3): all default on

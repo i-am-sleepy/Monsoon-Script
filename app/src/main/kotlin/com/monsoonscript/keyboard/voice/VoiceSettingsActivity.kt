@@ -32,6 +32,7 @@ class VoiceSettingsActivity : Activity() {
             page.content.add(choiceRow(getString(R.string.voice_engine_english), Prefs.VOICE_ENGINE_EN, engines, Prefs.ENGINE_GOOGLE))
             page.content.add(choiceRow(getString(R.string.voice_engine_bangla), Prefs.VOICE_ENGINE_BN, engines, Prefs.ENGINE_GOOGLE))
             page.content.add(note(getString(R.string.voice_engine_note)))
+            page.content.add(switchRow(getString(R.string.voice_bn_punct), getString(R.string.voice_bn_punct_summary), Prefs.VOICE_BN_PUNCT, true))
             page.content.add(header(getString(R.string.voice_models_header)))
             modelBox = LinearLayout(this@VoiceSettingsActivity).apply { orientation = LinearLayout.VERTICAL }
             page.content.add(modelBox)

@@ -13,7 +13,8 @@ import com.monsoonscript.keyboard.prefs.Prefs
  * Voice typing for the keyboard (G5, D66). This part is hold-to-talk on the strip's mic key: [holdStart] opens the microphone, [holdEnd] ends it, and the
  * finished text goes to the [Host], which types it at the cursor. The engine is chosen per language in Settings > Voice: Google's recognizer (default) or a
  * local model that was downloaded. While the key is held a pause in the speech finishes one piece of text (Google) or the recording reaches its limit (local):
- * that text is typed at once and listening starts again, so one long press can carry several sentences. Main thread only.
+ * that text is typed at once and listening starts again, so one long press can carry several sentences. The tap panel (G5.3b) uses the same engines without the
+ * key: [panelStart] listens until the speaker pauses, [panelStop] ends it early, and the text goes to the panel through the same [Host.voiceText]. Main thread only.
  */
 class VoiceInput(private val context: Context, private val host: Host) {
 
@@ -23,6 +24,9 @@ class VoiceInput(private val context: Context, private val host: Host) {
 
         /** What the mic key shows: [IDLE], [LISTENING] (microphone open) or [WORKING] (turning the audio into text). */
         fun voiceState(state: Int)
+
+        /** The loudness of the voice, 0..1, for the level display. */
+        fun voiceLevel(level: Float)
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -31,6 +35,8 @@ class VoiceInput(private val context: Context, private val host: Host) {
     private var localModel: VoiceModel? = null
     private var engine: VoiceEngine? = null
     private var holding = false
+    private var panelMode = false // listening for the tap panel: no restart after a finished piece, the speaker's pause ends it
+    private var state = IDLE
     private var lang = VoiceLang.ENGLISH
     private var silent = 0 // rounds in a row that heard nothing
 
@@ -72,8 +78,42 @@ class VoiceInput(private val context: Context, private val host: Host) {
         engine = e
         lang = l
         holding = true
+        panelMode = false
         silent = 0
         begin()
+    }
+
+    /** The tap panel: listen until the speaker pauses; the text comes through [Host.voiceText]. */
+    fun panelStart(l: VoiceLang) {
+        val e = pick(l) ?: return
+        val isGoogle = e === google
+        if (!hasMic() || (isGoogle && !prefs().getBoolean(Prefs.VOICE_NOTICE_OK, false))) {
+            VoicePermissionActivity.open(context, isGoogle)
+            return
+        }
+        main.removeCallbacks(resetWorking)
+        engine = e
+        lang = l
+        holding = false
+        panelMode = true
+        silent = 0
+        begin()
+    }
+
+    fun isListening() = state == LISTENING
+
+    /** The panel's mic was tapped while listening: end the recording now; the text follows. */
+    fun panelStop() {
+        if (state != LISTENING) return
+        setState(WORKING)
+        main.postDelayed(resetWorking, if (engine === google) 8_000L else 90_000L)
+        engine?.stop()
+    }
+
+    /** The panel closed: drop whatever is running. */
+    fun panelClose() {
+        panelMode = false
+        cancel()
     }
 
     /** The finger left the mic key. [cancel] = it slid away or the touch was cancelled: nothing is typed. */
@@ -82,9 +122,9 @@ class VoiceInput(private val context: Context, private val host: Host) {
         holding = false
         if (cancel) {
             engine?.cancel()
-            host.voiceState(IDLE)
+            setState(IDLE)
         } else {
-            host.voiceState(WORKING) // the text arrives through the callback
+            setState(WORKING) // the text arrives through the callback
             main.postDelayed(resetWorking, if (engine === google) 8_000L else 90_000L)
             engine?.stop()
         }
@@ -95,7 +135,7 @@ class VoiceInput(private val context: Context, private val host: Host) {
         holding = false
         main.removeCallbacks(resetWorking)
         engine?.cancel()
-        host.voiceState(IDLE)
+        setState(IDLE)
     }
 
     /** The keyboard service is going away: also frees the local model. */
@@ -104,28 +144,41 @@ class VoiceInput(private val context: Context, private val host: Host) {
         local?.release()
     }
 
-    private val resetWorking = Runnable { if (!holding) host.voiceState(IDLE) }
+    private val resetWorking = Runnable { if (!holding) setState(IDLE) }
+
+    private fun setState(s: Int) {
+        state = s
+        host.voiceState(s)
+    }
 
     private fun begin() {
-        engine?.start(lang, callback)
+        engine?.start(lang, callback, panelMode)
     }
 
     private fun say(res: Int) = Toast.makeText(context, res, Toast.LENGTH_SHORT).show()
 
     private fun finishRound() {
         main.removeCallbacks(resetWorking)
-        host.voiceState(IDLE)
+        setState(IDLE)
     }
+
+    /** Bangla punctuation help (Settings): spoken marks and a danda at the end; see [VoiceText]. */
+    private fun tidy(text: String) = VoiceText.clean(text, lang, prefs().getBoolean(Prefs.VOICE_BN_PUNCT, true))
 
     private val callback = object : VoiceEngine.Callback {
         override fun onListening() {
-            if (holding) host.voiceState(LISTENING)
+            if (holding || panelMode) setState(LISTENING)
+        }
+
+        override fun onLevel(level: Float) {
+            if (state == LISTENING) host.voiceLevel(level)
         }
 
         override fun onFinal(text: String) {
-            if (text.isNotEmpty()) {
+            val tidy = tidy(text)
+            if (tidy.isNotEmpty()) {
                 silent = 0
-                host.voiceText(text)
+                host.voiceText(tidy)
             } else {
                 silent++
             }
@@ -135,7 +188,10 @@ class VoiceInput(private val context: Context, private val host: Host) {
         override fun onError(error: VoiceError) {
             if (error == VoiceError.NO_SPEECH) {
                 silent++
-                if (holding && silent < MAX_SILENT) begin() else if (holding) giveUp(R.string.voice_err_no_speech) else finishRound()
+                if (holding && silent < MAX_SILENT) begin() else if (holding) giveUp(R.string.voice_err_no_speech) else {
+                    finishRound()
+                    if (panelMode) say(R.string.voice_err_no_speech)
+                }
                 return
             }
             holding = false

@@ -43,4 +43,12 @@
     <string name="voice_offline">Offline mode</string>
     <string name="voice_offline_summary">Never use the internet: blocks the model download and Google voice. Downloaded models keep working.</string>
     <string name="voice_credits">Models: %1$s. Speech recognition runs with transcribe.cpp (MIT).</string>
+    <string name="voice_panel_hint">Tap the microphone and speak</string>
+    <string name="voice_panel_listening">Listening…</string>
+    <string name="voice_panel_working">Working it out…</string>
+    <string name="voice_panel_insert">Insert</string>
+    <string name="voice_panel_abc">ABC</string>
+    <string name="voice_panel_done">Done</string>
+    <string name="voice_bn_punct">Bangla punctuation help</string>
+    <string name="voice_bn_punct_summary">Understand the spoken words for the marks (দাঁড়ি, কমা, প্রশ্নবোধক চিহ্ন, বিস্ময়সূচক চিহ্ন) and end a sentence without a mark with a danda ।</string>
 </resources>

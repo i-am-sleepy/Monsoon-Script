@@ -16,13 +16,32 @@ object VoiceText {
     private val AFTER_OPEN = Regex("([(\\[])\\s+")
     private val SPACES = Regex("\\s+")
 
-    fun clean(text: String, lang: VoiceLang): String {
+    // Spoken punctuation (Bangla): the Bangla models almost never write punctuation, so the words for it are turned into the marks.
+    // A word only counts when it stands alone (no letter or vowel sign right before or after it).
+    private const val L = "[\\p{L}\\p{M}]"
+    private fun word(vararg w: String) = Regex("(?<!$L)(?:" + w.joinToString("|") + ")(?!$L)")
+    private val SAY_DANDA = word("\u09A6\u09BE\u0981\u09A1\u09BC\u09BF", "\u09A6\u09BE\u0981\u09DC\u09BF", "\u09A6\u09BE\u09A1\u09BC\u09BF", "\u09A6\u09BE\u09DC\u09BF", "\u09AA\u09C2\u09B0\u09CD\u09A3\u099A\u09CD\u099B\u09C7\u09A6") // দাঁড়ি, দাড়ি, পূর্ণচ্ছেদ
+    private val SAY_COMMA = word("\u0995\u09AE\u09BE") // কমা
+    private val SAY_QUESTION = word("\u09AA\u09CD\u09B0\u09B6\u09CD\u09A8\u09AC\u09CB\u09A7\u0995(?:\\s+\u099A\u09BF\u09B9\u09CD\u09A8)?", "\u09AA\u09CD\u09B0\u09B6\u09CD\u09A8\\s+\u099A\u09BF\u09B9\u09CD\u09A8") // প্রশ্নবোধক (চিহ্ন), প্রশ্ন চিহ্ন
+    private val SAY_EXCLAIM = word("\u09AC\u09BF\u09B8\u09CD\u09AE\u09DF\u09B8\u09C2\u099A\u0995(?:\\s+\u099A\u09BF\u09B9\u09CD\u09A8)?", "\u09AC\u09BF\u09B8\u09CD\u09AE\u09AF\u09BC\u09B8\u09C2\u099A\u0995(?:\\s+\u099A\u09BF\u09B9\u09CD\u09A8)?") // বিস্ময়সূচক (চিহ্ন)
+    private val ENDS_WITH_MARK = Regex("[.,?!;:\\u0964\\u0965\u2026]$")
+
+    /** [punct] (Bangla only): understand the spoken marks above and end a sentence without a mark with a danda. */
+    fun clean(text: String, lang: VoiceLang, punct: Boolean = false): String {
         var t = text.trim()
         if (lang == VoiceLang.BANGLA) {
             for ((from, to) in NUKTA) t = t.replace(from, to)
+            if (punct) {
+                t = SAY_DANDA.replace(t, "\u0964")
+                t = SAY_COMMA.replace(t, ",")
+                t = SAY_QUESTION.replace(t, "?")
+                t = SAY_EXCLAIM.replace(t, "!")
+            }
             t = BEFORE_PUNCT.replace(t, "$1")
             t = AFTER_OPEN.replace(t, "$1")
         }
-        return SPACES.replace(t, " ").trim()
+        t = SPACES.replace(t, " ").trim()
+        if (lang == VoiceLang.BANGLA && punct && t.isNotEmpty() && !ENDS_WITH_MARK.containsMatchIn(t)) t += "\u0964"
+        return t
     }
 }

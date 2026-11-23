@@ -174,6 +174,10 @@ class KeyboardView(context: Context) : View(context) {
     private val ptrArrow = BooleanArray(MAX_PTR) // this finger went down on the arrow
     private var stripLeftCount = 0 // the first entries of each page's key list are the left-hand strip icons
     private var stripShift = 0f // how far those icons are moved right to make room for the arrow
+    private var stripLeadCount = 0 // the language key (when on) is the first left icon: it stays at the far left edge and never moves
+    private var stripLeadW = 0f
+    private var stripMicW = 0f // the mic key at the far right edge
+    private val wave = Waveform()
     private val showSug: Boolean get() = sugCount > 0 && !iconsPinned
 
     // ---- paint
@@ -535,7 +539,13 @@ class KeyboardView(context: Context) : View(context) {
     fun setMicState(state: Int) {
         if (micState == state) return
         micState = state
+        if (state == 1) wave.reset()
         invalidate()
+    }
+
+    /** One voice level (0..1) for the level display in the strip. */
+    fun pushMicLevel(level: Float) {
+        wave.push(level)
     }
 
     fun cancelAll() {
@@ -593,6 +603,9 @@ class KeyboardView(context: Context) : View(context) {
                 }
             }
             stripLeftCount = kl.size
+            stripLeadCount = if (kl.isNotEmpty() && kl[0].code == Codes.LANG) 1 else 0
+            stripLeadW = if (stripLeadCount == 1) rl[0].width() else 0f
+            stripMicW = if (stripShown && Layouts.stripRight.isNotEmpty()) iconCell else 0f
             if (stripShown) {
                 var rx = w - padX
                 for (k in Layouts.stripRight.reversed()) {
@@ -629,7 +642,7 @@ class KeyboardView(context: Context) : View(context) {
         val d = shift - stripShift
         if (d == 0f) return
         stripShift = shift
-        for (p in rects.indices) for (i in 0 until stripLeftCount.coerceAtMost(rects[p].size)) rects[p][i].offset(d, 0f)
+        for (p in rects.indices) for (i in stripLeadCount until stripLeftCount.coerceAtMost(rects[p].size)) rects[p][i].offset(d, 0f)
     }
 
     private fun updateTextSizes() {
@@ -684,11 +697,16 @@ class KeyboardView(context: Context) : View(context) {
         if (page >= keys.size) return
         val ks = keys[page]
         val rs = rects[page]
+        val recording = stripShown && micState != 0 // the voice level takes the middle of the strip
         for (i in ks.indices) {
-            if (showSug && ks[i].kind == Kind.STRIP) continue // the icons give way to the suggestions
+            if (ks[i].kind == Kind.STRIP && !isEdgeKey(ks[i]) && (showSug || recording)) continue // the icons give way to the suggestions / the level display
             drawKey(canvas, ks[i], rs[i], isPressedIndex(i))
         }
-        if (stripShown && sugCount > 0) {
+        if (recording) {
+            val l = padX + stripLeadW + dp(10f)
+            val r = width - padX - stripMicW - dp(10f)
+            wave.draw(canvas, l, stripH * 0.14f, r, stripH * 0.86f, resources.displayMetrics.density, pal.accent, pal.textMuted, micState, android.os.SystemClock.uptimeMillis())
+        } else if (stripShown && sugCount > 0) {
             drawArrow(canvas)
             if (showSug) drawSuggestions(canvas)
         }
@@ -703,6 +721,7 @@ class KeyboardView(context: Context) : View(context) {
             }
         }
         if (popupOpen) drawLanguagePopup(canvas)
+        if (recording) postInvalidateOnAnimation() // the level display animates while the microphone is in use
     }
 
     /** The list of layouts (L4, D19) over the keys below the strip: the current one in the accent color, the one under the finger highlighted. */
@@ -957,7 +976,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawArrow(c: Canvas) {
         var pressed = false
         for (s in 0 until MAX_PTR) if (ptrArrow[s] && ptrSug[s] == ARROW_SLOT) pressed = true
-        val cx = padX + arrowW / 2
+        val cx = padX + stripLeadW + arrowW / 2
         if (pressed) {
             fillPaint.color = pal.specialPressed
             c.drawCircle(cx, stripH / 2, stripH * 0.38f, fillPaint)
@@ -975,10 +994,10 @@ class KeyboardView(context: Context) : View(context) {
 
     /** [SUG_SLOTS] equal columns right of the arrow; the first one (the word as it is in the editor, or the best guess) is bold. */
     private fun drawSuggestions(c: Canvas) {
-        val slotW = (width - 2 * padX - arrowW) / SUG_SLOTS
+        val slotW = sugSlotW()
         for (i in 0 until SUG_SLOTS) {
             val word = sug[i] ?: continue
-            val x0 = padX + arrowW + slotW * i
+            val x0 = sugLeft() + slotW * i
             if (isSugPressed(i)) {
                 tmp.set(x0 + dp(2f), stripH * 0.12f, x0 + slotW - dp(2f), stripH * 0.88f)
                 fillPaint.color = pal.special
@@ -1014,10 +1033,19 @@ class KeyboardView(context: Context) : View(context) {
         return false
     }
 
+    /** The language key and the mic key stay on screen while suggestions show or the voice level is drawn. */
+    private fun isEdgeKey(k: Key) = k.code == Codes.LANG || k.code == Codes.MIC
+
+    private fun sugLeft() = padX + stripLeadW + arrowW
+
+    private fun sugRight() = width - padX - stripMicW
+
+    private fun sugSlotW() = (sugRight() - sugLeft()) / SUG_SLOTS
+
     /** The suggestion slot under x (edges snap to the nearest slot), or -1 when that slot is empty. */
     private fun sugIndexAt(x: Float): Int {
-        val slotW = (width - 2 * padX - arrowW) / SUG_SLOTS
-        val i = ((x.coerceIn(padX + arrowW, width - padX - 0.01f) - padX - arrowW) / slotW).toInt()
+        val slotW = sugSlotW()
+        val i = ((x.coerceIn(sugLeft(), sugRight() - 0.01f) - sugLeft()) / slotW).toInt()
         return if (i in 0 until SUG_SLOTS && sug[i] != null) i else -1
     }
 
@@ -1077,8 +1105,9 @@ class KeyboardView(context: Context) : View(context) {
         for (s in 0 until MAX_PTR) if (ptrId[s] == -1) { slot = s; break }
         if (slot < 0) return
         val inStrip = stripShown && sugCount > 0 && y < stripH
-        val inArrow = inStrip && x < padX + arrowW
-        val inSug = inStrip && showSug && !inArrow // the strip shows suggestions: a touch there picks one, never a hidden icon
+        val onEdge = inStrip && (x < padX + stripLeadW || x >= width - padX - stripMicW) // the language key and the mic are always reachable
+        val inArrow = inStrip && !onEdge && x < sugLeft()
+        val inSug = inStrip && showSug && !inArrow && !onEdge // the strip shows suggestions: a touch there picks one, never a hidden icon
         val idx = if (inSug || inArrow) -1 else findKey(x, y)
         ptrId[slot] = id
         ptrKey[slot] = idx
@@ -1159,7 +1188,7 @@ class KeyboardView(context: Context) : View(context) {
         }
         if (slot < 0 || ptrLong[slot]) return
         if (ptrArrow[slot]) { // sliding off the arrow cancels the toggle
-            val on = if (y >= 0f && y < stripH && x < padX + arrowW) ARROW_SLOT else -1
+            val on = if (y >= 0f && y < stripH && x >= padX + stripLeadW && x < sugLeft()) ARROW_SLOT else -1
             if (on != ptrSug[slot]) {
                 ptrSug[slot] = on
                 invalidate()
@@ -1247,7 +1276,7 @@ class KeyboardView(context: Context) : View(context) {
             return
         }
         if (idx < 0 || wasLong || dragMoved || page >= keys.size) return
-        if (showSug && keys[page][idx].kind == Kind.STRIP) return // finger went down on an icon before it was hidden
+        if (showSug && keys[page][idx].kind == Kind.STRIP && !isEdgeKey(keys[page][idx])) return // finger went down on an icon before it was hidden
         perform(keys[page][idx])
     }
 

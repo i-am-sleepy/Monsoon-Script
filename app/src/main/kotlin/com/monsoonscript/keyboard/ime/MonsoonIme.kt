@@ -52,6 +52,7 @@ import com.monsoonscript.keyboard.view.ClipboardPanelView
 import com.monsoonscript.keyboard.view.EmojiPanelView
 import com.monsoonscript.keyboard.view.KeyboardView
 import com.monsoonscript.keyboard.view.SearchablePanel
+import com.monsoonscript.keyboard.view.VoicePanelView
 import com.monsoonscript.keyboard.voice.VoiceInput
 import com.monsoonscript.keyboard.voice.VoiceLang
 import java.io.IOException
@@ -1074,6 +1075,12 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
         override fun voiceState(state: Int) {
             keyboard?.setMicState(state)
+            voicePanel?.setState(state)
+        }
+
+        override fun voiceLevel(level: Float) {
+            keyboard?.pushMicLevel(level)
+            voicePanel?.pushLevel(level)
         }
     }
 
@@ -1083,7 +1090,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun voiceLang() = if (language.isBangla) VoiceLang.BANGLA else VoiceLang.ENGLISH
 
     override fun onMicTap() {
-        Toast.makeText(this, R.string.voice_hint_hold, Toast.LENGTH_SHORT).show() // the tap panel comes in the next G5 step
+        commitComposingIfAny()
+        showVoicePanel()
     }
 
     override fun onMicHoldStart() {
@@ -1095,10 +1103,20 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         voice?.holdEnd(cancel)
     }
 
-    /** Finished speech goes into the editor at the cursor as plain text, with a space in front when it follows a word. */
+    /** Finished speech goes into the tap panel's text box while that is up, otherwise into the editor at the cursor. */
     private fun typeVoiceText(text: String) {
+        val panel = voicePanel
+        if (panel != null && shownPanel === panel) {
+            appendToVoicePanel(text)
+            return
+        }
+        if (panelSearch) return // the keys belong to another panel's search bar, not to the editor
+        commitToEditor(text)
+    }
+
+    /** Plain text at the cursor, with a space in front when it follows a word. */
+    private fun commitToEditor(text: String) {
         val ic = currentInputConnection ?: return
-        if (panelSearch) return // the keys belong to a panel's search bar, not to the editor
         commitComposingIfAny()
         val before = ic.getTextBeforeCursor(1, 0)
         val last = if (before.isNullOrEmpty()) ' ' else before[before.length - 1]
@@ -1107,6 +1125,109 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         lastEditAt = SystemClock.uptimeMillis()
         if (predicting) resyncTracker()
         refreshAutoCaps()
+    }
+
+    // ---- voice panel (G5.3b, D66): tap the mic key, speak, fix the text, Insert
+
+    private var voicePanel: VoicePanelView? = null
+
+    private val voicePanelListener = object : VoicePanelView.Listener {
+        override fun onMicTap() = voicePanelMic()
+
+        override fun onInsert() = voicePanelInsert()
+
+        override fun onClose() {
+            closeVoicePanel()
+            refreshAutoCaps()
+            resyncAndPredict()
+        }
+
+        override fun onBoxTap() = startVoiceEditing()
+
+        override fun onDoneEditing() = endSearchTyping(clear = false)
+    }
+
+    private fun ensureVoicePanel(): VoicePanelView? {
+        voicePanel?.let { return it }
+        val r = root ?: return null
+        val kb = keyboard ?: return null
+        val p = VoicePanelView(this, kb.palette)
+        p.listener = voicePanelListener
+        p.visibility = View.GONE
+        r.addView(p, 0, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, kb.desiredHeight()))
+        voicePanel = p
+        return p
+    }
+
+    /** The panel takes the place of the keys, at the same height, and starts listening at once. */
+    private fun showVoicePanel() {
+        val kb = keyboard ?: return
+        val panel = ensureVoicePanel() ?: return
+        closeEmoji()
+        closeClipboard()
+        kb.cancelAll()
+        panelSearch = false
+        searchBuf.setLength(0)
+        composer?.clear()
+        dropSuggestions()
+        panel.reset()
+        panel.setSearching(false)
+        panel.setQuery("")
+        panel.setPalette(kb.palette)
+        kb.setStripVisible(true)
+        kb.visibility = View.GONE
+        shownPanel = panel
+        setPanelHeight(kb.desiredHeight())
+        panel.visibility = View.VISIBLE
+        ensureVoice().panelStart(voiceLang())
+    }
+
+    /** Back to the keys (ABC key, Insert, new field, keyboard hidden). Safe to call when the panel was never shown. */
+    private fun closeVoicePanel() {
+        val panel = voicePanel ?: return
+        if (panel.visibility != View.VISIBLE) return
+        voice?.panelClose()
+        if (panelSearch) composer?.clear()
+        panelSearch = false
+        searchBuf.setLength(0)
+        panel.reset()
+        panel.setQuery("")
+        panel.visibility = View.GONE
+        if (shownPanel === panel) shownPanel = null
+        val kb = keyboard ?: return
+        kb.setStripVisible(true)
+        kb.visibility = View.VISIBLE
+    }
+
+    /** The round mic button: listening -> stop and keep the text; idle -> listen again and add to the text. */
+    private fun voicePanelMic() {
+        val v = ensureVoice()
+        if (panelSearch) endSearchTyping(clear = false) // the keys give way to the panel again
+        if (v.isListening()) v.panelStop() else v.panelStart(voiceLang())
+    }
+
+    /** The text box was tapped: the keys come back below a smaller panel; a running recording ends first. */
+    private fun startVoiceEditing() {
+        voice?.let { if (it.isListening()) it.panelStop() }
+        startSearchTyping()
+    }
+
+    private fun voicePanelInsert() {
+        val panel = voicePanel ?: return
+        flushSearchComposing()
+        val text = searchBuf.toString().trim()
+        closeVoicePanel()
+        if (text.isNotEmpty()) commitToEditor(text)
+        refreshAutoCaps()
+        resyncAndPredict()
+    }
+
+    /** Recognized text joins the text box: a space between pieces, no limit on the length. */
+    private fun appendToVoicePanel(text: String) {
+        if (panelSearch) flushSearchComposing()
+        if (searchBuf.isNotEmpty() && !searchBuf[searchBuf.length - 1].isWhitespace()) searchBuf.append(' ')
+        searchBuf.append(text)
+        updateSearchQuery()
     }
 
     // ---- emoji panel (E2, D56)
@@ -1278,7 +1399,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         if (language == Language.AVRO) {
             val comp = ensureComposer()
             if (text.length == 1 && comp.accepts(text[0])) {
-                if (searchBuf.length + comp.rawText().length < MAX_QUERY) {
+                if (searchBuf.length + comp.rawText().length < queryLimit()) {
                     comp.append(text[0])
                     updateSearchQuery()
                 }
@@ -1286,9 +1407,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             }
             flushSearchComposing()
         }
-        if (searchBuf.length + text.length <= MAX_QUERY) searchBuf.append(text)
+        if (searchBuf.length + text.length <= queryLimit()) searchBuf.append(text)
         updateSearchQuery()
     }
+
+    private fun queryLimit(): Int = if (voicePanel != null && shownPanel === voicePanel) VOICE_TEXT_LIMIT else MAX_QUERY
 
     private fun searchBackspace() {
         val comp = composer
@@ -1318,6 +1441,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun closePanels() {
         closeEmoji()
         closeClipboard()
+        closeVoicePanel()
     }
 
     private val clipListener = object : ClipboardPanelView.Listener {
@@ -1540,5 +1664,6 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         const val MAX_SHORTCUT_CANDIDATES = 2 // of the strip's three slots; the third stays free for a word (E3.7)
         const val HELD_MS = 400L // how long the strip may keep painting dropped candidates while the next answer is computed (G4)
         const val MAX_QUERY = 40
+        const val VOICE_TEXT_LIMIT = 4000 // the tap panel's text box
     }
 }

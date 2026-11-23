@@ -6,6 +6,7 @@ import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.os.Handler
 import android.os.Looper
+import com.monsoonscript.keyboard.view.Waveform
 
 /**
  * Method 2 of the voice typing design (G5, D66): records the microphone itself and transcribes it on the phone with a downloaded model (transcribe.cpp).
@@ -19,7 +20,7 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
 
     @Volatile private var recording = false
 
-    override fun start(lang: VoiceLang, callback: VoiceEngine.Callback) {
+    override fun start(lang: VoiceLang, callback: VoiceEngine.Callback, autoStop: Boolean) {
         cancel()
         if (!NativeVoice.available) {
             callback.onError(VoiceError.NOT_AVAILABLE)
@@ -33,7 +34,7 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
         val mine = ++session
         recording = true
         preload()
-        Thread({ record(mine, callback) }, "voice-record").start()
+        Thread({ record(mine, callback, autoStop) }, "voice-record").start()
     }
 
     /** Ends the recording; the text follows through the callback. */
@@ -57,7 +58,7 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
         Thread({ synchronized(LOCK) { ensureLoadedLocked() } }, "voice-load").start()
     }
 
-    private fun record(mine: Int, callback: VoiceEngine.Callback) {
+    private fun record(mine: Int, callback: VoiceEngine.Callback, autoStop: Boolean) {
         val minBuf = AudioRecord.getMinBufferSize(RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
         val bufBytes = maxOf(minBuf, RATE / 4 * 2)
         var rec: AudioRecord? = null
@@ -82,12 +83,39 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
         try {
             rec.startRecording()
             post(mine) { callback.onListening() }
-            val chunk = ShortArray(RATE / 10)
+            val chunk = ShortArray(RATE / 20) // 50 ms: the level display and the pause detection work on these
+            var floorDb = 0f
+            var first = true
+            var spoke = false
+            var quiet = 0 // chunks of silence since the speech
+            var waited = 0 // chunks before any speech
             while (recording && n < pcm.size && session == mine) {
                 val got = rec.read(chunk, 0, minOf(chunk.size, pcm.size - n))
                 if (got <= 0) break
-                for (i in 0 until got) pcm[n + i] = chunk[i] / 32768f
+                var sum = 0f
+                for (i in 0 until got) {
+                    val v = chunk[i] / 32768f
+                    pcm[n + i] = v
+                    sum += v * v
+                }
                 n += got
+                val rms = kotlin.math.sqrt(sum / got)
+                val level = Waveform.levelOf(rms)
+                post(mine) { callback.onLevel(level) }
+                if (autoStop) { // stop by itself after a pause (the tap panel)
+                    val db = if (rms > 1e-5f) 20f * kotlin.math.log10(rms) else -100f
+                    if (first || db < floorDb) floorDb = db else floorDb += 0.05f // the noise floor follows the quietest recent level
+                    first = false
+                    if (db > maxOf(-48f, floorDb + 12f)) {
+                        spoke = true
+                        quiet = 0
+                    } else if (spoke) {
+                        quiet++
+                    } else {
+                        waited++
+                    }
+                    if ((spoke && quiet >= PAUSE_CHUNKS) || (!spoke && waited >= WAIT_CHUNKS)) recording = false
+                }
             }
         } catch (e: Exception) {
             post(mine) { callback.onError(VoiceError.OTHER) }
@@ -119,10 +147,8 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
         }
         if (session != mine) return
         main.post { scheduleUnload() }
-        if (text == null) post(mine) { callback.onError(VoiceError.OTHER) } else post(mine) { callback.onFinal(clean(text)) }
+        if (text == null) post(mine) { callback.onError(VoiceError.OTHER) } else post(mine) { callback.onFinal(text.trim()) }
     }
-
-    private fun clean(t: String): String = VoiceText.clean(t, model.lang)
 
     private fun post(mine: Int, r: () -> Unit) {
         main.post { if (session == mine) r() }
@@ -157,6 +183,8 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
         const val RATE = 16_000
         const val MIN_SAMPLES = RATE * 4 / 10 // under 0.4 s is a mis-tap
         const val IDLE_MS = 60_000L
+        const val PAUSE_CHUNKS = 28 // 1.4 s of silence after speech ends a tap-panel recording
+        const val WAIT_CHUNKS = 140 // 7 s without any speech ends it too
         val LOCK = Any()
         var handle = 0L
         var loadedPath: String? = null

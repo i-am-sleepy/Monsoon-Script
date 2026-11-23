@@ -23,7 +23,8 @@ object Layouts {
     private fun strip(code: Int, w: Float = 1f) = Key(code, "", w, Kind.STRIP)
 
     /** Strip cell width is `weight * 44dp`; the language key is a text pill, so it is wider. */
-    val stripLeft: Array<Key> = arrayOf(strip(Codes.GLOBE), strip(Codes.LANG, 1.25f), strip(Codes.EMOJI), strip(Codes.CLIPBOARD))
+    // The language key sits at the far left and the mic at the far right; both stay visible while suggestions show (G5, owner request 2026-11-23).
+    val stripLeft: Array<Key> = arrayOf(strip(Codes.LANG, 1.25f), strip(Codes.GLOBE), strip(Codes.EMOJI), strip(Codes.CLIPBOARD))
     val stripRight: Array<Key> = arrayOf(strip(Codes.MIC))
 
     private val letters: Array<Array<Key>> = arrayOf(
