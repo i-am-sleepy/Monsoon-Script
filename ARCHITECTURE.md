@@ -105,6 +105,13 @@ Status: v0.1 done, v0.2 in progress (Avro typing works on device; suggestion str
   Settings contract for claude-g: `ime/LearnSettings` holds the pref names (`PREFS`, `KEY_ENABLED`, `KEY_CLEAR_EPOCH`); the switch writes `learn_enabled`
   (`LearnSettings.setEnabled`), the button calls `LearnSettings.clearLearnedWords(context)` (empties the database and bumps an epoch that the running service hears via a
   SharedPreferences listener to empty its memory). Change `LearnSettings.PREFS` if the settings code uses another prefs file.
+- Themes (L10, D75; step 1 = colors + presets; later steps: background picture, wallpaper colors + share/import, key shape + text size). Package `theme/`: `ColorMath` (pure: mix, WCAG luminance/contrast, HSV, hex),
+  `ThemeSpec` (pure: id, name, 5 main colors BG/KEY/SPECIAL/ACCENT/TEXT + `overrides` of the 6 derived ones KEY_PRESSED/SPECIAL_PRESSED/ACCENT_PRESSED/TEXT_MUTED/ON_ACCENT/BUBBLE which follow the main ones by formula until set;
+  `colors()` = the 11 resolved; `warnings()` = unreadable combinations, never blocking), `Themes` (the ready-made ones: `LIGHT` and `DARK` reproduce the original palettes EXACTLY, a test guards it), `ThemeCodec` (JSON via
+  `clipboard/MiniJson`, damaged input never throws), `ThemeStore` (custom themes + day id + night id in `Prefs` keys `themes_custom`, `theme_day`, `theme_night`, so the IME's normal prefs listener hears every change; parse cached).
+  `KeyboardView.setThemes(day, night)` holds the two palettes and `refreshTheme()` picks one (`Prefs.THEME`: 0 follow the phone, 1 always day, 2 always night); `Palette` is a data class; `isLightTheme` = luminance of the background
+  (system bar icons); `MonsoonIme.applyPrefs` calls `setThemes` before `setAppearance`, then the panels get `kb.palette` as before. Screens: `ThemesActivity` (preview, the 3-way mode, list, actions), `ThemeEditActivity` (live preview,
+  5 main colors, "advanced" 6, each edit saved at once), `ColorDialog` + `HsvPickerView` (picker + hex code), `ThemeSwatchView` (mini keyboard). Appearance page: one row "Themes" opens `ThemesActivity`; its preview also follows the themes.
 - Space-bar cursor drag (L9, D72; Settings > Typing > "Space bar": `Prefs.SPACE_DRAG` default ON, `DRAG_DELAY` units of 50 ms default 7 = 350 ms, `DRAG_SPEED` 1-10 default 6). `KeyboardView`:
   touch down on the space bar starts `dragRunnable` (the hold delay); moving more than `DRAG_SLOP_DP` before it fires cancels the drag (a quick slide stays the language swipe, `swipeArmed`);
   when it fires (`onDragStart`: `ptrDrag`, `swipeArmed` off, stronger vibration) every touch move goes to `view/SpaceDrag.steps` (pure Kotlin, tested: whole steps only, the remainder is kept) and

@@ -55,6 +55,8 @@ import com.monsoonscript.keyboard.view.SearchablePanel
 import com.monsoonscript.keyboard.voice.VoiceInput
 import com.monsoonscript.keyboard.voice.VoiceLang
 import java.io.IOException
+import com.monsoonscript.keyboard.theme.ThemeStore
+import com.monsoonscript.keyboard.theme.toPalette
 
 /**
  * The keyboard service.
@@ -216,6 +218,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         keyboard?.setLanguageOptions(Prefs.languageKey(this), Prefs.spaceSwipe(this))
         keyboard?.setBanglaDigits(Prefs.banglaDigits(this))
         keyboard?.let { kb ->
+            kb.setThemes(ThemeStore.day(this).colors().toPalette(), ThemeStore.night(this).colors().toPalette()) // the owner's themes (L10, D75)
             kb.setAppearance(Prefs.theme(this), Prefs.numberRow(this), Prefs.emojiKey(this), Prefs.heightPortrait(this), Prefs.heightLandscape(this), Prefs.keyGap(this))
             applySystemBars() // the theme setting can change the keyboard color
             emojiPanel?.setPalette(kb.palette)

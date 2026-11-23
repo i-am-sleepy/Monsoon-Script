@@ -54,6 +54,17 @@
             android:windowSoftInputMode="adjustResize|stateHidden" />
 
         <activity
+            android:name=".theme.ThemesActivity"
+            android:exported="false"
+            android:label="@string/themes_title" />
+
+        <activity
+            android:name=".theme.ThemeEditActivity"
+            android:exported="false"
+            android:label="@string/theme_edit_title"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
+
+        <activity
             android:name=".clipboard.app.ClipboardActivity"
             android:exported="false"
             android:label="@string/clip_title"

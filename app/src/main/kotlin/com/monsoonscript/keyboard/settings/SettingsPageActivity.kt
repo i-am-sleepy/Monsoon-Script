@@ -17,6 +17,9 @@ import com.monsoonscript.keyboard.ime.LearnSettings
 import com.monsoonscript.keyboard.prefs.Prefs
 import com.monsoonscript.keyboard.view.KeyboardView
 import com.monsoonscript.keyboard.view.SpaceDrag
+import com.monsoonscript.keyboard.theme.ThemeStore
+import com.monsoonscript.keyboard.theme.ThemesActivity
+import com.monsoonscript.keyboard.theme.toPalette
 
 /**
  * One settings sub-page (D55): which one comes in the intent extra [EXTRA_PAGE]. Each page is its own activity, so the system Back button
@@ -121,8 +124,7 @@ class SettingsPageActivity : Activity() {
             page.content.add(frame)
             page.content.add(note(getString(R.string.settings_preview_note)))
             page.content.add(header(getString(R.string.settings_look_header)))
-            val themes = listOf(R.string.settings_theme_system, R.string.settings_theme_light, R.string.settings_theme_dark).map { getString(it) }
-            page.content.add(choiceRow(getString(R.string.settings_theme), Prefs.THEME, themes, 0))
+            page.content.add(navRow(getString(R.string.themes_title), getString(R.string.themes_row_summary)) { startActivity(Intent(this@SettingsPageActivity, ThemesActivity::class.java)) })
             page.content.add(switchRow(getString(R.string.settings_number_row), getString(R.string.settings_number_row_summary), Prefs.NUMBER_ROW, false))
             page.content.add(switchRow(getString(R.string.settings_emoji_key), getString(R.string.settings_emoji_key_summary), Prefs.EMOJI_KEY, true))
             page.content.add(header(getString(R.string.settings_size_header)))
@@ -135,6 +137,7 @@ class SettingsPageActivity : Activity() {
     }
 
     private fun applyPreview() {
+        preview?.setThemes(ThemeStore.day(this).colors().toPalette(), ThemeStore.night(this).colors().toPalette()) // the owner's themes (L10, D75)
         preview?.setAppearance(Prefs.theme(this), Prefs.numberRow(this), Prefs.emojiKey(this), Prefs.heightPortrait(this), Prefs.heightLandscape(this), Prefs.keyGap(this))
     }
 

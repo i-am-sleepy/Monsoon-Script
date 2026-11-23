@@ -23,6 +23,9 @@ import com.monsoonscript.keyboard.layout.Codes
 import com.monsoonscript.keyboard.layout.Key
 import com.monsoonscript.keyboard.layout.Kind
 import com.monsoonscript.keyboard.layout.Layouts
+import com.monsoonscript.keyboard.theme.ColorMath
+import com.monsoonscript.keyboard.theme.Themes
+import com.monsoonscript.keyboard.theme.toPalette
 
 /**
  * The whole keyboard drawn on one Canvas: shortcut strip on top, four key rows below.
@@ -70,7 +73,7 @@ class KeyboardView(context: Context) : View(context) {
 
     /** Keyboard background color; the IME paints its window and the navigation bar area with it. */
     val backgroundColor: Int get() = pal.bg
-    val isLightTheme: Boolean get() = pal === LIGHT
+    val isLightTheme: Boolean get() = ColorMath.isLight(pal.bg)
 
     /** The colors in use; the emoji panel (E2) draws with the same ones so the two always match. */
     val palette: Palette get() = pal
@@ -202,6 +205,19 @@ class KeyboardView(context: Context) : View(context) {
     private var hintTop = 0f
     private var popupBase = 0f
     private var pal = DARK
+
+    // ---- themes (L10, D75): the palette for day and the one for night; "follow the phone" (themeMode) picks between them
+    private var dayPal = LIGHT
+    private var nightPal = DARK
+
+    /** The owner's themes: [day] and [night] (the defaults are the original Light and Dark). Redraws at once when they changed. */
+    fun setThemes(day: Palette, night: Palette) {
+        if (day == dayPal && night == nightPal) return
+        dayPal = day
+        nightPal = night
+        refreshTheme()
+        invalidate()
+    }
 
     private val iconShift = Path().apply {
         moveTo(.5f, .12f); lineTo(.92f, .54f); lineTo(.68f, .54f); lineTo(.68f, .88f)
@@ -641,7 +657,7 @@ class KeyboardView(context: Context) : View(context) {
             THEME_DARK -> true
             else -> (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
         }
-        pal = if (night) DARK else LIGHT
+        pal = if (night) nightPal else dayPal
         letterPaint.color = pal.text
         labelPaint.color = pal.text
         hintPaint.color = pal.textMuted
@@ -1323,7 +1339,7 @@ class KeyboardView(context: Context) : View(context) {
         syncClicks()
     }
 
-    class Palette(
+    data class Palette(
         val bg: Int,
         val key: Int,
         val keyPressed: Int,
@@ -1361,32 +1377,8 @@ class KeyboardView(context: Context) : View(context) {
         const val SUG_SLOTS = 3
         const val ARROW_SLOT = 100 // ptrSug value while a finger is on the strip arrow
 
-        // Placeholder colors (owner has not picked a palette yet); custom themes come in v0.5.
-        val DARK = Palette(
-            bg = Color.parseColor("#1B1C1E"),
-            key = Color.parseColor("#3C3F43"),
-            keyPressed = Color.parseColor("#5A5E63"),
-            special = Color.parseColor("#2B2D30"),
-            specialPressed = Color.parseColor("#46494D"),
-            accent = Color.parseColor("#80CBC4"),
-            accentPressed = Color.parseColor("#A7DDD8"),
-            text = Color.parseColor("#E8EAED"),
-            textMuted = Color.parseColor("#9AA0A6"),
-            onAccent = Color.parseColor("#00302C"),
-            bubble = Color.parseColor("#5A5E63"),
-        )
-        val LIGHT = Palette(
-            bg = Color.parseColor("#E3E6EA"),
-            key = Color.parseColor("#FFFFFF"),
-            keyPressed = Color.parseColor("#D3D8DD"),
-            special = Color.parseColor("#C9CFD5"),
-            specialPressed = Color.parseColor("#B4BBC2"),
-            accent = Color.parseColor("#1B6B63"),
-            accentPressed = Color.parseColor("#155650"),
-            text = Color.parseColor("#202124"),
-            textMuted = Color.parseColor("#70757A"),
-            onAccent = Color.parseColor("#FFFFFF"),
-            bubble = Color.parseColor("#FFFFFF"),
-        )
+        // The built-in Light and Dark themes (theme/Themes.kt): the defaults for day and night until the owner picks others (L10, D75).
+        val DARK = Themes.DARK.colors().toPalette()
+        val LIGHT = Themes.LIGHT.colors().toPalette()
     }
 }
