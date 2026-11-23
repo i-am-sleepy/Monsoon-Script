@@ -1,0 +1,45 @@
+== handy-computer/parakeet-tdt_ctc-110m-gguf
+   .gitattributes 1929 
+   LICENSE 18657 
+   NOTICE 401 
+   README.md 11257 
+   parakeet-tdt_ctc-110m-F16.gguf 229334560 965cc3f8e171286ecb4d4e6646b407a1782a97da9aed22f88d1e0ec6c96b2358
+   parakeet-tdt_ctc-110m-F32.gguf 456524064 99701a7de4b2435e63efdf43db060f3dce723294fe028afc6f0852f406060d93
+   parakeet-tdt_ctc-110m-Q4_K_M.gguf 89989600 486414fd90185a8c8a4ced7c123cfb133ff4f7958426c6b8bd9049946b56b448
+   parakeet-tdt_ctc-110m-Q5_K_M.gguf 101335520 1552e707fddb59e3741b66ea917fc91a9381e336a4730739b1d2d448cb013a2e
+   parakeet-tdt_ctc-110m-Q6_K.gguf 112311264 c20520c245adf82e5166005f599cb3b95e7cf5192117e845be4bbcd39226d483
+   parakeet-tdt_ctc-110m-Q8_0.gguf 135373280 7dd44c74a331d788a4e5f8b16913b3feb29ced22cf5613aad0e0f6cd30516296
+== epapanita/parakeet-tdt_ctc-110m-gguf
+   .gitattributes 1929 
+   README.md 11664 
+   parakeet-tdt_ctc-110m-F16.gguf 229334560 965cc3f8e171286ecb4d4e6646b407a1782a97da9aed22f88d1e0ec6c96b2358
+   parakeet-tdt_ctc-110m-F32.gguf 456524064 99701a7de4b2435e63efdf43db060f3dce723294fe028afc6f0852f406060d93
+   parakeet-tdt_ctc-110m-Q4_K_M.gguf 89989600 486414fd90185a8c8a4ced7c123cfb133ff4f7958426c6b8bd9049946b56b448
+   parakeet-tdt_ctc-110m-Q5_K_M.gguf 101335520 1552e707fddb59e3741b66ea917fc91a9381e336a4730739b1d2d448cb013a2e
+   parakeet-tdt_ctc-110m-Q6_K.gguf 112311264 c20520c245adf82e5166005f599cb3b95e7cf5192117e845be4bbcd39226d483
+   parakeet-tdt_ctc-110m-Q8_0.gguf 135373280 7dd44c74a331d788a4e5f8b16913b3feb29ced22cf5613aad0e0f6cd30516296
+transcribe.cpp commit: cfa237c2551a4b2d3a56ff8fe5461e3c67c51772
+== download epapanita / parakeet-tdt_ctc-110m-Q4_K_M.gguf
+-rw-r--r-- 1 runner runner 89989600 Nov 23 03:19 /tmp/pk/epapanita.gguf
+486414fd90185a8c8a4ced7c123cfb133ff4f7958426c6b8bd9049946b56b448  /tmp/pk/epapanita.gguf
+== download handy-computer / parakeet-tdt_ctc-110m-Q4_K_M.gguf
+-rw-r--r-- 1 runner runner 89989600 Nov 23 03:19 /tmp/pk/handy-computer.gguf
+486414fd90185a8c8a4ced7c123cfb133ff4f7958426c6b8bd9049946b56b448  /tmp/pk/handy-computer.gguf
+== run /tmp/pk/epapanita.gguf on samples
+-- /tmp/pk/tc/samples/fleurs-en.wav
+[info] timings: load=56.11 ms  mel=3.91 ms  encode=185.79 ms  decode=17.53 ms
+  duration:   10.560 s
+  name:       Parakeet TDT-CTC 110M
+  license:    cc-by-4.0
+  max audio:  unbounded (whole clip in one pass)
+text: However, due to the slow communication channels, styles in the West could lag behind by twenty five to thirty years.
+  realtime:   51x (207.2 ms for 10.6 s)
+-- /tmp/pk/tc/samples/death.wav
+  duration:   233.263 s
+  name:       Parakeet TDT-CTC 110M
+  license:    cc-by-4.0
+  max audio:  unbounded (whole clip in one pass)
+text: My third story is about death. When I was seventeen, I read a quote that went something like If you live each day as if it was your last, someday you'll most certainly be right. It made an impression on me, and since then for the past thirty three years, I've looked in the mirror every morning and asked myself if today were the last day of my life, would I want to do what I am about to do today? And whenever the answer has been no for too many days in a row, I know I need to change something. Remembering that I'll be dead soon is the most important tool I've ever encountered to help me make the big choices in life. Because almost everything, all external expectations, all pride, all fear of embarrassment or failure, these things just fall away in the face of death, leaving only what is truly important. Remembering that you are going to die is the best way I know to avoid the trap of thinking you have something to lose. You are already naked. There is no reason not to follow your heart. About a year ago I was diagnosed with cancer. I had a scan at seven thirty in the morning and it clearly showed a tumor on my pancreas. I didn't even know what a pancreas was. The doctors told me this was almost certainly a type of cancer that is incurable and that I should expect to live no longer than three to six months. My doctor advised me to go home and get my affairs in order, which is doctor's code for prepare to die. It means to try and tell your kids everything. You thought you'd have the next ten years to tell them in just a few months. It means to make sure everything is buttoned up so that it will be as easy as possible for your family. It means to say your goodbyes. I live with that diagnosis all day. Later that evening I had a biopsy where they stuck an endoscope down my throat, through my stomach and into my intestines, put a needle into my pancreas and got a few cells from the tumor. I was sedated, but my wife who was there, told me that when they viewed the cells under a microscope, the doctors started crying because it turned out to be a very rare form of pancreatic cancer that is curable with surgery. I had the surgery, and thankfully I'm fine now. This was the closest I've been to facing death, and I hope it's the closest I get for a few more decades. Having lived through it, I can now say this to you with a bit more certainty than when death was a useful but purely intellectual concept. No one wants to die. Even people who want to go to heaven don't want to die to get there. And yet, death is the destination we all share. No one has ever escaped it, and that is as it should be, because death is very likely the single best invention of life. It's life's change agent. It clears out the old to make way for the new. Right now, the new is you. But someday not too long from now, you will gradually become the old and be cleared away. Sorry to be so dramatic, but it's quite true. Your time is limited, so don't waste it living someone else's life. Don't be trapped by dogma, which is living with the results of other people's thinking. Don't let the noise of others' opinions drown out your own inner voice and most important, have the courage to follow your heart and intuition. They somehow already know what you truly want to become. Everything else is secondary.
+  [ 222.56 ->  222.80] p=0.9[info] timings: load=55.52 ms  mel=110.36 ms  encode=4512.62 ms  decode=432.07 ms
+  realtime:   46x (5055.1 ms for 233.3 s)
+== done ==
