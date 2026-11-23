@@ -155,6 +155,11 @@ class KeyboardView(context: Context) : View(context) {
     private val repeatRunnable = Array(MAX_PTR) { slot -> Runnable { onRepeat(slot) } }
     private val dragRunnable = Array(MAX_PTR) { slot -> Runnable { onDragStart(slot) } }
 
+    // ---- space bar highlight (E4, owner request 2026-11-23): the space bar wears the Enter key's color (not pressed) for a moment when the language switches,
+    // and for as long as the cursor drag mode is on
+    private var spaceFlashUntil = 0L
+    private val spaceFlashEnd = Runnable { invalidate() }
+
     // Suggestion strip (D23): while a Bangla word is being typed, the first SUG_SLOTS candidates replace the strip icons.
     private val sug = arrayOfNulls<String>(SUG_SLOTS)
     private var sugCount = 0
@@ -373,6 +378,7 @@ class KeyboardView(context: Context) : View(context) {
         language = l
         langLabel = l.shortLabel
         spaceLabel = l.spaceLabel
+        if (width > 0) flashSpace() // not for the first language set while the keyboard is built
         if (newLayout) {
             shiftState = SHIFT_OFF
             cancelAll()
@@ -790,6 +796,19 @@ class KeyboardView(context: Context) : View(context) {
         return true
     }
 
+    /** The language switched: the space bar (it shows the language's name) takes the Enter key's color for [SPACE_FLASH_MS]. */
+    private fun flashSpace() {
+        spaceFlashUntil = SystemClock.uptimeMillis() + SPACE_FLASH_MS
+        uiHandler.removeCallbacks(spaceFlashEnd)
+        uiHandler.postDelayed(spaceFlashEnd, SPACE_FLASH_MS + 20L) // one more draw when the time is over
+    }
+
+    /** True during the flash and while any finger holds the space bar in the cursor drag mode. */
+    private fun spaceLit(): Boolean {
+        for (s in 0 until MAX_PTR) if (ptrDrag[s]) return true
+        return SystemClock.uptimeMillis() < spaceFlashUntil
+    }
+
     private fun isPressedIndex(i: Int): Boolean {
         for (s in 0 until MAX_PTR) if (ptrKey[s] == i) return true
         return false
@@ -801,9 +820,11 @@ class KeyboardView(context: Context) : View(context) {
             return
         }
         tmp.set(r.left + gapX, r.top + gapY, r.right - gapX, r.bottom - gapY)
-        fillPaint.color = when (k.kind) {
-            Kind.SPECIAL -> if (pressed) pal.specialPressed else pal.special
-            Kind.ACTION -> if (pressed) pal.accentPressed else pal.accent
+        val lit = k.code == Codes.SPACE && spaceLit()
+        fillPaint.color = when {
+            lit -> pal.accent // the same color as the Enter key when it is not pressed
+            k.kind == Kind.SPECIAL -> if (pressed) pal.specialPressed else pal.special
+            k.kind == Kind.ACTION -> if (pressed) pal.accentPressed else pal.accent
             else -> if (pressed) pal.keyPressed else pal.key
         }
         c.drawRoundRect(tmp, radius, radius, fillPaint)
@@ -822,7 +843,7 @@ class KeyboardView(context: Context) : View(context) {
                 }
             }
             Codes.SPACE -> {
-                labelPaint.color = pal.textMuted
+                labelPaint.color = if (lit) pal.onAccent else pal.textMuted
                 c.drawText(spaceLabel, cx, cy + labelBase, labelPaint)
                 labelPaint.color = pal.text
             }
@@ -1373,6 +1394,7 @@ class KeyboardView(context: Context) : View(context) {
         const val SWIPE_DP = 64f
         const val DRAG_SLOP_DP = 10f
         const val DRAG_TICK_MS = 25L
+        const val SPACE_FLASH_MS = 400L // how long the space bar stays highlighted after a language switch (E4)
         const val MIC_SLOP_DP = 36f // how far a held mic key may be left before releasing cancels (G5)
         const val SUG_SLOTS = 3
         const val ARROW_SLOT = 100 // ptrSug value while a finger is on the strip arrow
