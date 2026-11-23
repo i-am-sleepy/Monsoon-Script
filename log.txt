@@ -1,0 +1,3 @@
+-rw-r--r-- 1 runner runner 1241056 Nov 23 22:41 silero-vad-v6.2-F32.gguf
+0d871a800c420fdd5d1b17a3aea4296d1c39608f0ff4a9295eb76457eb1c88e6  silero-vad-v6.2-F32.gguf
+published
