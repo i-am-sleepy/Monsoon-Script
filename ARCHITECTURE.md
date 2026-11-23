@@ -199,6 +199,12 @@ The strip's mic icon is drawn but does nothing yet. Everything else below is pla
 - `MonsoonIme`: the strip's clipboard icon -> `onClipboardKey` -> `showClipboard` (same swap as the emoji panel). `clipHost` (a `ClipPanelModel.Host`) does paste (`commitText`, no learning), copy again
   (`setPrimaryClip` with `EXTRA_NO_HISTORY`), share (chooser), edit (`ClipEditActivity`) and settings. Panel search reuses the emoji mechanism (typed text goes to the query, not the editor).
 
+## Voice typing (G5, D66, D76; spec docs/VOICE_TYPING_SPEC.md)
+- The strip's mic key: `KeyboardView` reports `Listener.onMicTap / onMicHoldStart / onMicHoldEnd(cancel)` (hold = long press, slide 36 dp away before releasing cancels) and paints the mic state (`setMicState`: 0 idle, 1 listening = accent circle, 2 working = grey circle). `MonsoonIme` holds a `VoiceInput` (`voiceHost`), types finished text with `typeVoiceText` (leading space after a word) and cancels in `onFinishInputView` / `onDestroy`.
+- `voice/VoiceInput` picks the engine per language (`Prefs.VOICE_ENGINE_EN/BN`: Google or local), checks Offline mode (`Prefs.VOICE_OFFLINE`) and the microphone permission (`VoicePermissionActivity`, see-through, also shows the one-time Google notice); `VoiceEngine` is the interface (`start / stop / cancel`, callbacks onListening / onPartial / onFinal / onError).
+- `GoogleVoiceEngine` = Android `SpeechRecognizer` (needs a speech service on the phone). `LocalVoiceEngine` = `AudioRecord` + `NativeVoice` (JNI over transcribe.cpp, `app/src/main/cpp`, arm64 only, built when `third_party/transcribe.cpp` is checked out); models are GGUF files in `filesDir/voice/` (`VoiceModels`: pinned size + SHA-256, resumable download, import from a file); the model is freed 60 s after use.
+- Settings: `voice/VoiceSettingsActivity` (row on the main list). Tools and CI tests for the models: `tools/voice/`, workflow `voice-spike.yml`.
+
 ## Build and CI
 - No local Android build is possible in the cloud sandbox (Maven and Gradle hosts are blocked). CI is the compiler.
 - Pinned: Gradle 8.14.2 (via setup-gradle, no wrapper), AGP 8.13.2, Kotlin 2.0.21, JDK 17, compileSdk 35 (app; the KeePassDX engine modules use 36), targetSdk 34, minSdk 26.
