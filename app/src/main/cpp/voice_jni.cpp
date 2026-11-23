@@ -5,6 +5,7 @@
 #include <cstring>
 
 #include "transcribe.h"
+#include "transcribe/vad.h"
 
 namespace {
 thread_local int g_status = 0;  // 0 = fine, > 0 = transcribe_status, < 0 = our own failure
@@ -77,6 +78,87 @@ JNIEXPORT jint JNICALL Java_com_monsoonscript_keyboard_voice_NativeVoice_lastSta
 
 JNIEXPORT void JNICALL Java_com_monsoonscript_keyboard_voice_NativeVoice_free(JNIEnv *, jclass, jlong handle) {
     if (handle) transcribe_session_free(reinterpret_cast<transcribe_session *>(handle));
+}
+
+}  // extern "C"
+
+// ---- speech detection (Silero VAD, G5): which parts of a recording are speech. A handle owns the model and its session.
+namespace {
+struct Vad {
+    transcribe_model *model = nullptr;
+    transcribe_vad_session *session = nullptr;
+};
+}  // namespace
+
+extern "C" {
+
+JNIEXPORT jlong JNICALL Java_com_monsoonscript_keyboard_voice_NativeVoice_vadLoad(JNIEnv *env, jclass, jstring jpath) {
+    g_status = 0;
+    const char *path = env->GetStringUTFChars(jpath, nullptr);
+    if (!path) {
+        g_status = -1;
+        return 0;
+    }
+    auto *v = new Vad();
+    transcribe_status st = transcribe_model_load_file(path, nullptr, &v->model);
+    env->ReleaseStringUTFChars(jpath, path);
+    if (st == TRANSCRIBE_OK) st = transcribe_vad_session_init(v->model, nullptr, &v->session);
+    if (st != TRANSCRIBE_OK || !v->session) {
+        g_status = st != TRANSCRIBE_OK ? static_cast<int>(st) : -2;
+        if (v->model) transcribe_model_free(v->model);
+        delete v;
+        return 0;
+    }
+    return reinterpret_cast<jlong>(v);
+}
+
+// Speech segments of 16 kHz mono PCM as [start0, end0, start1, end1, ...] in samples (end exclusive); empty = no speech; null = failure.
+JNIEXPORT jintArray JNICALL Java_com_monsoonscript_keyboard_voice_NativeVoice_vadSegments(JNIEnv *env, jclass, jlong handle, jfloatArray jpcm, jint n, jfloat threshold) {
+    g_status = 0;
+    auto *v = reinterpret_cast<Vad *>(handle);
+    if (!v || n <= 0) {
+        g_status = -3;
+        return nullptr;
+    }
+    jfloat *pcm = env->GetFloatArrayElements(jpcm, nullptr);
+    if (!pcm) {
+        g_status = -1;
+        return nullptr;
+    }
+    transcribe_vad_params vp;
+    transcribe_vad_params_init(&vp);
+    vp.threshold = threshold;
+    const transcribe_status st = transcribe_vad_run(v->session, pcm, static_cast<int>(n), &vp);
+    env->ReleaseFloatArrayElements(jpcm, pcm, JNI_ABORT);
+    if (st != TRANSCRIBE_OK) {
+        g_status = static_cast<int>(st);
+        return nullptr;
+    }
+    transcribe_vad_result r;
+    transcribe_vad_result_init(&r);
+    if (transcribe_vad_get_result(v->session, &r) != TRANSCRIBE_OK) {
+        g_status = -4;
+        return nullptr;
+    }
+    const int count = r.n_segments > 0 ? r.n_segments : 0;
+    jintArray out = env->NewIntArray(count * 2);
+    if (!out) return nullptr;
+    for (int i = 0; i < count; ++i) {
+        transcribe_vad_segment seg;
+        transcribe_vad_segment_init(&seg);
+        if (transcribe_vad_get_segment(v->session, i, &seg) != TRANSCRIBE_OK) continue;
+        jint pair[2] = {static_cast<jint>(seg.start_sample), static_cast<jint>(seg.end_sample)};
+        env->SetIntArrayRegion(out, i * 2, 2, pair);
+    }
+    return out;
+}
+
+JNIEXPORT void JNICALL Java_com_monsoonscript_keyboard_voice_NativeVoice_vadFree(JNIEnv *, jclass, jlong handle) {
+    auto *v = reinterpret_cast<Vad *>(handle);
+    if (!v) return;
+    if (v->session) transcribe_vad_session_free(v->session);
+    if (v->model) transcribe_model_free(v->model);
+    delete v;
 }
 
 }  // extern "C"

@@ -1,0 +1,35 @@
+name: voice-vad
+# G5: publishes the Silero speech-detection model (1 MB GGUF from transcribe.cpp's Hugging Face repo) once as a release asset of `voice-models`,
+# and logs its size and SHA-256 (the app pins them). Runs only when this file changes, or by hand. Log: branch `voice-results-vad`.
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/voice-vad.yml'
+permissions:
+  contents: write
+jobs:
+  vad:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Fetch, hash and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/pub" && cd "$RUNNER_TEMP"
+          {
+            curl -sfL -o silero-vad-v6.2-F32.gguf "https://huggingface.co/handy-computer/silero-vad-v6.2-gguf/resolve/main/silero-vad-v6.2-F32.gguf" || echo "DOWNLOAD FAILED"
+            ls -l silero-vad-v6.2-F32.gguf; sha256sum silero-vad-v6.2-F32.gguf
+            if gh release view voice-models --repo "$GITHUB_REPOSITORY" --json assets -q '.assets[].name' | grep -qx silero-vad-v6.2-F32.gguf; then
+              echo "already published: kept the existing file"
+            else
+              gh release upload voice-models silero-vad-v6.2-F32.gguf --repo "$GITHUB_REPOSITORY" && echo published
+            fi
+          } 2>&1 | tee pub/log.txt
+      - name: Publish the log
+        if: always()
+        run: |
+          cd "$RUNNER_TEMP/pub" && git init -q && git checkout -q -b voice-results-vad && git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "silero vad publish for ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" voice-results-vad
