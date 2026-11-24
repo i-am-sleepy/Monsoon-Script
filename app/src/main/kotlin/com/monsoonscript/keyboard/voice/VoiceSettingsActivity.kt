@@ -1,6 +1,5 @@
 package com.monsoonscript.keyboard.voice
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.os.Bundle
@@ -9,12 +8,13 @@ import android.widget.Toast
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.prefs.Prefs
 import com.monsoonscript.keyboard.settings.SettingsUi
+import com.monsoonscript.keyboard.settings.ThemedActivity
 
 /**
  * Settings > Voice typing (G5, D66): which engine speaks for each language, the local models (download, import from a file, delete) and Offline mode (D10).
  * The microphone key itself is in the keyboard's strip.
  */
-class VoiceSettingsActivity : Activity() {
+class VoiceSettingsActivity : ThemedActivity() {
 
     private lateinit var ui: SettingsUi
     private lateinit var modelBox: LinearLayout

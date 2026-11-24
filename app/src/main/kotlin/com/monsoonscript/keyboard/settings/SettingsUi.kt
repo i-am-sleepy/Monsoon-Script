@@ -6,13 +6,18 @@ import android.content.SharedPreferences
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.RippleDrawable
 import android.text.InputType
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewOutlineProvider
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.SeekBar
@@ -21,67 +26,134 @@ import android.widget.TextView
 import com.monsoonscript.keyboard.prefs.Prefs
 
 /**
- * Builds the settings screens out of plain framework views (no libraries): a page with a title and a back arrow, section headers and rows
- * (switch, navigation, button, info). Colors come from the activity theme, so light and dark follow the phone. Rows write straight to [prefs]
- * (the keyboard's [Prefs] unless another file is given, e.g. the clipboard's).
+ * Builds the app screens out of plain framework views (no libraries): a page with a title and a back arrow, section headers and rows (switch, navigation,
+ * button, info). The colors are the keyboard theme in use ([colors], L12, D83): rows that follow each other are drawn together in one rounded card, headers
+ * and notes sit between the cards. Rows write straight to [prefs] (the keyboard's [Prefs] unless another file is given, e.g. the clipboard's).
  */
 internal class SettingsUi(private val context: Context, private val prefs: SharedPreferences = Prefs.of(context)) {
     private val density = context.resources.displayMetrics.density
 
+    val ctx: Context get() = context
+
     fun dp(v: Int): Int = (v * density + 0.5f).toInt()
 
-    val primary: ColorStateList = themeColors(android.R.attr.textColorPrimary) ?: ColorStateList.valueOf(Color.BLACK)
-    val secondary: ColorStateList = themeColors(android.R.attr.textColorSecondary) ?: ColorStateList.valueOf(Color.GRAY)
-    val accent: Int = context.obtainStyledAttributes(intArrayOf(android.R.attr.colorAccent)).let {
-        val c = it.getColor(0, 0xFF00796B.toInt())
-        it.recycle()
-        c
+    val colors: AppColors = (context as? ThemedActivity)?.colors ?: AppStyle.colors(context)
+    val primary: ColorStateList = ColorStateList.valueOf(colors.text)
+    val secondary: ColorStateList = ColorStateList.valueOf(colors.muted)
+    val accent: Int = colors.accent
+    val bg: Int = colors.bg
+    val card: Int = colors.card
+
+    /** The theme's touch feedback (a fresh instance per row). */
+    fun ripple(): Drawable? = RippleDrawable(ColorStateList.valueOf(colors.ripple), null, ColorDrawable(Color.WHITE))
+
+    /** A rounded rectangle of [color], with an optional outline. */
+    fun rounded(color: Int, radiusDp: Int, stroke: Int? = null): GradientDrawable = GradientDrawable().apply {
+        setColor(color)
+        cornerRadius = dp(radiusDp).toFloat()
+        if (stroke != null) setStroke(maxOf(1, dp(1) / 2), stroke)
     }
 
-    private fun themeColors(attr: Int): ColorStateList? {
-        val a = context.obtainStyledAttributes(intArrayOf(attr))
-        try {
-            return a.getColorStateList(0)
-        } finally {
-            a.recycle()
+    fun icon(kind: Icons.Kind, color: Int = colors.text, sizeDp: Int = 24): Drawable = Icons.drawable(kind, color, dp(sizeDp))
+
+    /** A small rounded square with an icon in it, for the start of a row. */
+    fun iconChip(kind: Icons.Kind, chipDp: Int = 40): View = FrameLayout(context).apply {
+        background = rounded(colors.chip, 12)
+        addView(ImageView(context).apply { setImageDrawable(icon(kind, colors.accent, chipDp * 11 / 20)) },
+            FrameLayout.LayoutParams(dp(chipDp * 11 / 20), dp(chipDp * 11 / 20), Gravity.CENTER))
+    }
+
+    /** The back arrow of a page. */
+    fun backButton(onBack: () -> Unit): View = ImageView(context).apply {
+        setImageDrawable(icon(Icons.Kind.BACK, colors.text, 24))
+        scaleType = ImageView.ScaleType.CENTER
+        contentDescription = context.getString(com.monsoonscript.keyboard.R.string.settings_back)
+        background = ripple()
+        setOnClickListener { onBack() }
+    }.also { it.layoutParams = LinearLayout.LayoutParams(dp(48), dp(48)).apply { rightMargin = dp(4) } }
+
+    /** A row (the start of one): [RowView]s that follow each other are drawn together in one card. */
+    class RowView(context: Context) : LinearLayout(context)
+
+    /** A note under rows: it ends the card above it. */
+    class NoteView(context: Context) : TextView(context)
+
+    /** The column of a page: puts [RowView]s that follow each other into one rounded card, with a thin line between them. */
+    internal class GroupedColumn(private val ui: SettingsUi) : LinearLayout(ui.ctx) {
+        private var card: LinearLayout? = null
+
+        fun addSmart(view: View) {
+            if (view is RowView) {
+                val c = card ?: newCard()
+                if (c.childCount > 0) {
+                    c.addView(View(ui.ctx).apply { setBackgroundColor(ui.colors.divider) },
+                        LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, maxOf(1, ui.dp(1) / 2)).apply { leftMargin = ui.dp(20) })
+                }
+                c.addView(view, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            } else {
+                card = null
+                addView(view, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            }
+        }
+
+        /** A card of its own for [view] (a highlighted card, for example); it ends the card above it. */
+        fun addCard(view: View, color: Int = ui.colors.card, marginBottomDp: Int = 8) {
+            card = null
+            val holder = LinearLayout(ui.ctx).apply {
+                orientation = VERTICAL
+                background = ui.rounded(color, 16, ui.colors.cardStroke)
+                clipToOutline = true
+                outlineProvider = ViewOutlineProvider.BACKGROUND
+                addView(view, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            }
+            addView(holder, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                leftMargin = ui.dp(16)
+                rightMargin = ui.dp(16)
+                bottomMargin = ui.dp(marginBottomDp)
+            })
+        }
+
+        private fun newCard(): LinearLayout {
+            val c = LinearLayout(ui.ctx).apply {
+                orientation = VERTICAL
+                background = ui.rounded(ui.colors.card, 16, ui.colors.cardStroke)
+                clipToOutline = true
+                outlineProvider = ViewOutlineProvider.BACKGROUND
+            }
+            addView(c, LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                leftMargin = ui.dp(16)
+                rightMargin = ui.dp(16)
+                bottomMargin = ui.dp(8)
+            })
+            card = c
+            return c
+        }
+
+        override fun removeAllViews() {
+            card = null
+            super.removeAllViews()
         }
     }
 
-    /** The theme's touch-feedback background (a fresh instance per row). */
-    fun ripple(): Drawable? {
-        val tv = TypedValue()
-        if (!context.theme.resolveAttribute(android.R.attr.selectableItemBackground, tv, true)) return null
-        return context.getDrawable(tv.resourceId)
-    }
-
-    /** A scrolling page: [content] is where the rows go. [onBack] null = no back arrow (the main page). */
-    class Page(val root: View, val content: LinearLayout)
+    /** A scrolling page: [content] is where the rows go, [bar] is its top bar (back arrow and title). [onBack] null = no back arrow (the main page). */
+    class Page(val root: View, val content: LinearLayout, val bar: LinearLayout? = null)
 
     fun page(title: String, onBack: (() -> Unit)?): Page {
-        val content = LinearLayout(context).apply {
+        val content = GroupedColumn(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, 0, 0, dp(32))
         }
         val bar = LinearLayout(context).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(if (onBack == null) 20 else 8), dp(20), dp(20), dp(12))
+            setPadding(dp(if (onBack == null) 20 else 8), dp(10), dp(20), dp(8))
         }
-        if (onBack != null) {
-            bar.addView(TextView(context).apply {
-                text = "‹" // ‹
-                textSize = 34f
-                setTextColor(primary)
-                setPadding(dp(12), 0, dp(16), dp(4))
-                contentDescription = context.getString(com.monsoonscript.keyboard.R.string.settings_back)
-                background = ripple()
-                setOnClickListener { onBack() }
-            })
-        }
+        if (onBack != null) bar.addView(backButton(onBack))
         bar.addView(TextView(context).apply {
             text = title
-            textSize = 26f
-            setTextColor(primary)
+            textSize = if (onBack == null) 28f else 24f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(colors.text)
         })
         val column = LinearLayout(context).apply {
             orientation = LinearLayout.VERTICAL
@@ -90,26 +162,27 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
         }
         val scroll = ScrollView(context).apply {
             isFillViewport = true
+            setBackgroundColor(colors.bg)
             addView(column, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
-        return Page(scroll, content)
+        return Page(scroll, content, bar)
     }
 
-    /** Add [view] to the page content at full width. */
+    /** Add [view] to the page content at full width (rows go into cards on a page). */
     fun LinearLayout.add(view: View) {
-        addView(view, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        if (this is GroupedColumn) addSmart(view) else addView(view, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     }
 
     fun header(text: String): View = TextView(context).apply {
         this.text = text.uppercase()
-        textSize = 13f
+        textSize = 12.5f
         typeface = Typeface.DEFAULT_BOLD
         letterSpacing = 0.08f
-        setTextColor(accent)
-        setPadding(dp(20), dp(24), dp(20), dp(6))
+        setTextColor(colors.accent)
+        setPadding(dp(32), dp(22), dp(20), dp(8))
     }
 
-    fun row(): LinearLayout = LinearLayout(context).apply {
+    fun row(): RowView = RowView(context).apply {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         minimumHeight = dp(60)
@@ -141,6 +214,9 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
     fun switchRow(title: String, summary: String?, key: String, default: Boolean): View {
         val sw = Switch(context).apply {
             isChecked = prefs.getBoolean(key, default)
+            val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
+            thumbTintList = ColorStateList(states, intArrayOf(colors.accent, colors.muted))
+            trackTintList = ColorStateList(states, intArrayOf(colors.accent, colors.muted))
             setOnCheckedChangeListener { _, on -> prefs.edit().putBoolean(key, on).apply() }
         }
         return row().apply {
@@ -157,16 +233,18 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
         val summary = labels.getChildAt(1) as TextView
         return row().apply {
             addView(labels, weighted())
+            addView(chevron())
             setOnClickListener {
-                AlertDialog.Builder(context)
+                val dialog = AlertDialog.Builder(context)
                     .setTitle(title)
-                    .setSingleChoiceItems(options.toTypedArray(), current()) { dialog, which ->
+                    .setSingleChoiceItems(options.toTypedArray(), current()) { d, which ->
                         prefs.edit().putInt(key, which).apply()
                         summary.text = options[which]
-                        dialog.dismiss()
+                        d.dismiss()
                     }
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()
+                dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(colors.accent)
             }
         }
     }
@@ -177,11 +255,14 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
         val valueText = TextView(context).apply {
             text = format(start)
             textSize = 14f
-            setTextColor(secondary)
+            setTextColor(colors.accent)
         }
         val bar = SeekBar(context).apply {
             max = maxValue - minValue
             progress = start - minValue
+            progressTintList = ColorStateList.valueOf(colors.accent)
+            thumbTintList = ColorStateList.valueOf(colors.accent)
+            progressBackgroundTintList = ColorStateList.valueOf(colors.muted)
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                     valueText.text = format(progress + minValue)
@@ -193,9 +274,9 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
                 override fun onStopTrackingTouch(seekBar: SeekBar) {}
             })
         }
-        return LinearLayout(context).apply {
+        return RowView(context).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(20), dp(10), dp(20), dp(10))
+            setPadding(dp(20), dp(12), dp(20), dp(10))
             addView(LinearLayout(context).apply {
                 orientation = LinearLayout.HORIZONTAL
                 addView(TextView(context).apply {
@@ -210,34 +291,37 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
     }
 
     /** A text field for trying the keyboard right on the settings page. */
-    fun tryField(hint: String): View = LinearLayout(context).apply {
-        setPadding(dp(20), dp(4), dp(20), dp(8))
+    fun tryField(hint: String): View = RowView(context).apply {
+        setPadding(dp(20), dp(8), dp(20), dp(8))
         addView(EditText(context).apply {
             this.hint = hint
             textSize = 17f
             setTextColor(primary)
             setHintTextColor(secondary)
+            background = null
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             minLines = 3
             gravity = Gravity.TOP or Gravity.START
         }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
     }
 
-    /** A row that opens another page. */
-    fun navRow(title: String, summary: String?, onClick: () -> Unit): View = row().apply {
+    /** The small arrow at the end of a row that opens something. */
+    fun chevron(): View = ImageView(context).apply {
+        setImageDrawable(icon(Icons.Kind.CHEVRON, colors.muted, 20))
+        layoutParams = LinearLayout.LayoutParams(dp(20), dp(20)).apply { leftMargin = dp(8) }
+    }
+
+    /** A row that opens another page; [icon] puts a small icon square at its start. */
+    fun navRow(title: String, summary: String?, icon: Icons.Kind? = null, onClick: () -> Unit): View = row().apply {
+        if (icon != null) addView(iconChip(icon), LinearLayout.LayoutParams(dp(40), dp(40)).apply { rightMargin = dp(16) })
         addView(texts(title, summary), weighted())
-        addView(TextView(context).apply {
-            text = "›" // ›
-            textSize = 26f
-            setTextColor(secondary)
-            setPadding(dp(12), 0, 0, 0)
-        })
+        addView(chevron())
         setOnClickListener { onClick() }
     }
 
     /** A row that does something when tapped; the title is drawn in the accent color. */
     fun buttonRow(title: String, summary: String?, onClick: () -> Unit): View = row().apply {
-        addView(texts(title, summary, ColorStateList.valueOf(accent)), weighted())
+        addView(texts(title, summary, ColorStateList.valueOf(colors.accent)), weighted())
         setOnClickListener { onClick() }
     }
 
@@ -245,10 +329,10 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
         addView(texts(title, summary), weighted())
     }
 
-    fun note(text: String): View = TextView(context).apply {
+    fun note(text: String): View = NoteView(context).apply {
         this.text = text
-        textSize = 14f
-        setTextColor(secondary)
-        setPadding(dp(20), dp(8), dp(20), dp(8))
+        textSize = 13f
+        setTextColor(colors.muted)
+        setPadding(dp(32), dp(4), dp(24), dp(10))
     }
 }

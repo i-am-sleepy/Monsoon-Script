@@ -1,6 +1,5 @@
 package com.monsoonscript.keyboard.clipboard
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -12,12 +11,13 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.settings.SettingsUi
+import com.monsoonscript.keyboard.settings.ThemedActivity
 
 /**
  * Edit the text of one clip (E3, D65): a plain page with a text field, Save and Cancel. Opened from the clipboard panel's 3-dot menu; it runs in the
  * same process as the keyboard, so it edits the same in-memory [ClipStore] and the panel updates by itself.
  */
-class ClipEditActivity : Activity() {
+class ClipEditActivity : ThemedActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

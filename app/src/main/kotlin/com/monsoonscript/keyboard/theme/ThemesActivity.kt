@@ -1,6 +1,5 @@
 package com.monsoonscript.keyboard.theme
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.SharedPreferences
@@ -13,16 +12,20 @@ import android.widget.LinearLayout
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.prefs.Prefs
 import com.monsoonscript.keyboard.settings.SettingsUi
+import com.monsoonscript.keyboard.settings.ThemedActivity
 import com.monsoonscript.keyboard.view.KeyboardView
 
 /**
  * The list of themes (L10, D75): a preview, the choice "follow the phone / always day / always night", and every theme (ready-made first, then the owner's own).
  * A tap opens the actions: use it for day or night, edit or copy it, rename, duplicate, delete.
  */
-class ThemesActivity : Activity() {
+class ThemesActivity : ThemedActivity() {
     private lateinit var ui: SettingsUi
     private lateinit var page: SettingsUi.Page
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> render() }
+
+    /** Choosing another day or night theme recolors this screen (and the app) at once (L12, D83). */
+    override val liveRecolor: Boolean get() = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

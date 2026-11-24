@@ -1,6 +1,5 @@
 package com.monsoonscript.keyboard.theme
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.os.Bundle
 import android.text.InputType
@@ -11,13 +10,14 @@ import android.widget.FrameLayout
 import android.widget.LinearLayout
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.settings.SettingsUi
+import com.monsoonscript.keyboard.settings.ThemedActivity
 import com.monsoonscript.keyboard.view.KeyboardView
 
 /**
  * The editor of one custom theme (L10, D75): a live preview, the name, the five main colors, "advanced colors" (the six that follow by themselves unless set), and
  * what to use it for. Every change is saved at once, so the keyboard shows it too. Notes warn about colors that are hard to read together; nothing is blocked.
  */
-class ThemeEditActivity : Activity() {
+class ThemeEditActivity : ThemedActivity() {
     private lateinit var ui: SettingsUi
     private lateinit var page: SettingsUi.Page
     private lateinit var spec: ThemeSpec

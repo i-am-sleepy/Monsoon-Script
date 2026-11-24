@@ -1,6 +1,5 @@
 package com.monsoonscript.keyboard.clipboard.app
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.ActivityNotFoundException
 import android.content.Intent
@@ -23,12 +22,13 @@ import java.text.DateFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.monsoonscript.keyboard.settings.ThemedActivity
 
 /**
  * The clipboard settings, one page with sections (D67): Management, Behavior, Images, Appearance, Privacy, Backup. The rows write straight to [ClipPrefs]; [ClipHub] hands the
  * history rules to the store at once and the keyboard panel reads the rest when it opens. Opened by the gear in the app and in the keyboard panel.
  */
-class ClipboardSettingsActivity : Activity() {
+class ClipboardSettingsActivity : ThemedActivity() {
     private lateinit var hub: ClipHub
     private lateinit var gate: LockGate
     private var storedText: TextView? = null

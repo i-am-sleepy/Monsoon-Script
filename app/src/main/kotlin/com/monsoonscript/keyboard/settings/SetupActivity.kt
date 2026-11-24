@@ -1,6 +1,5 @@
 package com.monsoonscript.keyboard.settings
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
@@ -14,7 +13,7 @@ import com.monsoonscript.keyboard.voice.VoiceSettingsActivity
  * The main screen (and the keyboard's settings entry): setup status and the two setup steps on top, then the list of settings pages (D55):
  * Typing, Suggestions, Appearance, Clipboard (E3.6: its own page with tabs, [ClipboardActivity]) and About. Each other row opens [SettingsPageActivity].
  */
-class SetupActivity : Activity() {
+class SetupActivity : ThemedActivity() {
 
     private lateinit var status: TextView
 
@@ -25,19 +24,19 @@ class SetupActivity : Activity() {
         status = TextView(this).apply {
             textSize = 16f
             setTextColor(ui.secondary)
-            setPadding(ui.dp(20), 0, ui.dp(20), ui.dp(8))
+            setPadding(ui.dp(24), 0, ui.dp(20), ui.dp(10))
         }
         with(ui) {
             page.content.add(status)
             page.content.add(buttonRow(getString(R.string.setup_enable), null) { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) })
             page.content.add(buttonRow(getString(R.string.setup_choose), null) { imm().showInputMethodPicker() })
             page.content.add(header(getString(R.string.settings_header)))
-            page.content.add(navRow(getString(R.string.settings_typing), getString(R.string.settings_typing_summary)) { open(SettingsPageActivity.TYPING) })
-            page.content.add(navRow(getString(R.string.settings_suggestions), getString(R.string.settings_suggestions_summary)) { open(SettingsPageActivity.SUGGESTIONS) })
-            page.content.add(navRow(getString(R.string.settings_appearance), getString(R.string.settings_appearance_summary)) { open(SettingsPageActivity.APPEARANCE) })
-            page.content.add(navRow(getString(R.string.clip_title), getString(R.string.clip_row_summary)) { startActivity(Intent(this@SetupActivity, ClipboardActivity::class.java)) })
-            page.content.add(navRow(getString(R.string.voice_settings_title), getString(R.string.voice_settings_summary)) { startActivity(Intent(this@SetupActivity, VoiceSettingsActivity::class.java)) })
-            page.content.add(navRow(getString(R.string.settings_about), getString(R.string.settings_about_summary)) { open(SettingsPageActivity.ABOUT) })
+            page.content.add(navRow(getString(R.string.settings_typing), getString(R.string.settings_typing_summary), Icons.Kind.KEYBOARD) { open(SettingsPageActivity.TYPING) })
+            page.content.add(navRow(getString(R.string.settings_suggestions), getString(R.string.settings_suggestions_summary), Icons.Kind.SPARKLE) { open(SettingsPageActivity.SUGGESTIONS) })
+            page.content.add(navRow(getString(R.string.settings_appearance), getString(R.string.settings_appearance_summary), Icons.Kind.DROP) { open(SettingsPageActivity.APPEARANCE) })
+            page.content.add(navRow(getString(R.string.clip_title), getString(R.string.clip_row_summary), Icons.Kind.CLIPBOARD) { startActivity(Intent(this@SetupActivity, ClipboardActivity::class.java)) })
+            page.content.add(navRow(getString(R.string.voice_settings_title), getString(R.string.voice_settings_summary), Icons.Kind.MIC) { startActivity(Intent(this@SetupActivity, VoiceSettingsActivity::class.java)) })
+            page.content.add(navRow(getString(R.string.settings_about), getString(R.string.settings_about_summary), Icons.Kind.INFO) { open(SettingsPageActivity.ABOUT) })
         }
         setContentView(page.root)
     }

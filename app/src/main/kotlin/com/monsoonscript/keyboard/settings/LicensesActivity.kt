@@ -1,13 +1,12 @@
 package com.monsoonscript.keyboard.settings
 
-import android.app.Activity
 import android.os.Bundle
 import android.widget.TextView
 import com.monsoonscript.keyboard.R
 import java.io.IOException
 
 /** Licenses and credits (D25 app license, MPL-2.0 Avro parts, CC BY / CC BY-SA word data): plain text assets, shown one after the other. */
-class LicensesActivity : Activity() {
+class LicensesActivity : ThemedActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

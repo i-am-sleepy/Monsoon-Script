@@ -1,7 +1,6 @@
 package com.monsoonscript.keyboard.clipboard.app
 
 import android.app.Activity
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -27,12 +26,10 @@ internal class LockGate(private val activity: Activity, private val ui: Settings
 
     init {
         root.addView(content, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        val bg = TypedValue()
-        activity.theme.resolveAttribute(android.R.attr.colorBackground, bg, true)
         overlay.apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(bg.data)
+            setBackgroundColor(ui.bg)
             isClickable = true // keeps touches away from what is below
             visibility = View.GONE
             setPadding(ui.dp(32), ui.dp(32), ui.dp(32), ui.dp(32))

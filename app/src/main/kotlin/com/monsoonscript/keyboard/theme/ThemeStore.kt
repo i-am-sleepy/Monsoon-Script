@@ -32,12 +32,12 @@ object ThemeStore {
     fun find(context: Context, id: String?): ThemeSpec? =
         if (id == null) null else Themes.builtIn(id) ?: custom(context).firstOrNull { it.id == id }
 
-    fun dayId(context: Context): String = Prefs.of(context).getString(KEY_DAY, null) ?: Themes.LIGHT_ID
-    fun nightId(context: Context): String = Prefs.of(context).getString(KEY_NIGHT, null) ?: Themes.DARK_ID
+    fun dayId(context: Context): String = Prefs.of(context).getString(KEY_DAY, null) ?: Themes.DEFAULT_ID
+    fun nightId(context: Context): String = Prefs.of(context).getString(KEY_NIGHT, null) ?: Themes.DEFAULT_ID
 
-    /** The theme for day (a missing one, for example a deleted theme, gives the ready-made Light). */
-    fun day(context: Context): ThemeSpec = find(context, dayId(context)) ?: Themes.LIGHT
-    fun night(context: Context): ThemeSpec = find(context, nightId(context)) ?: Themes.DARK
+    /** The theme for day (a missing one, for example a deleted theme, gives the default, High contrast, D83). */
+    fun day(context: Context): ThemeSpec = find(context, dayId(context)) ?: Themes.DEFAULT
+    fun night(context: Context): ThemeSpec = find(context, nightId(context)) ?: Themes.DEFAULT
 
     fun setDay(context: Context, id: String) {
         if (find(context, id) != null) Prefs.of(context).edit().putString(KEY_DAY, id).apply()
@@ -57,13 +57,13 @@ object ThemeStore {
         write(context, list)
     }
 
-    /** Delete the custom theme [id]; day or night that used it go back to the ready-made Light / Dark. */
+    /** Delete the custom theme [id]; day or night that used it go back to the default theme (High contrast, D83). */
     @Synchronized
     fun delete(context: Context, id: String) {
         val list = custom(context).filter { it.id != id }
         val edit = Prefs.of(context).edit()
-        if (dayId(context) == id) edit.putString(KEY_DAY, Themes.LIGHT_ID)
-        if (nightId(context) == id) edit.putString(KEY_NIGHT, Themes.DARK_ID)
+        if (dayId(context) == id) edit.putString(KEY_DAY, Themes.DEFAULT_ID)
+        if (nightId(context) == id) edit.putString(KEY_NIGHT, Themes.DEFAULT_ID)
         edit.putString(KEY_CUSTOM, ThemeCodec.encodeList(list)).apply()
     }
 

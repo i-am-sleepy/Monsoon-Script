@@ -1,6 +1,5 @@
 package com.monsoonscript.keyboard.clipboard.app
 
-import android.app.Activity
 import android.content.Intent
 import android.graphics.Typeface
 import android.os.Bundle
@@ -14,12 +13,13 @@ import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.clipboard.ClipHub
 import com.monsoonscript.keyboard.clipboard.ClipListModel
 import com.monsoonscript.keyboard.settings.SettingsUi
+import com.monsoonscript.keyboard.settings.ThemedActivity
 
 /**
  * The clipboard in the app (E3.6, D67): a page with four bottom tabs, History / Pinned / Folders / Shortcuts, and a gear that opens the clipboard settings.
  * It is opened from the "Clipboard" row on the main screen. Each tab is a [Screen] built the first time it is shown; only the visible one listens to the store.
  */
-class ClipboardActivity : Activity() {
+class ClipboardActivity : ThemedActivity() {
 
     private val screens = arrayOfNulls<Screen>(TAB_COUNT)
     private val tabs = ArrayList<TextView>()
@@ -69,15 +69,7 @@ class ClipboardActivity : Activity() {
         orientation = LinearLayout.HORIZONTAL
         gravity = Gravity.CENTER_VERTICAL
         setPadding(ui.dp(8), ui.dp(16), ui.dp(8), ui.dp(8))
-        addView(TextView(this@ClipboardActivity).apply {
-            text = "‹"
-            textSize = 34f
-            setTextColor(ui.primary)
-            setPadding(ui.dp(12), 0, ui.dp(16), ui.dp(4))
-            contentDescription = getString(R.string.settings_back)
-            background = ui.ripple()
-            setOnClickListener { finish() }
-        })
+        addView(ui.backButton { finish() })
         addView(TextView(this@ClipboardActivity).apply {
             text = getString(R.string.clip_title)
             textSize = 26f

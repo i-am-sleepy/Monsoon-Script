@@ -1,6 +1,5 @@
 package com.monsoonscript.keyboard.settings
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
@@ -25,7 +24,7 @@ import com.monsoonscript.keyboard.theme.toPalette
  * One settings sub-page (D55): which one comes in the intent extra [EXTRA_PAGE]. Each page is its own activity, so the system Back button
  * returns to the main list ([SetupActivity]). All rows write to [Prefs] straight away; the keyboard hears the change.
  */
-class SettingsPageActivity : Activity() {
+class SettingsPageActivity : ThemedActivity() {
 
     /** The keyboard shown on the Appearance page; it follows every change of a setting while the page is open. */
     private var preview: KeyboardView? = null

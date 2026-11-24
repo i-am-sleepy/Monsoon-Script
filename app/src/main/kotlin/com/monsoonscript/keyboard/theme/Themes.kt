@@ -2,12 +2,15 @@ package com.monsoonscript.keyboard.theme
 
 /**
  * The ready-made themes (L10, D75): read-only starting points; the owner copies one to change it. [LIGHT] and [DARK] reproduce the original two palettes
- * of the keyboard EXACTLY (every one of the 11 colors is set), so nothing changes until the owner picks another theme; the others give the five main colors and let the
+ * of the keyboard EXACTLY (they are no longer the defaults: [DEFAULT_ID] is, D83) (every one of the 11 colors is set), so nothing changes until the owner picks another theme; the others give the five main colors and let the
  * rest follow.
  */
 object Themes {
     const val LIGHT_ID = "builtin:light"
     const val DARK_ID = "builtin:dark"
+
+    /** The theme used for day AND night until the owner picks others (D83: High contrast, for the keyboard and the app). */
+    const val DEFAULT_ID = "builtin:contrast"
 
     private fun c(hex: String): Int = ColorMath.parseHex(hex) ?: error(hex)
 
@@ -45,4 +48,7 @@ object Themes {
     )
 
     fun builtIn(id: String): ThemeSpec? = ALL.firstOrNull { it.id == id }
+
+    /** The default theme ([DEFAULT_ID]). */
+    val DEFAULT: ThemeSpec get() = builtIn(DEFAULT_ID) ?: LIGHT
 }
