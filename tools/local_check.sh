@@ -34,7 +34,12 @@ for f in glob.glob(main + '/res/values/*.xml'):
 for f in glob.glob(main + '/kotlin/**/*.kt', recursive=True):
     names |= set(re.findall(r'(?<!android\.)R\.string\.([A-Za-z_0-9]+)', open(f, encoding='utf-8').read()))
 body = ''.join('    const val %s = 0\n' % n for n in sorted(names))
-open(out, 'w').write('package com.monsoonscript.keyboard\nobject R {\n  object string {\n' + body + '  }\n}\n')
+import os
+drawables = set(re.findall(r'(?<!android\.)R\.drawable\.([A-Za-z_0-9]+)', ' '.join(open(f, encoding='utf-8').read() for f in glob.glob(main + '/kotlin/**/*.kt', recursive=True))))
+for f in glob.glob(main + '/res/drawable*/*'):
+    drawables.add(os.path.splitext(os.path.basename(f))[0])
+dbody = ''.join('    const val %s = 0\n' % n for n in sorted(drawables))
+open(out, 'w').write('package com.monsoonscript.keyboard\nobject R {\n  object string {\n' + body + '  }\n  object drawable {\n' + dbody + '  }\n}\n')
 PY
 
 compile_main() { # $1 = output dir, the rest = extra source files

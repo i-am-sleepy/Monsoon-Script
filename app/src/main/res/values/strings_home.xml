@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The setup card on the main screen (L12, D83) -->
+    <string name="setup_card_off">Set up your keyboard</string>
+    <string name="setup_card_enabled">One more step</string>
+    <string name="setup_card_active">You\'re all set</string>
+    <string name="setup_change">Switch keyboard</string>
+</resources>

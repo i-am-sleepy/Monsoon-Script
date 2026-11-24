@@ -15,6 +15,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
+import android.view.animation.DecelerateInterpolator
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -23,6 +24,7 @@ import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.Switch
 import android.widget.TextView
+import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.prefs.Prefs
 
 /**
@@ -63,11 +65,21 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
             FrameLayout.LayoutParams(dp(chipDp * 11 / 20), dp(chipDp * 11 / 20), Gravity.CENTER))
     }
 
+    /** The app's logo in the color of the theme's text ([sizeDp] square). */
+    fun logoView(sizeDp: Int): ImageView = ImageView(context).apply {
+        setImageResource(R.drawable.logo_art)
+        setColorFilter(colors.text)
+        scaleType = ImageView.ScaleType.FIT_CENTER
+        contentDescription = context.getString(R.string.app_name)
+        minimumWidth = dp(sizeDp)
+        minimumHeight = dp(sizeDp)
+    }
+
     /** The back arrow of a page. */
     fun backButton(onBack: () -> Unit): View = ImageView(context).apply {
         setImageDrawable(icon(Icons.Kind.BACK, colors.text, 24))
         scaleType = ImageView.ScaleType.CENTER
-        contentDescription = context.getString(com.monsoonscript.keyboard.R.string.settings_back)
+        contentDescription = context.getString(R.string.settings_back)
         background = ripple()
         setOnClickListener { onBack() }
     }.also { it.layoutParams = LinearLayout.LayoutParams(dp(48), dp(48)).apply { rightMargin = dp(4) } }
@@ -136,9 +148,10 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
     }
 
     /** A scrolling page: [content] is where the rows go, [bar] is its top bar (back arrow and title). [onBack] null = no back arrow (the main page). */
-    class Page(val root: View, val content: LinearLayout, val bar: LinearLayout? = null)
+    class Page(val root: View, val content: LinearLayout, val bar: LinearLayout? = null, val logo: View? = null)
 
-    fun page(title: String, onBack: (() -> Unit)?): Page {
+    /** [logo] puts the app's logo in front of the title (the main page). */
+    fun page(title: String, logo: Boolean = false, onBack: (() -> Unit)?): Page {
         val content = GroupedColumn(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(0, 0, 0, dp(32))
@@ -149,6 +162,7 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
             setPadding(dp(if (onBack == null) 20 else 8), dp(10), dp(20), dp(8))
         }
         if (onBack != null) bar.addView(backButton(onBack))
+        val logoView: View? = if (logo) logoView(44).also { bar.addView(it, LinearLayout.LayoutParams(dp(44), dp(44)).apply { rightMargin = dp(12) }) } else null
         bar.addView(TextView(context).apply {
             text = title
             textSize = if (onBack == null) 28f else 24f
@@ -165,12 +179,71 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
             setBackgroundColor(colors.bg)
             addView(column, ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         }
-        return Page(scroll, content, bar)
+        return Page(scroll, content, bar, logoView)
     }
 
     /** Add [view] to the page content at full width (rows go into cards on a page). */
     fun LinearLayout.add(view: View) {
         if (this is GroupedColumn) addSmart(view) else addView(view, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    }
+
+    /** Space between two cards. */
+    fun gap(heightDp: Int = 12): View = View(context).apply { minimumHeight = dp(heightDp) }
+        .also { it.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(heightDp)) }
+
+    /** A wide button filled with the accent color. */
+    fun filledButton(text: String, onClick: () -> Unit): View = TextView(context).apply {
+        this.text = text
+        textSize = 16f
+        typeface = Typeface.DEFAULT_BOLD
+        gravity = Gravity.CENTER
+        setTextColor(colors.onAccent)
+        setPadding(dp(20), dp(14), dp(20), dp(14))
+        background = RippleDrawable(ColorStateList.valueOf(0x33000000), rounded(colors.accent, 14), rounded(Color.WHITE, 14))
+        setOnClickListener { onClick() }
+    }
+
+    /** A wide button with an accent outline. */
+    fun outlineButton(text: String, onClick: () -> Unit): View = TextView(context).apply {
+        val outline = colors.accent
+        this.text = text
+        textSize = 15f
+        typeface = Typeface.DEFAULT_BOLD
+        gravity = Gravity.CENTER
+        setTextColor(colors.accent)
+        setPadding(dp(20), dp(12), dp(20), dp(12))
+        background = RippleDrawable(ColorStateList.valueOf(colors.ripple), GradientDrawable().apply {
+            setColor(Color.TRANSPARENT)
+            cornerRadius = dp(14).toFloat()
+            setStroke(maxOf(1, dp(1)), outline)
+        }, rounded(Color.WHITE, 14))
+        setOnClickListener { onClick() }
+    }
+
+    /** Fades and slides the parts of [page] in, one after another (the cards "arrive"). Call it right after the page is built, before it is first drawn. */
+    fun animateIn(page: Page, startDelayMs: Long = 0L) {
+        val column = page.content
+        val bar = page.bar
+        val parts = ArrayList<View>()
+        if (bar != null) parts += bar
+        for (i in 0 until column.childCount) parts += column.getChildAt(i)
+        for ((i, v) in parts.withIndex()) {
+            v.alpha = 0f
+            v.translationY = dp(22).toFloat()
+            v.animate().alpha(1f).translationY(0f).setStartDelay(startDelayMs + 50L * minOf(i, 10)).setDuration(380).setInterpolator(DecelerateInterpolator()).start()
+        }
+    }
+
+    /** Puts everything of [page] in its place at once (a safety net after [animateIn]). */
+    fun settle(page: Page) {
+        val parts = ArrayList<View>()
+        page.bar?.let { parts += it }
+        for (i in 0 until page.content.childCount) parts += page.content.getChildAt(i)
+        for (v in parts) {
+            v.animate().cancel()
+            v.alpha = 1f
+            v.translationY = 0f
+        }
     }
 
     fun header(text: String): View = TextView(context).apply {
