@@ -168,15 +168,16 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
     }
 
     /**
-     * Keeps only the speech of a recording (Silero VAD): the pieces it finds, each with 0.15 s around it, joined. Null = there was no speech. Without the
-     * detector installed (it downloads by itself, 1 MB) the whole recording is used as before.
+     * Keeps only the speech of a recording (Silero VAD): the pieces it finds, each with 0.04 s around it, joined. Null = there was no speech. Tight is the point:
+     * the Bangla model writes "music" for leading silence (CI experiment: 33 of 80 clips as recorded, 6 of 80 cropped tight, more with extra silence).
+     * Without the detector installed (it downloads by itself, 1 MB) the silence before the first loud moment is cropped by energy instead.
      */
     private fun speechOnlyLocked(pcm: FloatArray, n: Int): Pair<FloatArray, Int>? {
         val h = ensureVadLocked()
-        if (h == 0L) return Pair(pcm, n)
+        if (h == 0L) return cropLeadingSilence(pcm, n)
         val segs = NativeVoice.vadSegments(h, pcm, n, VAD_THRESHOLD) ?: return Pair(pcm, n)
         if (segs.isEmpty()) return null
-        val pad = RATE * 15 / 100
+        val pad = RATE * 4 / 100
         val ranges = ArrayList<IntArray>()
         var i = 0
         while (i + 1 < segs.size) {
@@ -195,6 +196,26 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
             o += r[1] - r[0]
         }
         return Pair(out, total)
+    }
+
+    /** The fallback without the detector: drop the quiet start of the recording (20 ms frames, louder than 4x the quietest tenth and -45 dB), keep 0.05 s of it. */
+    private fun cropLeadingSilence(pcm: FloatArray, n: Int): Pair<FloatArray, Int> {
+        val fr = 320
+        val frames = n / fr
+        if (frames < 4) return Pair(pcm, n)
+        val e = FloatArray(frames)
+        for (f in 0 until frames) {
+            var s = 0f
+            for (i in f * fr until (f + 1) * fr) s += pcm[i] * pcm[i]
+            e[f] = kotlin.math.sqrt(s / fr)
+        }
+        val sorted = e.sortedArray()
+        val thr = maxOf(sorted[frames / 10] * 4f, 0.0056f)
+        val first = e.indexOfFirst { it > thr }
+        if (first < 0) return Pair(pcm, n)
+        val start = maxOf(0, first * fr - RATE / 20)
+        if (start == 0) return Pair(pcm, n)
+        return Pair(pcm.copyOfRange(start, n), n - start)
     }
 
     private fun ensureVadLocked(): Long {

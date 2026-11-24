@@ -18,6 +18,7 @@ class VoiceSettingsActivity : ThemedActivity() {
 
     private lateinit var ui: SettingsUi
     private lateinit var modelBox: LinearLayout
+    private lateinit var googleBox: LinearLayout
     private val downloads = mutableMapOf<String, VoiceModels.Download>()
     private val progress = mutableMapOf<String, Long>()
     private var importFor: VoiceModel? = null
@@ -32,6 +33,8 @@ class VoiceSettingsActivity : ThemedActivity() {
             page.content.add(choiceRow(getString(R.string.voice_engine_english), Prefs.VOICE_ENGINE_EN, engines, Prefs.ENGINE_GOOGLE))
             page.content.add(choiceRow(getString(R.string.voice_engine_bangla), Prefs.VOICE_ENGINE_BN, engines, Prefs.ENGINE_GOOGLE))
             page.content.add(note(getString(R.string.voice_engine_note)))
+            googleBox = LinearLayout(this@VoiceSettingsActivity).apply { orientation = LinearLayout.VERTICAL }
+            page.content.add(googleBox)
             page.content.add(switchRow(getString(R.string.voice_bn_punct), getString(R.string.voice_bn_punct_summary), Prefs.VOICE_BN_PUNCT, true))
             page.content.add(header(getString(R.string.voice_models_header)))
             modelBox = LinearLayout(this@VoiceSettingsActivity).apply { orientation = LinearLayout.VERTICAL }
@@ -44,6 +47,31 @@ class VoiceSettingsActivity : ThemedActivity() {
         }
         setContentView(page.root)
         render()
+        renderGoogle()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (::googleBox.isInitialized) renderGoogle()
+    }
+
+    /** Google voice only works when the phone's speech service app may use the microphone (found on the owner's vivo: error 9 until it was allowed). */
+    private fun renderGoogle() {
+        googleBox.removeAllViews()
+        val pkg = "com.google.android.tts"
+        val known = try {
+            packageManager.getPackageInfo(pkg, 0)
+            true
+        } catch (e: Exception) {
+            false
+        }
+        if (!known || packageManager.checkPermission(android.Manifest.permission.RECORD_AUDIO, pkg) == android.content.pm.PackageManager.PERMISSION_GRANTED) return
+        with(ui) {
+            googleBox.add(infoRow(getString(R.string.voice_google_perm_title), getString(R.string.voice_google_perm_summary)))
+            googleBox.add(buttonRow(getString(R.string.voice_google_perm_open), null) {
+                startActivity(Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.parse("package:" + pkg)))
+            })
+        }
     }
 
     override fun onDestroy() {

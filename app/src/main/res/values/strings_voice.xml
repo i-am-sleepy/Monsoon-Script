@@ -56,4 +56,7 @@
     <string name="voice_diag_title">Google voice diagnostics</string>
     <string name="voice_diag_summary">Find out why Google voice does not work on this phone and copy the report</string>
     <string name="voice_err_google_permission">Google\'s speech service refused (insufficient permissions). In the phone\'s Settings > Apps open Speech Recognition &amp; Synthesis from Google and allow the microphone.</string>
+    <string name="voice_google_perm_title">Google voice needs one permission</string>
+    <string name="voice_google_perm_summary">Speech Recognition &amp; Synthesis from Google has no microphone permission on this phone, so Google voice fails with "insufficient permissions". Open its settings, then Permissions, and allow the microphone.</string>
+    <string name="voice_google_perm_open">Open its settings</string>
 </resources>
