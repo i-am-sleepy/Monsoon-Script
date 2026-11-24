@@ -225,3 +225,8 @@
   puts the caret there and shows the keys below a smaller panel, the text can be edited at the caret and scrolled by dragging, Insert types it (leading space after a word), ABC closes and drops it; (4) Bangla punctuation help (Settings > Voice typing, default on): the spoken words দাঁড়ি / দাড়ি / পূর্ণচ্ছেদ, কমা, প্রশ্নবোধক (চিহ্ন), বিস্ময়সূচক (চিহ্ন) become marks and a sentence without a mark ends with a danda ।
   (`voice/VoiceText.kt`, tested), because the Bangla model almost never writes punctuation. Owner on the local Bangla model: works, but less accurate than the English Parakeet; asked for a more accurate alternative of similar speed (see status/claude-g.md for what was found).
 
+- D81 2026-11-24 Phase 1 screens (E1.13, claude-e; owner chose the recommended option in each): (1) creating a vault is ONE scrolling screen (name, master password
+  twice with a strength hint, optional key file, location via the file picker, Create button), no step-by-step wizard; (2) deleting an entry is instant and shows a
+  bottom Undo bar for a few seconds (the entry goes to the vault's Recycle Bin first, so it stays recoverable); (3) the password generator makes random characters
+  only (length 8-64, default 20, switches for A-Z, a-z, 0-9, symbols, one tap to regenerate), word-based passphrases may come later; (4) the Recycle Bin is a normal
+  folder row at the bottom of the list with a bin icon (open it to restore or delete forever, "Empty" in its menu).
