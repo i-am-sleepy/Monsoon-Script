@@ -5,4 +5,8 @@
     <string name="setup_card_enabled">One more step</string>
     <string name="setup_card_active">You\'re all set</string>
     <string name="setup_change">Switch keyboard</string>
+    <!-- The settings search box (L12, D83) -->
+    <string name="search_hint">Search settings</string>
+    <string name="search_none">Nothing found. Try another word.</string>
+    <string name="search_in">In %1$s</string>
 </resources>

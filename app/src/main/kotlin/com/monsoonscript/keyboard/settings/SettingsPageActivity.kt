@@ -40,6 +40,7 @@ class SettingsPageActivity : ThemedActivity() {
             else -> typing(ui)
         }
         setContentView(page.root)
+        intent.getStringExtra(EXTRA_FOCUS)?.let { ui.focusRow(page, it) } // opened from the search box: scroll to the row and flash it
     }
 
     private fun typing(ui: SettingsUi): SettingsUi.Page {
@@ -182,12 +183,14 @@ class SettingsPageActivity : ThemedActivity() {
 
     companion object {
         const val EXTRA_PAGE = "page"
+        const val EXTRA_FOCUS = "focus"
         const val TYPING = "typing"
         const val SUGGESTIONS = "suggestions"
         const val APPEARANCE = "appearance"
         const val ABOUT = "about"
 
-        fun intent(context: Context, page: String): Intent =
-            Intent(context, SettingsPageActivity::class.java).putExtra(EXTRA_PAGE, page)
+        /** [focus] = the title of a row to scroll to and flash (from the search box). */
+        fun intent(context: Context, page: String, focus: String? = null): Intent =
+            Intent(context, SettingsPageActivity::class.java).putExtra(EXTRA_PAGE, page).also { if (focus != null) it.putExtra(EXTRA_FOCUS, focus) }
     }
 }

@@ -10,12 +10,15 @@ import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.RippleDrawable
+import android.text.Editable
 import android.text.InputType
+import android.text.TextWatcher
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.ViewOutlineProvider
 import android.view.animation.DecelerateInterpolator
+import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.ImageView
@@ -26,6 +29,7 @@ import android.widget.Switch
 import android.widget.TextView
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.prefs.Prefs
+import com.monsoonscript.keyboard.theme.ColorMath
 
 /**
  * Builds the app screens out of plain framework views (no libraries): a page with a title and a back arrow, section headers and rows (switch, navigation,
@@ -185,6 +189,75 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
     /** Add [view] to the page content at full width (rows go into cards on a page). */
     fun LinearLayout.add(view: View) {
         if (this is GroupedColumn) addSmart(view) else addView(view, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+    }
+
+    /** The search box: a magnifier, a one-line field and a clear button that shows while there is text; [onChange] gets the text on every change. */
+    fun searchField(hint: String, onChange: (String) -> Unit): View {
+        val field = EditText(context).apply {
+            this.hint = hint
+            textSize = 16f
+            setTextColor(primary)
+            setHintTextColor(secondary)
+            background = null
+            isSingleLine = true
+            inputType = InputType.TYPE_CLASS_TEXT
+            imeOptions = EditorInfo.IME_ACTION_SEARCH or EditorInfo.IME_FLAG_NO_EXTRACT_UI
+            setPadding(0, dp(14), 0, dp(14))
+        }
+        val clear = ImageView(context).apply {
+            setImageDrawable(icon(Icons.Kind.CLOSE, colors.muted, 20))
+            scaleType = ImageView.ScaleType.CENTER
+            contentDescription = context.getString(android.R.string.cancel)
+            visibility = View.GONE
+            background = ripple()
+            setOnClickListener { field.setText("") }
+        }
+        field.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+
+            override fun afterTextChanged(s: Editable?) {
+                val text = s?.toString() ?: ""
+                clear.visibility = if (text.isEmpty()) View.GONE else View.VISIBLE
+                onChange(text)
+            }
+        })
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(18), 0, dp(6), 0)
+            addView(ImageView(context).apply { setImageDrawable(icon(Icons.Kind.SEARCH, colors.muted, 22)) }, LinearLayout.LayoutParams(dp(22), dp(22)).apply { rightMargin = dp(12) })
+            addView(field, weighted())
+            addView(clear, LinearLayout.LayoutParams(dp(40), dp(40)))
+        }
+    }
+
+    private fun findText(v: View, title: String): TextView? {
+        if (v is TextView && v !is EditText && v.text.toString() == title) return v
+        if (v is ViewGroup) for (i in 0 until v.childCount) findText(v.getChildAt(i), title)?.let { return it }
+        return null
+    }
+
+    /** Scrolls [page] to the row titled [title] and flashes it for a moment (used when a search result is opened). */
+    fun focusRow(page: Page, title: String) {
+        val scroll = page.root as? ScrollView ?: return
+        val column = scroll.getChildAt(0) as? ViewGroup ?: return
+        var row: View = findText(page.content, title) ?: return
+        while (row !is RowView) row = row.parent as? View ?: return
+        val target: View = row
+        scroll.postDelayed({
+            var y = 0
+            var v: View = target
+            while (v !== column) {
+                y += v.top
+                v = v.parent as? View ?: break
+            }
+            scroll.smoothScrollTo(0, maxOf(0, y - dp(140)))
+            val old = target.background
+            target.setBackgroundColor(ColorMath.mix(colors.card, colors.accent, 0.35f))
+            target.postDelayed({ target.background = old }, 1600)
+        }, 300)
     }
 
     /** Space between two cards. */

@@ -14,6 +14,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.clipboard.app.ClipboardActivity
+import com.monsoonscript.keyboard.theme.ThemesActivity
 import com.monsoonscript.keyboard.voice.VoiceSettingsActivity
 
 /**
@@ -29,6 +30,8 @@ class SetupActivity : ThemedActivity() {
     private lateinit var setupBox: LinearLayout
     private lateinit var setupCard: View
     private var introOverlay: FrameLayout? = null
+    private lateinit var results: SettingsUi.GroupedColumn
+    private var menuViews: List<View> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +41,11 @@ class SetupActivity : ThemedActivity() {
             orientation = LinearLayout.VERTICAL
             setPadding(ui.dp(20), ui.dp(20), ui.dp(20), ui.dp(20))
         }
+        results = SettingsUi.GroupedColumn(ui).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
         with(ui) {
+            (page.content as SettingsUi.GroupedColumn).addCard(searchField(getString(R.string.search_hint)) { search(it) }, colors.card, 12)
+            page.content.add(results)
+            val menuStart = page.content.childCount
             (page.content as SettingsUi.GroupedColumn).addCard(setupBox, colors.highlight, 4)
             setupCard = setupBox.parent as View
             page.content.add(header(getString(R.string.settings_header)))
@@ -50,6 +57,7 @@ class SetupActivity : ThemedActivity() {
             page.content.add(navRow(getString(R.string.voice_settings_title), getString(R.string.voice_settings_summary), Icons.Kind.MIC) { startActivity(Intent(this@SetupActivity, VoiceSettingsActivity::class.java)) })
             page.content.add(gap())
             page.content.add(navRow(getString(R.string.settings_about), getString(R.string.settings_about_summary), Icons.Kind.INFO) { open(SettingsPageActivity.ABOUT) })
+            menuViews = (menuStart until page.content.childCount).map { page.content.getChildAt(it) }
         }
         renderSetup()
         val root = FrameLayout(this)
@@ -65,6 +73,37 @@ class SetupActivity : ThemedActivity() {
     }
 
     private fun open(page: String) = startActivity(SettingsPageActivity.intent(this, page))
+
+    // ---- the search box: while there is text, the results replace the setup card and the menu
+
+    private fun search(query: String) {
+        results.removeAllViews()
+        if (SettingsSearch.words(query).isEmpty()) {
+            results.visibility = View.GONE
+            for (v in menuViews) v.visibility = View.VISIBLE
+            return
+        }
+        for (v in menuViews) v.visibility = View.GONE
+        results.visibility = View.VISIBLE
+        val hits = SettingsIndex.ALL.filter { e ->
+            SettingsSearch.matches(query, getString(e.title), if (e.summary != 0) getString(e.summary) else "", getString(SettingsIndex.pageName(e.page)))
+        }.take(MAX_HITS)
+        with(ui) {
+            if (hits.isEmpty()) results.add(note(getString(R.string.search_none)))
+            for (e in hits) {
+                results.add(navRow(getString(e.title), getString(R.string.search_in, getString(SettingsIndex.pageName(e.page))), e.icon) { openHit(e) })
+            }
+        }
+    }
+
+    private fun openHit(e: SettingsIndex.Entry) {
+        when (e.page) {
+            SettingsIndex.THEMES -> startActivity(Intent(this, ThemesActivity::class.java))
+            SettingsIndex.CLIPBOARD -> startActivity(Intent(this, ClipboardActivity::class.java))
+            SettingsIndex.VOICE -> startActivity(Intent(this, VoiceSettingsActivity::class.java))
+            else -> startActivity(SettingsPageActivity.intent(this, e.page, getString(e.title)))
+        }
+    }
 
     override fun onResume() {
         super.onResume()
@@ -168,5 +207,6 @@ class SetupActivity : ThemedActivity() {
         /** True once the start screen played in this run of the app (it plays on a cold start only). */
         var introPlayed = false
         const val INTRO_HOLD_MS = 1000L
+        const val MAX_HITS = 12
     }
 }
