@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Phase 1 adds the vault service here, with android:process=":vault" (D44). -->
+    <application>
+        <!-- D44: the password-manager engine lives in its own process, so its memory (Argon2 needs tens of MB) never weighs on the
+             typing process and a crash in it cannot stop the keyboard. Not exported: only our own app can bind to it. -->
+        <service
+            android:name="com.monsoonscript.vault.VaultService"
+            android:process=":vault"
+            android:exported="false" />
+    </application>
 </manifest>

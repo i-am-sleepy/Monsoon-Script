@@ -24,6 +24,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+    buildFeatures {
+        aidl = true // IVault.aidl: the call surface between the app / keyboard and the vault process (D44)
+    }
 }
 
 dependencies {

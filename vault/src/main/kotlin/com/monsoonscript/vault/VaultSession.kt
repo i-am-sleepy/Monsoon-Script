@@ -8,6 +8,7 @@ import com.kunzisoft.keepass.database.element.Entry
 import com.kunzisoft.keepass.database.element.Field
 import com.kunzisoft.keepass.database.element.Group
 import com.kunzisoft.keepass.database.element.MasterCredential
+import com.kunzisoft.keepass.database.element.database.DatabaseKDBX
 import com.kunzisoft.keepass.database.element.node.NodeId
 import com.kunzisoft.keepass.database.element.node.NodeIdInt
 import com.kunzisoft.keepass.database.element.node.NodeIdUUID
@@ -29,6 +30,7 @@ import com.kunzisoft.keepass.database.exception.NoMemoryDatabaseException
 import com.kunzisoft.keepass.database.exception.SignatureDatabaseException
 import com.kunzisoft.keepass.database.exception.VersionDatabaseException
 import com.kunzisoft.keepass.database.exception.XMLMalformedDatabaseException
+import com.kunzisoft.keepass.database.file.DatabaseHeaderKDBX
 import com.kunzisoft.keepass.hardware.HardwareKey
 import com.kunzisoft.keepass.model.DatabaseInfo
 import java.io.File
@@ -118,6 +120,7 @@ class VaultSession(
         try {
             workDir.mkdirs()
             val stamp = store.stamp() // taken BEFORE reading, so a change during the read is noticed later
+            checkKdfLimits(store)
             store.openInput().use { input ->
                 database.loadData(
                     databaseStream = input,
@@ -413,6 +416,25 @@ class VaultSession(
         openedStamp = st.stamp()
         dirty = false
         conflict = false
+    }
+
+    /**
+     * KeePassDX checks the key-derivation memory only when SAVING, never when opening, so a vault asking for gigabytes of Argon2 memory
+     * would be attempted and could take the phone down. Here the header (no key work yet) is read first and the engine's own check
+     * ([limits]) is applied to it: such a vault is refused with TOO_HEAVY instead.
+     */
+    private fun checkKdfLimits(store: VaultStore) {
+        try {
+            store.openInput().use { input ->
+                val probe = DatabaseKDBX()
+                DatabaseHeaderKDBX(probe).loadFromFile(input)
+                probe.kdfEngine?.checkLimits(limits)
+            }
+        } catch (e: KDFMemoryDatabaseException) {
+            throw e
+        } catch (_: Exception) {
+            // not a KDBX file, or unreadable: the real open below reports exactly what is wrong
+        }
     }
 
     private fun requireDb(): DatabaseInfo = db ?: throw VaultException(VaultError.LOCKED, "The vault is locked")

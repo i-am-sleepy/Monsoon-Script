@@ -11,7 +11,7 @@ import kotlinx.parcelize.Parcelize
  * Times are epoch milliseconds.
  */
 
-/** Error codes of [VaultException]; the service carries them across the process boundary as ServiceSpecificException.errorCode. */
+/** Error codes of [VaultException]; the service carries them across the process boundary inside an IllegalStateException (see VaultWire). */
 object VaultError {
     const val WRONG_CREDENTIALS = 1
     const val FILE_NOT_FOUND = 2
@@ -43,6 +43,24 @@ object Resolve {
 }
 
 class VaultException(val code: Int, message: String, cause: Throwable? = null) : Exception(message, cause)
+
+/**
+ * Binder carries only a few exception types, and ServiceSpecificException is not public API. So a [VaultException] crosses the process
+ * boundary as an IllegalStateException whose message starts with a marker; the client decodes it again.
+ */
+internal object VaultWire {
+    private const val PREFIX = "vault-error:"
+
+    fun encode(e: VaultException): IllegalStateException = IllegalStateException("$PREFIX${e.code}:${e.message ?: ""}")
+
+    fun decode(e: IllegalStateException): VaultException? {
+        val text = e.message?.takeIf { it.startsWith(PREFIX) } ?: return null
+        val rest = text.substring(PREFIX.length)
+        val colon = rest.indexOf(':')
+        val code = (if (colon > 0) rest.substring(0, colon).toIntOrNull() else null) ?: return null
+        return VaultException(code, rest.substring(colon + 1))
+    }
+}
 
 @Parcelize
 data class VaultStatus(
