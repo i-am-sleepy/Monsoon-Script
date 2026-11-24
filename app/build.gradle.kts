@@ -13,7 +13,7 @@ val withVoiceNative = File(rootDir, "third_party/transcribe.cpp/CMakeLists.txt")
 
 android {
     namespace = "com.monsoonscript.keyboard"
-    compileSdk = 35
+    compileSdk = 36 // the KeePassDX modules (:vault) are compiled against 36 and AGP refuses a lower compileSdk in the app
 
     defaultConfig {
         applicationId = "com.monsoonscript.keyboard"
@@ -85,6 +85,9 @@ android {
 }
 
 dependencies {
+    // E1.13: the password-manager adapter (runs in its own process, D44). Brings the KeePassDX engine along; its R8 rules ride in consumer-rules.pro.
+    implementation(project(":vault"))
+
     // Pure-JVM unit tests for the language engines (run in CI, see .github/workflows/build.yml).
     testImplementation("junit:junit:4.13.2")
 }
