@@ -26,6 +26,14 @@ object VoiceText {
     private val SAY_EXCLAIM = word("\u09AC\u09BF\u09B8\u09CD\u09AE\u09DF\u09B8\u09C2\u099A\u0995(?:\\s+\u099A\u09BF\u09B9\u09CD\u09A8)?", "\u09AC\u09BF\u09B8\u09CD\u09AE\u09AF\u09BC\u09B8\u09C2\u099A\u0995(?:\\s+\u099A\u09BF\u09B9\u09CD\u09A8)?") // বিস্ময়সূচক (চিহ্ন)
     private val ENDS_WITH_MARK = Regex("[.,?!;:\\u0964\\u0965\u2026]$")
 
+    // What the Bangla model writes for music, noise or silence instead of speech. A result that is only this is dropped.
+    private val NOISE_WORDS = setOf(
+        "\u09AE\u09BF\u0989\u099C\u09BF\u0995", // মিউজিক
+        "\u09B8\u0982\u0997\u09C0\u09A4", // সংগীত
+        "\u09B8\u0999\u09CD\u0997\u09C0\u09A4", // সঙ্গীত
+    )
+    private val JUST_MARKS = Regex("[\\s.,?!;:\\u0964\\u0965\u2026]+")
+
     /** [punct] (Bangla only): understand the spoken marks above and end a sentence without a mark with a danda. */
     fun clean(text: String, lang: VoiceLang, punct: Boolean = false): String {
         var t = text.trim()
@@ -41,6 +49,7 @@ object VoiceText {
             t = AFTER_OPEN.replace(t, "$1")
         }
         t = SPACES.replace(t, " ").trim()
+        if (lang == VoiceLang.BANGLA && JUST_MARKS.replace(t, " ").trim() in NOISE_WORDS) return ""
         if (lang == VoiceLang.BANGLA && punct && t.isNotEmpty() && !ENDS_WITH_MARK.containsMatchIn(t)) t += "\u0964"
         return t
     }

@@ -178,6 +178,11 @@ class KeyboardView(context: Context) : View(context) {
     private var stripLeadW = 0f
     private var stripMicW = 0f // the mic key at the far right edge
     private val wave = Waveform()
+    private var flashText: String? = null // a short message over the strip (voice errors)
+    private val clearFlash = Runnable {
+        flashText = null
+        invalidate()
+    }
     private val showSug: Boolean get() = sugCount > 0 && !iconsPinned
 
     // ---- paint
@@ -543,6 +548,14 @@ class KeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
+    /** Shows [text] over the middle of the strip for a few seconds. */
+    fun flash(text: String) {
+        flashText = text
+        uiHandler.removeCallbacks(clearFlash)
+        uiHandler.postDelayed(clearFlash, 4500L)
+        invalidate()
+    }
+
     /** One voice level (0..1) for the level display in the strip. */
     fun pushMicLevel(level: Float) {
         wave.push(level)
@@ -720,6 +733,7 @@ class KeyboardView(context: Context) : View(context) {
                 drawBubble(canvas, faceOf(ks[i]), rs[i])
             }
         }
+        flashText?.let { msg -> if (stripShown) drawFlash(canvas, msg) }
         if (popupOpen) drawLanguagePopup(canvas)
         if (recording) postInvalidateOnAnimation() // the level display animates while the microphone is in use
     }
@@ -1031,6 +1045,17 @@ class KeyboardView(context: Context) : View(context) {
     private fun isSugPressed(i: Int): Boolean {
         for (s in 0 until MAX_PTR) if (ptrInSug[s] && ptrSug[s] == i) return true
         return false
+    }
+
+    private fun drawFlash(c: Canvas, msg: String) {
+        val l = padX + stripLeadW
+        val r = width - padX - stripMicW
+        fillPaint.color = pal.bg
+        c.drawRect(l, 0f, r, stripH, fillPaint)
+        sugPaint.color = pal.text
+        sugPaint.textSize = dp(13f)
+        val fit = android.text.TextUtils.ellipsize(msg, android.text.TextPaint(sugPaint), r - l - dp(16f), android.text.TextUtils.TruncateAt.END).toString()
+        c.drawText(fit, (l + r) / 2, stripH / 2 - (sugPaint.ascent() + sugPaint.descent()) / 2, sugPaint)
     }
 
     /** The language key and the mic key stay on screen while suggestions show or the voice level is drawn. */

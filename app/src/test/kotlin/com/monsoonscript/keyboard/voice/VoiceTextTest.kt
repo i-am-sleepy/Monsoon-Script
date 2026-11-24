@@ -49,5 +49,14 @@ class VoiceTextTest {
         assertEquals("hello", VoiceText.clean("hello", VoiceLang.ENGLISH, punct = true))
         assertEquals("\u0986\u09AE\u09BF", VoiceText.clean("\u0986\u09AE\u09BF", VoiceLang.BANGLA))
     }
+
+    @Test
+    fun aResultThatIsOnlyNoiseIsDropped() {
+        // "মিউজিক" alone is what the Bangla model writes for music or noise
+        assertEquals("", VoiceText.clean("\u09AE\u09BF\u0989\u099C\u09BF\u0995", VoiceLang.BANGLA, punct = true))
+        assertEquals("", VoiceText.clean(" \u09AE\u09BF\u0989\u099C\u09BF\u0995 \u0964", VoiceLang.BANGLA))
+        // real speech that contains the word stays
+        assertEquals("\u0986\u09AE\u09BF \u09AE\u09BF\u0989\u099C\u09BF\u0995 \u09B6\u09C1\u09A8\u09BF", VoiceText.clean("\u0986\u09AE\u09BF \u09AE\u09BF\u0989\u099C\u09BF\u0995 \u09B6\u09C1\u09A8\u09BF", VoiceLang.BANGLA))
+    }
 }
 

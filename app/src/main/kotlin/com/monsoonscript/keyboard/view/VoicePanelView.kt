@@ -56,6 +56,11 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
     private val tmp = RectF()
     private var layout: StaticLayout? = null
     private var layoutW = -1
+    private var message: String? = null // a short message at the bottom of the text box (voice errors)
+    private val clearMessage = Runnable {
+        message = null
+        invalidate()
+    }
     private var pressed = NONE
     private var caret = 0 // the caret's position in [text]
     private var scrollY = 0f // how far the text is scrolled up inside the box
@@ -80,6 +85,13 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
 
     fun pushLevel(level: Float) {
         wave.push(level)
+    }
+
+    fun setMessage(text: String) {
+        message = text
+        removeCallbacks(clearMessage)
+        postDelayed(clearMessage, 5000L)
+        invalidate()
     }
 
     fun reset() {
@@ -184,6 +196,15 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
                 c.drawRect(tmp, fill)
             }
             c.restore()
+        }
+
+        message?.let { m -> // a short message at the bottom of the box
+            body.textSize = dp(13f)
+            body.color = pal.accent
+            fill.color = pal.key
+            tmp.set(box.left + dp(6f), box.bottom - dp(26f), box.right - dp(6f), box.bottom - dp(4f))
+            c.drawRoundRect(tmp, dp(8f), dp(8f), fill)
+            c.drawText(android.text.TextUtils.ellipsize(m, body, tmp.width() - dp(16f), android.text.TextUtils.TruncateAt.END).toString(), tmp.left + dp(8f), tmp.centerY() - (body.ascent() + body.descent()) / 2, body)
         }
 
         // left button: ABC (close) or Done (hide the keys)

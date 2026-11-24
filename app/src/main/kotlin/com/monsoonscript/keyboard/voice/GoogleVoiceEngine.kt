@@ -1,5 +1,6 @@
 package com.monsoonscript.keyboard.voice
 
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -20,17 +21,38 @@ class GoogleVoiceEngine(private val context: Context) : VoiceEngine {
     private var recognizer: SpeechRecognizer? = null
     private var session = 0
 
-    fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
+    /** Why the last recognition failed, in words and numbers for the owner and for me (shown next to the message). */
+    var lastDetail: String = ""
+        private set
+
+    private fun services() = context.packageManager.queryIntentServices(Intent("android.speech.RecognitionService"), 0)
+
+    /**
+     * The speech service to use. Gboard does not depend on which service the phone has set as its default, so neither do we: when Google's own service is
+     * installed it is asked for explicitly; otherwise the phone's default is used (null).
+     */
+    private fun googleComponent(): ComponentName? {
+        val g = services().firstOrNull { it.serviceInfo.packageName == GOOGLE_APP } ?: return null
+        return ComponentName(g.serviceInfo.packageName, g.serviceInfo.name)
+    }
+
+    fun isAvailable(): Boolean = googleComponent() != null || SpeechRecognizer.isRecognitionAvailable(context)
+
+    private fun describeServices(): String = services().joinToString(", ") { it.serviceInfo.packageName }.ifEmpty { "none" }
 
     override fun start(lang: VoiceLang, callback: VoiceEngine.Callback, autoStop: Boolean) {
         cancel()
+        lastDetail = ""
         if (!isAvailable()) {
+            lastDetail = "no speech service on this phone (found: " + describeServices() + ")"
             callback.onError(VoiceError.NOT_AVAILABLE)
             return
         }
+        val comp = googleComponent()
         val r = try {
-            SpeechRecognizer.createSpeechRecognizer(context)
+            if (comp != null) SpeechRecognizer.createSpeechRecognizer(context, comp) else SpeechRecognizer.createSpeechRecognizer(context)
         } catch (e: RuntimeException) {
+            lastDetail = "could not start the speech service: " + (e.message ?: e.javaClass.simpleName)
             null
         }
         if (r == null) {
@@ -59,6 +81,7 @@ class GoogleVoiceEngine(private val context: Context) : VoiceEngine {
             override fun onError(error: Int) {
                 if (!live()) return
                 finish(r)
+                lastDetail = "Google speech error $error (" + errorName(error) + ")" + (if (comp != null) "" else ", default service")
                 callback.onError(map(error))
             }
 
@@ -119,6 +142,23 @@ class GoogleVoiceEngine(private val context: Context) : VoiceEngine {
     private fun first(b: Bundle?): String =
         b?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim().orEmpty()
 
+    private fun errorName(code: Int) = when (code) {
+        1 -> "network timeout"
+        2 -> "network"
+        3 -> "audio"
+        4 -> "server"
+        5 -> "client"
+        6 -> "no speech"
+        7 -> "no match"
+        8 -> "busy"
+        9 -> "no permission"
+        10 -> "too many requests"
+        11 -> "server disconnected"
+        12 -> "language not supported"
+        13 -> "language unavailable"
+        else -> "other"
+    }
+
     private fun map(code: Int): VoiceError = when (code) {
         SpeechRecognizer.ERROR_NETWORK_TIMEOUT, SpeechRecognizer.ERROR_NETWORK, SpeechRecognizer.ERROR_SERVER -> VoiceError.NETWORK
         SpeechRecognizer.ERROR_SPEECH_TIMEOUT, SpeechRecognizer.ERROR_NO_MATCH -> VoiceError.NO_SPEECH
@@ -126,5 +166,9 @@ class GoogleVoiceEngine(private val context: Context) : VoiceEngine {
         SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> VoiceError.NO_PERMISSION
         12, 13 -> VoiceError.LANGUAGE // ERROR_LANGUAGE_NOT_SUPPORTED, ERROR_LANGUAGE_UNAVAILABLE (newer Android versions)
         else -> VoiceError.OTHER
+    }
+
+    private companion object {
+        const val GOOGLE_APP = "com.google.android.googlequicksearchbox"
     }
 }

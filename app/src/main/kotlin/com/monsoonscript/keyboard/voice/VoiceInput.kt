@@ -27,6 +27,9 @@ class VoiceInput(private val context: Context, private val host: Host) {
 
         /** The loudness of the voice, 0..1, for the level display. */
         fun voiceLevel(level: Float)
+
+        /** A short message to show where the owner is looking (the strip or the tap panel): toasts do not show on every phone. */
+        fun voiceMessage(text: String)
     }
 
     private val main = Handler(Looper.getMainLooper())
@@ -155,7 +158,11 @@ class VoiceInput(private val context: Context, private val host: Host) {
         engine?.start(lang, callback, panelMode)
     }
 
-    private fun say(res: Int) = Toast.makeText(context, res, Toast.LENGTH_SHORT).show()
+    private fun say(res: Int, detail: String = "") {
+        val text = context.getString(res) + (if (detail.isNotEmpty()) " ($detail)" else "")
+        Toast.makeText(context, text, Toast.LENGTH_LONG).show()
+        host.voiceMessage(text)
+    }
 
     private fun finishRound() {
         main.removeCallbacks(resetWorking)
@@ -206,6 +213,7 @@ class VoiceInput(private val context: Context, private val host: Host) {
                     VoiceError.NO_MODEL -> R.string.voice_err_no_model
                     else -> R.string.voice_err_other
                 },
+                (engine as? GoogleVoiceEngine)?.lastDetail.orEmpty(),
             )
         }
     }

@@ -50,6 +50,36 @@ object VoiceModels {
 
     val ALL = listOf(ENGLISH, BANGLA)
 
+    /** The speech detector (Silero VAD v6.2, MIT, 1 MB): keeps music, noise and silence away from the speech models. Downloaded automatically next to them. */
+    val VAD = VoiceModel(
+        id = "silero-vad",
+        title = "Speech detector (Silero VAD)",
+        lang = VoiceLang.ENGLISH,
+        file = "silero-vad-v6.2-F32.gguf",
+        url = "https://github.com/i-am-sleepy/Monsoon-Script/releases/download/voice-models/silero-vad-v6.2-F32.gguf",
+        bytes = 1_241_056L,
+        sha256 = "0d871a800c420fdd5d1b17a3aea4296d1c39608f0ff4a9295eb76457eb1c88e6",
+        credit = "Silero VAD v6.2 by the Silero Team (MIT), GGUF by the transcribe.cpp project",
+        maxSeconds = 0,
+    )
+
+    private var vadRunning = false
+
+    /** Fetches the speech detector in the background when it is missing (1 MB). Nothing happens in Offline mode (D10). */
+    fun ensureVad(context: Context) {
+        val app = context.applicationContext
+        if (vadRunning || installed(app, VAD)) return
+        if (com.monsoonscript.keyboard.prefs.Prefs.of(app).getBoolean(com.monsoonscript.keyboard.prefs.Prefs.VOICE_OFFLINE, false)) return
+        vadRunning = true
+        Download(app, VAD, object : Download.Listener {
+            override fun onProgress(done: Long, total: Long) {}
+
+            override fun onDone(ok: Boolean, message: String?) {
+                vadRunning = false
+            }
+        }).start()
+    }
+
     fun forLang(lang: VoiceLang): VoiceModel = if (lang == VoiceLang.ENGLISH) ENGLISH else BANGLA
 
     fun dir(context: Context): File = File(context.filesDir, "voice").also { it.mkdirs() }

@@ -132,18 +132,22 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
             post(mine) { callback.onFinal("") }
             return
         }
-        val text: String?
-        var status = 0
+        var text: String? = null
+        var noSpeech = false
         synchronized(LOCK) {
             val h = ensureLoadedLocked()
-            if (h == 0L) {
-                status = NativeVoice.lastStatus()
-                text = null
-            } else {
-                val bytes = NativeVoice.run(h, pcm, n)
-                status = NativeVoice.lastStatus()
-                text = bytes?.toString(Charsets.UTF_8)
+            if (h != 0L) {
+                val speech = speechOnlyLocked(pcm, n) // music, noise and silence never reach the speech model
+                if (speech == null) {
+                    noSpeech = true
+                } else {
+                    text = NativeVoice.run(h, speech.first, speech.second)?.toString(Charsets.UTF_8)
+                }
             }
+        }
+        if (noSpeech) {
+            post(mine) { callback.onFinal("") }
+            return
         }
         if (session != mine) return
         main.post { scheduleUnload() }
@@ -163,6 +167,46 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
         if (!recording) synchronized(LOCK) { freeLocked() }
     }
 
+    /**
+     * Keeps only the speech of a recording (Silero VAD): the pieces it finds, each with 0.15 s around it, joined. Null = there was no speech. Without the
+     * detector installed (it downloads by itself, 1 MB) the whole recording is used as before.
+     */
+    private fun speechOnlyLocked(pcm: FloatArray, n: Int): Pair<FloatArray, Int>? {
+        val h = ensureVadLocked()
+        if (h == 0L) return Pair(pcm, n)
+        val segs = NativeVoice.vadSegments(h, pcm, n, VAD_THRESHOLD) ?: return Pair(pcm, n)
+        if (segs.isEmpty()) return null
+        val pad = RATE * 15 / 100
+        val ranges = ArrayList<IntArray>()
+        var i = 0
+        while (i + 1 < segs.size) {
+            val s = maxOf(0, segs[i] - pad)
+            val e = minOf(n, segs[i + 1] + pad)
+            if (ranges.isNotEmpty() && s <= ranges.last()[1]) ranges.last()[1] = maxOf(ranges.last()[1], e) else ranges.add(intArrayOf(s, e))
+            i += 2
+        }
+        var total = 0
+        for (r in ranges) total += r[1] - r[0]
+        if (total <= 0) return null
+        val out = FloatArray(total)
+        var o = 0
+        for (r in ranges) {
+            System.arraycopy(pcm, r[0], out, o, r[1] - r[0])
+            o += r[1] - r[0]
+        }
+        return Pair(out, total)
+    }
+
+    private fun ensureVadLocked(): Long {
+        if (vad != 0L) return vad
+        if (!VoiceModels.installed(context, VoiceModels.VAD)) {
+            VoiceModels.ensureVad(context)
+            return 0L
+        }
+        vad = NativeVoice.vadLoad(VoiceModels.file(context, VoiceModels.VAD).absolutePath)
+        return vad
+    }
+
     private fun ensureLoadedLocked(): Long {
         val path = VoiceModels.file(context, model).absolutePath
         if (handle != 0L && loadedPath == path) return handle
@@ -175,7 +219,9 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
 
     private fun freeLocked() {
         if (handle != 0L) NativeVoice.free(handle)
+        if (vad != 0L) NativeVoice.vadFree(vad)
         handle = 0L
+        vad = 0L
         loadedPath = null
     }
 
@@ -187,6 +233,8 @@ class LocalVoiceEngine(private val context: Context, private val model: VoiceMod
         const val WAIT_CHUNKS = 140 // 7 s without any speech ends it too
         val LOCK = Any()
         var handle = 0L
+        var vad = 0L
         var loadedPath: String? = null
+        const val VAD_THRESHOLD = 0.5f
     }
 }

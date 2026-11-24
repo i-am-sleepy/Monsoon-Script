@@ -51,4 +51,8 @@
     <string name="voice_panel_done">Done</string>
     <string name="voice_bn_punct">Bangla punctuation help</string>
     <string name="voice_bn_punct_summary">Understand the spoken words for the marks (দাঁড়ি, কমা, প্রশ্নবোধক চিহ্ন, বিস্ময়সূচক চিহ্ন) and end a sentence without a mark with a danda ।</string>
+    <string name="voice_vad_installed">Installed (1 MB). Keeps music, noise and silence out of the transcript.</string>
+    <string name="voice_vad_missing">Not installed yet (1 MB). It downloads by itself next to a model; without it noise can be written as words such as music.</string>
+    <string name="voice_diag_title">Google voice diagnostics</string>
+    <string name="voice_diag_summary">Find out why Google voice does not work on this phone and copy the report</string>
 </resources>

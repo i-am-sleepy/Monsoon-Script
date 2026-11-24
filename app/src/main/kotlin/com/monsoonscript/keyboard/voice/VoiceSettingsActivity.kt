@@ -36,6 +36,7 @@ class VoiceSettingsActivity : Activity() {
             page.content.add(header(getString(R.string.voice_models_header)))
             modelBox = LinearLayout(this@VoiceSettingsActivity).apply { orientation = LinearLayout.VERTICAL }
             page.content.add(modelBox)
+            page.content.add(navRow(getString(R.string.voice_diag_title), getString(R.string.voice_diag_summary)) { startActivity(Intent(this@VoiceSettingsActivity, VoiceDiagActivity::class.java)) })
             page.content.add(note(getString(R.string.voice_models_note)))
             page.content.add(header(getString(R.string.voice_privacy_header)))
             page.content.add(switchRow(getString(R.string.voice_offline), getString(R.string.voice_offline_summary), Prefs.VOICE_OFFLINE, false))
@@ -79,6 +80,12 @@ class VoiceSettingsActivity : Activity() {
                     }
                 }
             }
+            val vadOk = VoiceModels.installed(this@VoiceSettingsActivity, VoiceModels.VAD)
+            modelBox.add(infoRow(VoiceModels.VAD.title, getString(if (vadOk) R.string.voice_vad_installed else R.string.voice_vad_missing)))
+            if (!vadOk) modelBox.add(buttonRow(getString(R.string.voice_model_download), null) {
+                VoiceModels.ensureVad(this@VoiceSettingsActivity)
+                modelBox.postDelayed({ if (!isDestroyed) render() }, 4000L)
+            })
         }
     }
 
@@ -97,6 +104,7 @@ class VoiceSettingsActivity : Activity() {
     }
 
     private fun startDownload(m: VoiceModel) {
+        VoiceModels.ensureVad(this) // the speech detector (1 MB) comes along
         progress[m.id] = VoiceModels.partBytes(this, m)
         downloads[m.id] = VoiceModels.Download(this, m, object : VoiceModels.Download.Listener {
             override fun onProgress(done: Long, total: Long) {

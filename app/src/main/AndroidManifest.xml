@@ -89,6 +89,11 @@
             android:label="@string/voice_settings_title" />
 
         <activity
+            android:name=".voice.VoiceDiagActivity"
+            android:exported="false"
+            android:label="@string/voice_diag_title" />
+
+        <activity
             android:name=".voice.VoicePermissionActivity"
             android:exported="false"
             android:excludeFromRecents="true"

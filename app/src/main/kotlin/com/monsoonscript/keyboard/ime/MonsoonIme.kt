@@ -1083,6 +1083,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             keyboard?.pushMicLevel(level)
             voicePanel?.pushLevel(level)
         }
+
+        override fun voiceMessage(text: String) {
+            if (voicePanelUp()) voicePanel?.setMessage(text) else keyboard?.flash(text)
+        }
     }
 
     private fun ensureVoice(): VoiceInput = voice ?: VoiceInput(this, voiceHost).also { voice = it }

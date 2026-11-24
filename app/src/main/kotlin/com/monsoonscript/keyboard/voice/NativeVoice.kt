@@ -23,5 +23,13 @@ object NativeVoice {
 
     @JvmStatic external fun lastStatus(): Int
 
+    /** Opens the Silero speech detector (a small GGUF); 0 on failure. */
+    @JvmStatic external fun vadLoad(path: String): Long
+
+    /** The speech parts of 16 kHz mono PCM as [start0, end0, start1, end1 ...] in samples; empty = no speech; null = failure. [threshold] 0..1, higher = stricter. */
+    @JvmStatic external fun vadSegments(handle: Long, pcm: FloatArray, n: Int, threshold: Float): IntArray?
+
+    @JvmStatic external fun vadFree(handle: Long)
+
     @JvmStatic external fun free(handle: Long)
 }
