@@ -1,5 +1,5 @@
 # claude-e notes (only claude-e edits this file; others only append lines under "Warnings")
-Updated: 2026-11-23, end of session 4 (wrap-up on the owner's order). E3 clipboard and E4 are DONE and owner-tested. NEXT: E1 KeePassDX integration (E1.13) in a new chat.
+Updated: 2026-11-24, session 5 (E1.13 in progress). E3 clipboard and E4 are DONE and owner-tested. E1.13.1/.2 pushed; NEXT: read both CIs, then ask the owner the screen questions (E1.13.3).
 T9 and T11 were taken over by claude-l (L4-L6); only T9.3 Bijoy Classic (+ the owner key-map check, STATUS Needs user #2) is still mine, paused.
 
 ## Warnings from other Claudes (read first; delete a line when handled)
@@ -16,16 +16,17 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
   E1.12 [x] Foundation on main (merge 9330477, D64): submodule `third_party/keepassdx` @ 4.5.8, `:vault` + 14 emulator tests, `engine.yml`, build.yml scoped to `:app`, AGP 8.13.2 / Gradle 8.14.2. The app does not use it yet.
             (A previous session wrote "merged" in these notes while the work was still on branch `e1-integrate`; this session did the real merge after both runs on 9a2512d were green.)
   E1.13 [~] Phase 1 (D51), started 2026-11-24 on the owner's order ("integrate KeePassDX as agreed"). Steps:
-    E1.13.1 [~] (a) in `:vault`: `VaultModel.kt` (parcelable data), `VaultStore` (file abstraction + backups), `VaultSession` (create/open/lock/list/search/entry CRUD/groups/save, one thread) + emulator tests `VaultSessionTest`
-    E1.13.2 [ ] (b) `IVault.aidl` + `VaultService` (android:process=":vault", D44) + app-side client; app depends on `:vault` (compileSdk 36, drop the conditional include); build.yml: checkout keepassdx submodule + platform 36
-                (workflow files need the owner's token, see Warnings of the session); shrunk-build smoke test in CI
+    E1.13.1 [x] (a) in `:vault`: `VaultModel.kt` (parcelable data + VaultWire), `VaultStore` (+ backups), `VaultSession` (create/open/lock/list/search/entry CRUD/groups/save, D50 conflicts, KDF memory pre-check), `VaultSessionTest` (16 tests). Engine run #6 had 15/16 green; the failing one (memory limit) is fixed in 58153dd, awaiting the CI result.
+    E1.13.2 [~] (b) DONE and pushed: `IVault.aidl`, `VaultService` (android:process=":vault", D44, auto-lock 5 min + screen off, `setAutoLock(ms)`), `VaultClient` (blocking `call`, `async`), `UriVaultStore`, `VaultServiceTest` (6 tests), build.yml (submodule + platform 36, pushed without the owner's token), the app `implementation(project(":vault"))` + compileSdk 36 (8d82e14).
+                 STILL TO DO: read both CIs (engine: `ci-status-engine`, app: `ci-status`); decide the shrunk-build smoke test (idea: non-exported self-test receiver on an emulator, or the owner's phone test); check the release APK size.
     E1.13.3 [ ] ask the owner the Phase 1 screen questions (file picker, create-vault wizard, entry view/edit, generator); answers -> DECISIONS D80+
     E1.13.4 [ ] (c) app screens in the keyboard's style (D30, D33, D34), file picker (D35), unlock (reuse clipboard biometric pattern), list/search/view/add/edit/delete, generator
     E1.13.5 [ ] (d) auto-lock + FLAG_SECURE (D38, D43). Then Phase 2 (picker in the keyboard). Weekly watcher (D48) when convenient. (LICENSE step is done, claude-l L11.)
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D80) and update the docs.
 
 ## Next step
-E1.13 in a NEW chat (owner order 2026-11-23: wrap up the clipboard, continue the KeePassDX integration next). Start: read this file, docs/PASSWORD_MANAGER.md (+ _PHASE0, _BRIEF), DECISIONS D25-D53 and D64, then ask the owner before any UI decision. The clipboard lock (`LockState`, `ClipUnlockActivity`, `LockGate`) is a working biometric-unlock pattern to reuse. Before every push run `tools/compile_check.sh` (~30 s); CI is on the `ci-status` branch.
+E1.13: (1) read engine CI (`git fetch origin ci-status-engine && git show FETCH_HEAD:last-build.txt`) and app CI (`ci-status`) for 8d82e14; fix what is red. (2) E1.13.3 ask the owner the screen questions (AskUserQuestion, recommended option first), record answers as D80+. (3) E1.13.4 screens.
+Before every push of `:vault` code run `tools/vault_compile_check.sh` (~30 s, compiles vault + tests against the real engine sources; needs `git submodule update --init --depth 1 third_party/keepassdx`), and `tools/compile_check.sh` for app code (it must learn about `:vault` once app code imports it). The clipboard lock (`LockState`, `ClipUnlockActivity`, `LockGate`) is a working biometric-unlock pattern to reuse.
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
 - Switch languages only through `MonsoonIme.setLanguage`. The strip has an arrow and shows suggestions instead of the icons (D23, D41: `Kind.STRIP` keys are hidden while suggestions show).
