@@ -1,0 +1,33 @@
+name: bn-lead
+# Bangla lead-in experiment (claude-g). Lives ONLY on the branch voice-bn-bakeoff: it is not part of the app and never runs on main.
+# Log: branch `voice-results-lead`, file log.txt.
+on:
+  workflow_dispatch:
+  push:
+    branches: [voice-bn-bakeoff]
+    paths: ['tools/voice/lead_bn.py', '.github/workflows/bn-lead.yml']
+permissions:
+  contents: write
+jobs:
+  bakeoff:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run the bake-off
+        run: |
+          mkdir -p "$RUNNER_TEMP/res"
+          python -m pip install -q --upgrade pip
+          python -m pip install -q torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -q numpy transformers huggingface_hub soundfile scipy jiwer sentencepiece accelerate
+          python tools/voice/lead_bn.py "$RUNNER_TEMP/work" 2>&1 | tee "$RUNNER_TEMP/res/log.txt"
+      - name: Publish the log
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/pub" && cp "$RUNNER_TEMP/res/log.txt" "$RUNNER_TEMP/pub/log.txt" 2>/dev/null || echo "no log" > "$RUNNER_TEMP/pub/log.txt"
+          cd "$RUNNER_TEMP/pub" && git init -q && git checkout -q -b voice-results-lead && git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -q -m "bn lead-in log for ${GITHUB_SHA}"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" voice-results-lead
