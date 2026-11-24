@@ -90,7 +90,11 @@ class VoiceDiagActivity : Activity() {
             append("Default speech service: $def\n")
             append("Google app ($GOOGLE_APP): $googleVersion\n")
             append("Speech services found: ${services.size}\n")
-            for (s in services) append("  ${s.serviceInfo.packageName}/${s.serviceInfo.name}\n")
+            for (s in services) {
+                val pkg = s.serviceInfo.packageName
+                val micOk = packageManager.checkPermission(Manifest.permission.RECORD_AUDIO, pkg) == PackageManager.PERMISSION_GRANTED
+                append("  $pkg/${s.serviceInfo.name}\n      the service app's own microphone permission: ${if (micOk) "granted" else "DENIED"}\n")
+            }
         }
     }
 

@@ -58,5 +58,16 @@ class VoiceTextTest {
         // real speech that contains the word stays
         assertEquals("\u0986\u09AE\u09BF \u09AE\u09BF\u0989\u099C\u09BF\u0995 \u09B6\u09C1\u09A8\u09BF", VoiceText.clean("\u0986\u09AE\u09BF \u09AE\u09BF\u0989\u099C\u09BF\u0995 \u09B6\u09C1\u09A8\u09BF", VoiceLang.BANGLA))
     }
+
+    @Test
+    fun aLeadingMusicWordIsDroppedWhenRealWordsFollow() {
+        // "মিউজিক দেখা যাক কি করা যায়।" -> "দেখা যাক কি করা যায়।"
+        val said = "\u09AE\u09BF\u0989\u099C\u09BF\u0995 \u09A6\u09C7\u0996\u09BE \u09AF\u09BE\u0995 \u0995\u09BF \u0995\u09B0\u09BE \u09AF\u09BE\u09DF\u0964"
+        val want = "\u09A6\u09C7\u0996\u09BE \u09AF\u09BE\u0995 \u0995\u09BF \u0995\u09B0\u09BE \u09AF\u09BE\u09DF\u0964"
+        assertEquals(want, VoiceText.clean(said, VoiceLang.BANGLA))
+        // two words only: kept (could be a real phrase)
+        val two = "\u09AE\u09BF\u0989\u099C\u09BF\u0995 \u09B6\u09C1\u09A8\u09BF"
+        assertEquals(two, VoiceText.clean(two, VoiceLang.BANGLA))
+    }
 }
 

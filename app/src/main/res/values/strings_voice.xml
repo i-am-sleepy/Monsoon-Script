@@ -55,4 +55,5 @@
     <string name="voice_vad_missing">Not installed yet (1 MB). It downloads by itself next to a model; without it noise can be written as words such as music.</string>
     <string name="voice_diag_title">Google voice diagnostics</string>
     <string name="voice_diag_summary">Find out why Google voice does not work on this phone and copy the report</string>
+    <string name="voice_err_google_permission">Google\'s speech service refused (insufficient permissions). In the phone\'s Settings > Apps open Speech Recognition &amp; Synthesis from Google and allow the microphone.</string>
 </resources>

@@ -32,6 +32,8 @@ object VoiceText {
         "\u09B8\u0982\u0997\u09C0\u09A4", // সংগীত
         "\u09B8\u0999\u09CD\u0997\u09C0\u09A4", // সঙ্গীত
     )
+    // The model often starts a sentence with this word instead of the real first word (heard as "music"): dropped when at least two more words follow.
+    private val LEADING_NOISE = Regex("^(?:" + NOISE_WORDS.joinToString("|") + ")\\s+(?=\\S+\\s+\\S+)")
     private val JUST_MARKS = Regex("[\\s.,?!;:\\u0964\\u0965\u2026]+")
 
     /** [punct] (Bangla only): understand the spoken marks above and end a sentence without a mark with a danda. */
@@ -50,6 +52,7 @@ object VoiceText {
         }
         t = SPACES.replace(t, " ").trim()
         if (lang == VoiceLang.BANGLA && JUST_MARKS.replace(t, " ").trim() in NOISE_WORDS) return ""
+        if (lang == VoiceLang.BANGLA) t = LEADING_NOISE.replace(t, "")
         if (lang == VoiceLang.BANGLA && punct && t.isNotEmpty() && !ENDS_WITH_MARK.containsMatchIn(t)) t += "\u0964"
         return t
     }

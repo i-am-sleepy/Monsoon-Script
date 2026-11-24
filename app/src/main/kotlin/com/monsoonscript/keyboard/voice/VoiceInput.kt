@@ -209,7 +209,7 @@ class VoiceInput(private val context: Context, private val host: Host) {
                     VoiceError.NOT_AVAILABLE -> R.string.voice_err_unavailable
                     VoiceError.LANGUAGE -> R.string.voice_err_language
                     VoiceError.BUSY -> R.string.voice_err_busy
-                    VoiceError.NO_PERMISSION -> R.string.voice_err_permission
+                    VoiceError.NO_PERMISSION -> if (engine === google) R.string.voice_err_google_permission else R.string.voice_err_permission
                     VoiceError.NO_MODEL -> R.string.voice_err_no_model
                     else -> R.string.voice_err_other
                 },
