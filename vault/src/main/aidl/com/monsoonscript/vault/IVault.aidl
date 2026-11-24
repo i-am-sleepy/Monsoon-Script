@@ -39,6 +39,7 @@ interface IVault {
     Change createGroup(String parentId, String name);
     Change renameGroup(String id, String name);
     Change deleteGroup(String id);
+    Change emptyRecycleBin();
 
     Change retrySave();
     Change resolve(int choice, in char[] password, in byte[] keyFile);

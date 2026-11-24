@@ -340,6 +340,19 @@ class VaultSession(
         return changed(id)
     }
 
+    /** Removes everything in the recycle bin for good, with ONE save (not one Argon2 save per item). Nothing to do = no change and no save. */
+    @Synchronized
+    fun emptyRecycleBin(): Change {
+        val d = requireWritable()
+        val bin = d.recycleBin ?: return Change(null, !dirty)
+        val entries = bin.getChildEntries().toList()
+        val groups = bin.getChildGroups().toList()
+        if (entries.isEmpty() && groups.isEmpty()) return Change(null, !dirty)
+        entries.forEach { d.deleteEntry(it) }
+        groups.forEach { d.deleteGroup(it) }
+        return changed(null)
+    }
+
     // ---------------------------------------------------------------- saving and the "file changed elsewhere" question (D50)
 
     /** Tries again to write pending changes, for instance after a write error. A pending conflict stays a conflict. */

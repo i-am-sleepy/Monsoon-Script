@@ -159,6 +159,35 @@ class VaultSessionTest {
     }
 
     @Test
+    fun emptyingTheRecycleBinRemovesEverythingInItWithOneSave() {
+        val s = newVault()
+        val info = s.info()
+        val bin = info.recycleBinId!!
+        val folder = s.createGroup(info.rootId, "Old").id!!
+        val inFolder = s.saveEntry(draft("In folder", folder)).id!!
+        val loose = s.saveEntry(draft("Loose", info.rootId)).id!!
+        val keep = s.saveEntry(draft("Keep", info.rootId)).id!!
+        s.deleteEntry(loose)
+        s.deleteGroup(folder)
+        assertEquals(setOf("Loose"), titles(s, bin))
+        assertEquals(1, s.list(bin).groups.size)
+
+        val change = s.emptyRecycleBin()
+        assertTrue(change.saved)
+        assertTrue(titles(s, bin).isEmpty())
+        assertTrue(s.list(bin).groups.isEmpty())
+        expectError(VaultError.NOT_FOUND) { s.entry(loose) }
+        expectError(VaultError.NOT_FOUND) { s.entry(inFolder) }
+        assertEquals("Keep", s.entry(keep).summary.title)
+        assertTrue(s.emptyRecycleBin().saved) // an empty bin is not an error
+
+        s.lock()
+        val back = openVault()
+        assertTrue(titles(back, bin).isEmpty())
+        assertEquals(setOf("Keep"), titles(back, info.rootId))
+    }
+
+    @Test
     fun foldersCanBeCreatedRenamedMovedIntoAndDeleted() {
         val s = newVault()
         val root = s.info().rootId

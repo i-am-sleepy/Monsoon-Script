@@ -53,21 +53,7 @@ class Instr { val targetContext: android.content.Context get() = TODO() }
 object InstrumentationRegistry { fun getInstrumentation(): Instr = Instr() }
 EOF
 # Stand-in for the class the AIDL compiler generates, built from the method list in IVault.aidl.
-python3 -I - "$ROOT/vault/src/main/aidl/com/monsoonscript/vault/IVault.aidl" "$WORK/stubs/IVault.java" <<'PY'
-import re, sys
-src = re.sub(r'/\*.*?\*/', '', open(sys.argv[1], encoding='utf-8').read(), flags=re.S)
-body = src[src.index('interface IVault'):]
-out = ['package com.monsoonscript.vault;', 'public interface IVault extends android.os.IInterface {']
-for m in re.finditer(r'^\s*([\w<>\[\]\.]+)\s+(\w+)\(([^)]*)\);', body, flags=re.M):
-    ret, name, args = m.groups()
-    conv = lambda t: t.replace('Uri', 'android.net.Uri').replace('List<', 'java.util.List<')
-    params = ', '.join(conv(re.sub(r'^in\s+', '', a.strip())) for a in args.split(',') if a.strip())
-    out.append('  %s %s(%s) throws android.os.RemoteException;' % (conv(ret), name, params))
-out += ['  abstract class Stub extends android.os.Binder implements IVault {',
-        '    public static IVault asInterface(android.os.IBinder obj) { return null; }',
-        '    public android.os.IBinder asBinder() { return this; }', '  }', '}']
-open(sys.argv[2], 'w').write('\n'.join(out) + '\n')
-PY
+python3 -I "$ROOT/tools/aidl_stub.py" "$ROOT/vault/src/main/aidl/com/monsoonscript/vault/IVault.aidl" "$WORK/stubs/IVault.java"
 
 j() { ls "$G"/$1 | head -1; }
 CP=$(j 'kotlin-compiler-embeddable-*.jar'):$(j 'kotlin-stdlib-[0-9]*.jar'):$(j 'kotlin-reflect-*.jar'):$(j 'kotlin-script-runtime-*.jar'):$(j 'trove4j-*.jar'):$(j 'kotlinx-coroutines-core-jvm-*.jar'):$(j 'annotations-*.jar')

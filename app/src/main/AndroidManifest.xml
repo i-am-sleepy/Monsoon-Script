@@ -120,5 +120,31 @@
             android:name=".settings.LicensesActivity"
             android:exported="false"
             android:label="@string/settings_licenses" />
+        <!-- Password vault screens (E1.13). Not exported; every one sets FLAG_SECURE itself (D43). The service they talk to lives in :vault (own process, D44). -->
+        <activity
+            android:name=".vault.VaultMainActivity"
+            android:exported="false"
+            android:label="@string/vault_title"
+            android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".vault.VaultCreateActivity"
+            android:exported="false"
+            android:label="@string/vault_create_title"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".vault.EntryActivity"
+            android:exported="false"
+            android:label="@string/vault_title" />
+        <activity
+            android:name=".vault.EntryEditActivity"
+            android:exported="false"
+            android:label="@string/vault_edit"
+            android:windowSoftInputMode="adjustResize" />
+        <activity
+            android:name=".vault.VaultSettingsActivity"
+            android:exported="false"
+            android:label="@string/vault_settings" />
+
     </application>
 </manifest>
