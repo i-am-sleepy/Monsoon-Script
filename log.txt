@@ -1,0 +1,9 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+fleurs bn_in test rows: 920
+[transformers] `torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/210 [00:00<?, ?it/s]Loading weights: 100%|██████████| 210/210 [00:00<00:00, 7892.15it/s]
+clips: 80
+A as recorded                starts with music:  33   contains music:  33   WER  32.05
+B tight crop                 starts with music:   6   contains music:   9   WER  30.61
+C tight + 0.4 s silence      starts with music:  43   contains music:  43   WER  31.16
+D recorded + 0.4 s silence   starts with music:  63   contains music:  64   WER  33.15
