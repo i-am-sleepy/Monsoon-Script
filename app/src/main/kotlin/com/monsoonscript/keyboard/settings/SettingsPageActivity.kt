@@ -7,9 +7,6 @@ import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
-import android.view.MotionEvent
-import android.view.ViewGroup
-import android.widget.FrameLayout
 import android.widget.Toast
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.ime.LearnSettings
@@ -29,6 +26,7 @@ class SettingsPageActivity : ThemedActivity() {
     /** The keyboard shown on the Appearance page; it follows every change of a setting while the page is open. */
     private var preview: KeyboardView? = null
     private val previewListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> applyPreview() }
+    private var bubbles: BubbleHost? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,8 +37,19 @@ class SettingsPageActivity : ThemedActivity() {
             ABOUT -> about(ui)
             else -> typing(ui)
         }
-        setContentView(page.root)
+        // the floating bubbles (L12 R3, D83): "Try it" on every page, "Live preview" (docked at the bottom) on Appearance
+        val host = BubbleHost(this, ui, page.root)
+        host.addTryIt(0)
+        preview?.let { host.addPreview(it, 1) }
+        host.restoreState(savedInstanceState)
+        bubbles = host
+        setContentView(host.root)
         intent.getStringExtra(EXTRA_FOCUS)?.let { ui.focusRow(page, it) } // opened from the search box: scroll to the row and flash it
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        bubbles?.saveState(outState)
     }
 
     private fun typing(ui: SettingsUi): SettingsUi.Page {
@@ -74,8 +83,6 @@ class SettingsPageActivity : ThemedActivity() {
             page.content.add(buttonRow(getString(R.string.settings_sound_settings), getString(R.string.settings_sound_settings_summary)) { openSoundSettings() })
             val delays = listOf(R.string.settings_press_short, R.string.settings_press_normal, R.string.settings_press_long).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.settings_long_press), Prefs.LONG_PRESS, delays, Prefs.LONG_PRESS_NORMAL))
-            page.content.add(header(getString(R.string.settings_try_header)))
-            page.content.add(tryField(getString(R.string.settings_try_hint)))
         }
         return page
     }
@@ -114,14 +121,7 @@ class SettingsPageActivity : ThemedActivity() {
         val kb = KeyboardView(this)
         preview = kb
         applyPreview()
-        // The preview is only to look at: the frame takes every touch, so the keys do nothing and the page still scrolls.
-        val frame = object : FrameLayout(this) {
-            override fun onInterceptTouchEvent(ev: MotionEvent): Boolean = true
-        }
-        frame.addView(kb, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         with(ui) {
-            page.content.add(header(getString(R.string.settings_preview_header)))
-            page.content.add(frame)
             page.content.add(note(getString(R.string.settings_preview_note)))
             page.content.add(header(getString(R.string.settings_look_header)))
             page.content.add(navRow(getString(R.string.themes_title), getString(R.string.themes_row_summary)) { startActivity(Intent(this@SettingsPageActivity, ThemesActivity::class.java)) })

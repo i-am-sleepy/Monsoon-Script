@@ -11,6 +11,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.prefs.Prefs
+import com.monsoonscript.keyboard.settings.BubbleHost
 import com.monsoonscript.keyboard.settings.SettingsUi
 import com.monsoonscript.keyboard.settings.ThemedActivity
 import com.monsoonscript.keyboard.view.KeyboardView
@@ -22,6 +23,8 @@ import com.monsoonscript.keyboard.view.KeyboardView
 class ThemesActivity : ThemedActivity() {
     private lateinit var ui: SettingsUi
     private lateinit var page: SettingsUi.Page
+    private lateinit var kb: KeyboardView
+    private var bubbles: BubbleHost? = null
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> render() }
 
     /** Choosing another day or night theme recolors this screen (and the app) at once (L12, D83). */
@@ -31,8 +34,18 @@ class ThemesActivity : ThemedActivity() {
         super.onCreate(savedInstanceState)
         ui = SettingsUi(this)
         page = ui.page(getString(R.string.themes_title)) { finish() }
-        setContentView(page.root)
+        kb = KeyboardView(this)
+        val host = BubbleHost(this, ui, page.root) // the live preview is a bubble that opens a keyboard docked at the bottom (L12 R3, D83)
+        host.addPreview(kb, 0)
+        host.restoreState(savedInstanceState)
+        bubbles = host
+        setContentView(host.root)
         render()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        bubbles?.saveState(outState)
     }
 
     override fun onResume() {
@@ -50,11 +63,8 @@ class ThemesActivity : ThemedActivity() {
         page.content.removeAllViews()
         val day = ThemeStore.day(this)
         val night = ThemeStore.night(this)
-        val kb = KeyboardView(this)
         ThemePreview.apply(this, kb, day, night)
         with(ui) {
-            page.content.add(header(getString(R.string.themes_preview_header)))
-            page.content.add(ThemePreview.frame(this@ThemesActivity, kb))
             page.content.add(note(getString(R.string.themes_intro)))
             val modes = listOf(R.string.themes_mode_system, R.string.themes_mode_day, R.string.themes_mode_night).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.themes_mode), Prefs.THEME, modes, 0))

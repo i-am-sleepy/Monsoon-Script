@@ -14,7 +14,7 @@ import android.graphics.drawable.Drawable
  * of the theme. [drawable] gives one at any size.
  */
 internal object Icons {
-    enum class Kind { BACK, CHEVRON, KEYBOARD, SPARKLE, DROP, CLIPBOARD, MIC, INFO, SEARCH, CLOSE, CHECK }
+    enum class Kind { BACK, CHEVRON, KEYBOARD, SPARKLE, DROP, CLIPBOARD, MIC, INFO, SEARCH, CLOSE, CHECK, EYE }
 
     fun drawable(kind: Kind, color: Int, sizePx: Int): Drawable = IconDrawable(kind, color, sizePx)
 
@@ -119,6 +119,10 @@ internal object Icons {
                 Kind.CLOSE -> {
                     c.drawLine(6f, 6f, 18f, 18f, line)
                     c.drawLine(18f, 6f, 6f, 18f, line)
+                }
+                Kind.EYE -> {
+                    path(c) { moveTo(2f, 12f); quadTo(12f, 2.5f, 22f, 12f); quadTo(12f, 21.5f, 2f, 12f); close() }
+                    c.drawCircle(12f, 12f, 3.2f, line)
                 }
                 Kind.CHECK -> path(c) { moveTo(5f, 12.5f); lineTo(10f, 17.5f); lineTo(19f, 7f) }
             }

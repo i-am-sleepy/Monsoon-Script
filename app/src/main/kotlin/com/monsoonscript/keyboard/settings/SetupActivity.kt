@@ -30,6 +30,7 @@ class SetupActivity : ThemedActivity() {
     private lateinit var setupBox: LinearLayout
     private lateinit var setupCard: View
     private var introOverlay: FrameLayout? = null
+    private var bubbles: BubbleHost? = null
     private lateinit var results: SettingsUi.GroupedColumn
     private var menuViews: List<View> = emptyList()
 
@@ -61,7 +62,11 @@ class SetupActivity : ThemedActivity() {
         }
         renderSetup()
         val root = FrameLayout(this)
-        root.addView(page.root, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        val host = BubbleHost(this, ui, page.root)
+        host.addTryIt(0)
+        host.restoreState(savedInstanceState)
+        bubbles = host
+        root.addView(host.root, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
         val first = savedInstanceState == null
         if (first && !introPlayed) {
             introPlayed = true
@@ -70,6 +75,11 @@ class SetupActivity : ThemedActivity() {
             ui.animateIn(page)
         }
         setContentView(root)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        bubbles?.saveState(outState)
     }
 
     private fun open(page: String) = startActivity(SettingsPageActivity.intent(this, page))

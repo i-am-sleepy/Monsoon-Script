@@ -436,21 +436,6 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
         }
     }
 
-    /** A text field for trying the keyboard right on the settings page. */
-    fun tryField(hint: String): View = RowView(context).apply {
-        setPadding(dp(20), dp(8), dp(20), dp(8))
-        addView(EditText(context).apply {
-            this.hint = hint
-            textSize = 17f
-            setTextColor(primary)
-            setHintTextColor(secondary)
-            background = null
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
-            minLines = 3
-            gravity = Gravity.TOP or Gravity.START
-        }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-    }
-
     /** The small arrow at the end of a row that opens something. */
     fun chevron(): View = ImageView(context).apply {
         setImageDrawable(icon(Icons.Kind.CHEVRON, colors.muted, 20))

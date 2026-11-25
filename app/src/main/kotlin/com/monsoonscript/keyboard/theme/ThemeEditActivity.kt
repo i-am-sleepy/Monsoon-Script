@@ -6,9 +6,9 @@ import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
-import android.widget.FrameLayout
 import android.widget.LinearLayout
 import com.monsoonscript.keyboard.R
+import com.monsoonscript.keyboard.settings.BubbleHost
 import com.monsoonscript.keyboard.settings.SettingsUi
 import com.monsoonscript.keyboard.settings.ThemedActivity
 import com.monsoonscript.keyboard.view.KeyboardView
@@ -22,7 +22,7 @@ class ThemeEditActivity : ThemedActivity() {
     private lateinit var page: SettingsUi.Page
     private lateinit var spec: ThemeSpec
     private lateinit var kb: KeyboardView
-    private lateinit var frame: FrameLayout
+    private var bubbles: BubbleHost? = null
     private var advanced = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,8 +37,11 @@ class ThemeEditActivity : ThemedActivity() {
         ui = SettingsUi(this)
         page = ui.page(getString(R.string.theme_edit_title)) { finish() }
         kb = KeyboardView(this)
-        frame = ThemePreview.frame(this, kb)
-        setContentView(page.root)
+        val host = BubbleHost(this, ui, page.root) // the live preview is a bubble that opens a keyboard docked at the bottom (L12 R3, D83)
+        host.addPreview(kb, 0)
+        host.restoreState(savedInstanceState)
+        bubbles = host
+        setContentView(host.root)
         showPreview()
         render()
     }
@@ -46,6 +49,7 @@ class ThemeEditActivity : ThemedActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(STATE_ADVANCED, advanced)
+        bubbles?.saveState(outState)
     }
 
     private fun showPreview() {
@@ -63,8 +67,6 @@ class ThemeEditActivity : ThemedActivity() {
     private fun render() {
         page.content.removeAllViews()
         with(ui) {
-            page.content.add(header(getString(R.string.themes_preview_header)))
-            page.content.add(frame)
             page.content.add(note(getString(R.string.theme_edit_preview_note)))
             page.content.add(navRow(getString(R.string.theme_edit_name), spec.name) { rename() })
             page.content.add(header(getString(R.string.theme_edit_colors_header)))
