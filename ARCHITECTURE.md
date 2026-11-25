@@ -252,6 +252,17 @@ The strip's mic icon is drawn but does nothing yet. Everything else below is pla
   search, folders, Undo bar, menu), `VaultCreateActivity` (one screen, D81), `EntryActivity` (view: secrets masked, 30 s reveal), `EntryEditActivity` (incl. custom fields), `GeneratorDialog` + `PasswordGenerator` /
   `PasswordStrength` (pure Kotlin, unit-tested), `VaultSettingsActivity`, `VaultClip` (sensitive + no-history clip, cleared after 30 s only if still ours), `VaultHub` (client, file picker intents, error texts, key file),
   `VaultPrefs` (which file, key file, idle time; never a password), `VaultViews` / `VaultIcons` (small view helpers and icons). The home screen has a "Password vault" row (SetupActivity) and a search entry.
+- Password picker in the keyboard (E1.14, D27/D29/D32/D37/D40/D41/D43/D87): the key icon is the last icon of the strip's left group (`Codes.VAULT`, `KeyboardView.Listener.onVaultKey`); it opens `view/VaultPanelView` in place of the keys
+  (same mechanism as the clipboard panel: `showVault` / `closeVault` / `ensureVaultPanel` in MonsoonIme, `shownPanel`, `SearchablePanel` for typing a search with the keyboard's own keys). The panel only draws; what it lists and does is
+  `vault/VaultPickerModel` (pure Kotlin, 14 JVM tests): views "This app" (entries whose custom field `AndroidApp[n]` equals the field's `EditorInfo.packageName`, `IVault.forApp`), "Recent" (ids kept by `VaultPrefs.recentIds`, `IVault.summaries`;
+  using an entry never rewrites the vault) and "All" (folders; the recycle bin is hidden), search (`IVault.search`), tap an entry = chips Username / Password open under it, tap a chip = type it. Password: fetched with
+  `IVault.password(id)`, committed once, the char array wiped, the picker closes (D87); in a non-password field the panel asks first (D40). Username stays open.
+  - Locked: the panel shows "Unlock", which opens `VaultUnlockActivity` (translucent, own task, `singleInstance`, FLAG_SECURE; master password only, fingerprint is Phase 3). It reports the end through `VaultHub.onUnlockFinished` from
+    `onDestroy` (the card's own text field is gone by then). The IME then brings back keyboard and picker ONLY for a real field of the same app (`vaultEditorIsBack`: card gone, input started, same package) and never asks the system to show
+    the keyboard without a field attached (`editorAttached`); cancelled = the keys come back, not the picker. The card, `VaultHub` and the IME write notes with `CrashLog.note` (Settings > Voice typing > Problem report) to trace
+    "back to the home screen" cases.
+  - D42: what the vault types goes in with one `commitText`; `typeFromVault` resets the word tracker and sets `vaultLearnBlock`, so nothing typed in that field is learned until the field is gone (`onFinishInput`). Predictions are
+    dropped after a password. The panel never shows secrets (D43).
 - `.github/workflows/engine.yml`: only when `vault/**`, the submodule pointer, `.gitmodules`, the root Gradle files or the workflow itself change: engine unit tests, then the emulator tests (API 34 x86_64, KVM). Result on main:
   branch `ci-status-engine`, file `last-build.txt`. Branch runs are read through the Actions page/API.
 - Updating KeePassDX = moving the submodule pointer to a newer RELEASE tag (never a random commit), on a test branch; `docs/UPSTREAM_COPIES.md` lists any KeePassDX code we copied (D46). A weekly watcher workflow (D48) is not built yet.

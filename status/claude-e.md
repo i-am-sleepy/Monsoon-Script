@@ -1,5 +1,5 @@
 # claude-e notes (only claude-e edits this file; others only append lines under "Warnings")
-Updated: 2026-11-25, session 5. E1.13 (vault Phase 1) screens are built, pushed and green in CI; WAITING for the owner's phone test (checklist in STATUS Needs user). E3 clipboard and E4 are DONE.
+Updated: 2026-11-26, session 5. E1.13 (vault Phase 1) is DONE and owner-tested. E1.14 (Phase 2, the password picker in the keyboard) is built and pushed; the owner reported two problems with the unlock card (below), fixed in the commit after 523c30b, WAITING for his re-test. E3 clipboard and E4 are DONE.
 T9 and T11 were taken over by claude-l (L4-L6); only T9.3 Bijoy Classic (+ the owner key-map check, STATUS Needs user #2) is still mine, paused.
 
 ## Warnings from other Claudes (read first; delete a line when handled)
@@ -20,11 +20,22 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
     E1.13.2 [x] (b) `IVault.aidl`, `VaultService` (android:process=":vault", D44, auto-lock + screen off, `setAutoLock(ms)`), `VaultClient`, `UriVaultStore`, `VaultServiceTest`; build.yml (submodule + platform 36); the app depends on `:vault` (compileSdk 36). Engine CI #9 green (all emulator tests), app CI green with R8.
     E1.13.3 [x] asked 2026-11-24, answered: one-screen create, instant delete + Undo bar, characters-only generator, Recycle Bin as a folder row at the bottom (DECISIONS D81).
     E1.13.4 [~] (c) screens pushed (3c541b3, e42584f): `app/.../keyboard/vault/` (see ARCHITECTURE.md). NOT yet seen on a phone. Known gaps: restoring from the bin goes to the main folder (previous folder not exposed); moving an entry to another folder has no screen; entry history has no view/restore; release R8 behaviour (BouncyCastle/argon2 at runtime) is only proven by the owner's unlock test.
-    E1.13.5 [~] (d) FLAG_SECURE on every vault screen, idle lock per screen + service auto-lock + screen-off lock, setting 1/2/5/10/30 min (default 5, D38). Awaiting the owner test. THEN: Phase 2 (picker in the keyboard, D51), fingerprint unlock (reuse ClipUnlockActivity pattern), weekly watcher (D48).
-After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D82) and update the docs.
+    E1.13.5 [x] (d) FLAG_SECURE on every vault screen, idle lock per screen + service auto-lock + screen-off lock, setting 1/2/5/10/30 min (default 5, D38). Owner tested 2026-11-25: works (two fixes: Save/Unlock buttons moved above the keyboard).
+  E1.14 [~] Phase 2 (D51, owner order 2026-11-25 "start on phase 2"): the picker in the keyboard. Answers D87 (chips open in place under the entry; picker closes after Password, stays after Username). Steps:
+    E1.14.1 [x] `IVault.forApp(pkg)` + `summaries(ids)` (entries linked by the custom field AndroidApp[n]; recent list); 2 emulator tests (engine CI #10 green).
+    E1.14.2 [x] `vault/VaultPickerModel` (pure Kotlin) + 14 JVM tests (run with kotlinc + JUnitCore, recipe: compile VaultModel without Parcelize + model + test, JUnitCore).
+    E1.14.3 [x] `view/VaultPanelView` (Canvas, like ClipboardPanelView): toolbar, chips This app / Recent / All, list, chips in place, locked / no vault / conflict / error screens, search bar mode, "type here anyway?" overlay.
+    E1.14.4 [x] wiring: key icon (`Codes.VAULT`, after the clipboard icon), `VaultUnlockActivity` (see-through master password card), typing without learning (`vaultLearnBlock`, D42), `VaultPrefs.recentIds`.
+    E1.14.5 [~] owner report 2026-11-25 evening (build with 79f3041): (a) the keyboard / picker sometimes opened by itself after the unlock card, even when closed and with no text field; (b) sometimes the card "exits the app behind it, back to the home screen".
+            Fix pushed: (a) the card tells the IME from `onDestroy`; the IME brings keyboard + picker back only for a field of the SAME app after the card is gone (`vaultEditorIsBack`), never asks the system to show the keyboard
+            without an attached field (`editorAttached`, also for the clipboard flow), cancel = keys only, marks used up after use. (b) cause NOT proven: card is now `launchMode=singleInstance`, ends with `finishAndRemoveTask`, handles uiMode/density/etc.
+            itself; `CrashLog.note` lines (card created / ended / destroyed, memory warnings, the IME's side) show in Settings > Voice typing > Problem report. If (b) happens again ask the owner for that report + what app was behind.
+            Suspects left: low memory (Argon2 needs 64 MiB in the :vault process; LMK may kill the app behind a translucent card), the card recreated after process death (`recreated=true` in the log).
+    E1.14.6 [ ] after the owner's re-test: docs/PASSWORD_MANAGER.md status, then Phase 3 (fingerprint unlock = BiometricPrompt like ClipUnlockActivity; backup/restore screens; attachments; one-time codes + Code chip). Phase 4 Autofill (D28).
+After every owner answer: add a D-line to DECISIONS.md (re-read it first; D87 is the last one I wrote, check the file for the next free id) and update the docs.
 
 ## Next step
-E1.13: (1) after the owner's test list: fix what he reports (his words go to DECISIONS if they change behaviour). (2) Phase 2 (keyboard picker) only after Phase 1 passes on the phone. (3) Update docs/PASSWORD_MANAGER.md status.
+E1.14.5: wait for the owner's re-test of the unlock card (checklist in STATUS Needs user). If it still goes to the home screen: read Problem report (`CrashLog.note` lines) before changing anything. Then E1.14.6.
 Before every push of `:vault` code run `tools/vault_compile_check.sh` (~30 s, needs `git submodule update --init --depth 1 third_party/keepassdx`) and `tools/compile_check.sh` for app code (it also compiles VaultModel + VaultClient). Pure vault logic: compile with kotlinc + a main() like /tmp/gentest if no unit-test runner is available.
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)

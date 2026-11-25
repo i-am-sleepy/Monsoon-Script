@@ -221,6 +221,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private var fieldIsPassword = false
     private var openVaultAfterUnlock = 0L // uptime of the "Unlock" tap that opened the see-through unlock card, 0 = none
     private var vaultAfterUnlock = false // the unlock that just ended was the picker's (not the clipboard's)
+    private var vaultCardUp = false // the see-through unlock card is on screen (from the "Unlock" tap until it has gone)
+    private var vaultReturnPackage = "" // the app the picker was opened in: only a field of that app gets the keyboard / picker back after the card
     private var vaultLearnBlock = false // something from the vault was typed into this field: nothing typed after it is learned until the field is gone
 
     init {
@@ -317,8 +319,20 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
      * keyboard comes back by itself even with "Open the keyboard automatically: off": Android's own implicit request is let through, and [showKeyboardAfterUnlock] asks too
      * because some apps never do. Not while the prompt is still up (E3.11, E3.12).
      */
-    private fun returningFromUnlock(): Boolean =
-        unlockEndedAt != 0L && SystemClock.uptimeMillis() - unlockEndedAt < RETURN_MS
+    private fun returningFromUnlock(): Boolean {
+        if (unlockEndedAt == 0L || SystemClock.uptimeMillis() - unlockEndedAt >= RETURN_MS) return false
+        return !vaultAfterUnlock || vaultEditorIsBack()
+    }
+
+    /** True when a real field of the app the picker was opened in has the keyboard again and the unlock card is gone (E1.14: never for the card's own field or another app). */
+    private fun vaultEditorIsBack(info: EditorInfo? = currentInputEditorInfo): Boolean =
+        !vaultCardUp && currentInputStarted && info != null && info.inputType != InputType.TYPE_NULL && info.packageName == vaultReturnPackage
+
+    /** The keyboard may be asked to show only while a field is attached; without one the request opens a keyboard with no text field (owner report, 2026-11-25). */
+    private fun editorAttached(): Boolean {
+        val info = currentInputEditorInfo
+        return currentInputStarted && info != null && info.inputType != InputType.TYPE_NULL
+    }
 
     /** The unlock prompt of the clipboard key ended ([ClipHub.onUnlockFinished]). */
     private fun unlockFinished(ok: Boolean) {
@@ -333,8 +347,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** The keyboard is up after the prompt: the clipboard panel opens when it worked, on cancel the keys stay. May run more than once (a field can start twice). */
     private fun openPanelAfterUnlock() {
-        if (vaultAfterUnlock) { // the picker's unlock card: the picker opens again whatever the answer was, it shows the state the vault is in
-            mainHandler.post { if (shownPanel?.visibility != View.VISIBLE) showVault() }
+        if (vaultAfterUnlock) { // the picker's unlock card: unlocked = the picker opens again; cancelled = the keys stay (the owner closed it on purpose)
+            if (!unlockOk || !vaultEditorIsBack()) return
+            vaultAfterUnlock = false // used up: later fields start on the keys
+            unlockEndedAt = 0L
+            mainHandler.post { if (shownPanel?.visibility != View.VISIBLE && vaultEditorIsBack()) showVault() }
             return
         }
         if (!unlockOk || clipHub?.lockOpen() != true) return
@@ -344,10 +361,12 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Ask the system to show the keyboard again a few times (the app's field may not be back yet the first time). */
     private fun showKeyboardAfterUnlock() {
         if (!returningFromUnlock() || isInputViewShown) return
-        try {
-            requestShowSelf(0) // an explicit request: allowed by "Open the keyboard automatically: off" too
-        } catch (e: RuntimeException) {
-            // no field to show it for
+        if (editorAttached()) { // a request without a field would open a keyboard with no text field
+            try {
+                requestShowSelf(0) // an explicit request: allowed by "Open the keyboard automatically: off" too
+            } catch (e: RuntimeException) {
+                // no field to show it for
+            }
         }
         if (++unlockRetries < SHOW_RETRIES) mainHandler.postDelayed({ showKeyboardAfterUnlock() }, SHOW_RETRY_MS)
     }
@@ -469,6 +488,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         super.onFinishInput()
         clipCapture?.fieldAllowed = true
         vaultLearnBlock = false // the field the vault typed into is gone
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        if (vaultCardUp) CrashLog.note(this, "memory warning (trim level $level) while the vault unlock card is up")
     }
 
     override fun onDestroy() {
@@ -1582,8 +1606,13 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         override fun onSearchClear() = clearSearch()
 
         override fun onUnlock() {
+            if (vaultCardUp && SystemClock.uptimeMillis() - openVaultAfterUnlock < UNLOCK_OPEN_MS) return // already asking
+            vaultCardUp = true
+            vaultReturnPackage = vaultPackage
+            vaultAfterUnlock = false
             openVaultAfterUnlock = SystemClock.uptimeMillis()
             unlockEndedAt = 0L
+            CrashLog.note(this@MonsoonIme, "vault unlock card: started from $vaultPackage")
             launch(Intent(this@MonsoonIme, VaultUnlockActivity::class.java))
         }
 
@@ -1614,12 +1643,18 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** The unlock card ended ([VaultHub.onUnlockFinished]). Like the clipboard prompt: the keyboard and the picker come back by themselves. */
     private fun vaultUnlockFinished(ok: Boolean) {
         val pressed = openVaultAfterUnlock
+        openVaultAfterUnlock = 0L
+        vaultCardUp = false
+        CrashLog.note(this, "vault unlock card: ended ok=$ok after ${SystemClock.uptimeMillis() - pressed} ms")
         if (pressed == 0L || SystemClock.uptimeMillis() - pressed >= UNLOCK_OPEN_MS) return // not ours, or too long ago
         vaultAfterUnlock = true
         unlockEndedAt = SystemClock.uptimeMillis()
         unlockOk = ok
         unlockRetries = 0
-        if (isInputViewShown) openPanelAfterUnlock() else showKeyboardAfterUnlock()
+        // The card is gone now. The app's field usually starts again by itself a moment later (onStartInput / onStartInputView carry on from there); if it is already back, carry on now.
+        if (vaultEditorIsBack()) {
+            if (isInputViewShown) openPanelAfterUnlock() else showKeyboardAfterUnlock()
+        }
     }
 
     private fun ensureVaultPanel(): VaultPanelView? {

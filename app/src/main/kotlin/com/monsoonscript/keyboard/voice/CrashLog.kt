@@ -41,6 +41,18 @@ object CrashLog {
         f.writeText((entry + old).take(14_000))
     }
 
+    /** A line of plain information (no exception) in the same record, for hunting problems that leave no crash (E1.14: the vault unlock card). Never throws. */
+    @Synchronized
+    fun note(context: Context, what: String) {
+        try {
+            val stamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
+            val f = File(context.applicationContext.filesDir, FILE)
+            val old = if (f.isFile) f.readText() else ""
+            f.writeText(("== $stamp  NOTE $what\n" + old).take(14_000))
+        } catch (e: Throwable) {
+        }
+    }
+
     fun read(context: Context): String = File(context.filesDir, FILE).let { if (it.isFile) it.readText() else "" }
 
     fun clear(context: Context) {

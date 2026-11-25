@@ -14,6 +14,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.settings.SettingsUi
+import com.monsoonscript.keyboard.voice.CrashLog
 
 /**
  * The see-through unlock screen of the keyboard's password picker (E1.14, D37): the app in front stays visible behind a dim layer, one card asks for the master
@@ -30,9 +31,12 @@ internal class VaultUnlockActivity : Activity() {
     private lateinit var button: TextView
     private var busy = false
     private var done = false
+    private var result = false
+    private var notified = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        CrashLog.note(this, "vault unlock card: onCreate (recreated=${savedInstanceState != null})")
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING or WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
         prefs = VaultPrefs(this)
@@ -147,9 +151,10 @@ internal class VaultUnlockActivity : Activity() {
     private fun finishWith(ok: Boolean) {
         if (done) return
         done = true
+        result = ok
         setResult(if (ok) RESULT_OK else RESULT_CANCELED)
-        VaultHub.onUnlockFinished?.invoke(ok) // the keyboard brings itself and its picker back
-        finish()
+        // The keyboard is told in onDestroy, when the card (and its own text field) is really gone, so that it never opens the picker inside the card's field.
+        finishAndRemoveTask()
     }
 
     @Deprecated("Deprecated in Java")
@@ -157,12 +162,23 @@ internal class VaultUnlockActivity : Activity() {
         finishWith(false)
     }
 
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        if (!done && ::error.isInitialized) error.visibility = View.GONE // asked again while it is still up (singleInstance): nothing else to do
+    }
+
     override fun onDestroy() {
-        if (!done) {
-            done = true
-            VaultHub.onUnlockFinished?.invoke(false)
-        }
         if (::field.isInitialized) field.clear()
+        if (!notified) {
+            notified = true
+            CrashLog.note(this, "vault unlock card: onDestroy (result=$result, finishing=$isFinishing)")
+            VaultHub.onUnlockFinished?.invoke(if (done) result else false) // the keyboard brings itself and its picker back
+        }
         super.onDestroy()
+    }
+
+    override fun onTrimMemory(level: Int) {
+        super.onTrimMemory(level)
+        CrashLog.note(this, "vault unlock card: memory warning (trim level $level)")
     }
 }
