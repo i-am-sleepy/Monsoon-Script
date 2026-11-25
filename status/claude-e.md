@@ -1,5 +1,5 @@
 # claude-e notes (only claude-e edits this file; others only append lines under "Warnings")
-Updated: 2026-11-24, session 5 (E1.13 in progress). E3 clipboard and E4 are DONE and owner-tested. E1.13.1/.2 pushed; NEXT: read both CIs, then ask the owner the screen questions (E1.13.3).
+Updated: 2026-11-25, session 5. E1.13 (vault Phase 1) screens are built, pushed and green in CI; WAITING for the owner's phone test (checklist in STATUS Needs user). E3 clipboard and E4 are DONE.
 T9 and T11 were taken over by claude-l (L4-L6); only T9.3 Bijoy Classic (+ the owner key-map check, STATUS Needs user #2) is still mine, paused.
 
 ## Warnings from other Claudes (read first; delete a line when handled)
@@ -17,16 +17,15 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
             (A previous session wrote "merged" in these notes while the work was still on branch `e1-integrate`; this session did the real merge after both runs on 9a2512d were green.)
   E1.13 [~] Phase 1 (D51), started 2026-11-24 on the owner's order ("integrate KeePassDX as agreed"). Steps:
     E1.13.1 [x] (a) in `:vault`: `VaultModel.kt` (parcelable data + VaultWire), `VaultStore` (+ backups), `VaultSession` (create/open/lock/list/search/entry CRUD/groups/save, D50 conflicts, KDF memory pre-check), `VaultSessionTest` (16 tests). Engine run #6 had 15/16 green; the failing one (memory limit) is fixed in 58153dd, awaiting the CI result.
-    E1.13.2 [~] (b) DONE and pushed: `IVault.aidl`, `VaultService` (android:process=":vault", D44, auto-lock 5 min + screen off, `setAutoLock(ms)`), `VaultClient` (blocking `call`, `async`), `UriVaultStore`, `VaultServiceTest` (6 tests), build.yml (submodule + platform 36, pushed without the owner's token), the app `implementation(project(":vault"))` + compileSdk 36 (8d82e14).
-                 STILL TO DO: read both CIs (engine: `ci-status-engine`, app: `ci-status`); decide the shrunk-build smoke test (idea: non-exported self-test receiver on an emulator, or the owner's phone test); check the release APK size.
-    E1.13.3 [ ] ask the owner the Phase 1 screen questions (file picker, create-vault wizard, entry view/edit, generator); answers -> DECISIONS D80+
-    E1.13.4 [ ] (c) app screens in the keyboard's style (D30, D33, D34), file picker (D35), unlock (reuse clipboard biometric pattern), list/search/view/add/edit/delete, generator
-    E1.13.5 [ ] (d) auto-lock + FLAG_SECURE (D38, D43). Then Phase 2 (picker in the keyboard). Weekly watcher (D48) when convenient. (LICENSE step is done, claude-l L11.)
-After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D80) and update the docs.
+    E1.13.2 [x] (b) `IVault.aidl`, `VaultService` (android:process=":vault", D44, auto-lock + screen off, `setAutoLock(ms)`), `VaultClient`, `UriVaultStore`, `VaultServiceTest`; build.yml (submodule + platform 36); the app depends on `:vault` (compileSdk 36). Engine CI #9 green (all emulator tests), app CI green with R8.
+    E1.13.3 [x] asked 2026-11-24, answered: one-screen create, instant delete + Undo bar, characters-only generator, Recycle Bin as a folder row at the bottom (DECISIONS D81).
+    E1.13.4 [~] (c) screens pushed (3c541b3, e42584f): `app/.../keyboard/vault/` (see ARCHITECTURE.md). NOT yet seen on a phone. Known gaps: restoring from the bin goes to the main folder (previous folder not exposed); moving an entry to another folder has no screen; entry history has no view/restore; release R8 behaviour (BouncyCastle/argon2 at runtime) is only proven by the owner's unlock test.
+    E1.13.5 [~] (d) FLAG_SECURE on every vault screen, idle lock per screen + service auto-lock + screen-off lock, setting 1/2/5/10/30 min (default 5, D38). Awaiting the owner test. THEN: Phase 2 (picker in the keyboard, D51), fingerprint unlock (reuse ClipUnlockActivity pattern), weekly watcher (D48).
+After every owner answer: add a D-line to DECISIONS.md (re-read it first; next free id D82) and update the docs.
 
 ## Next step
-E1.13: (1) read engine CI (`git fetch origin ci-status-engine && git show FETCH_HEAD:last-build.txt`) and app CI (`ci-status`) for 8d82e14; fix what is red. (2) E1.13.3 ask the owner the screen questions (AskUserQuestion, recommended option first), record answers as D80+. (3) E1.13.4 screens.
-Before every push of `:vault` code run `tools/vault_compile_check.sh` (~30 s, compiles vault + tests against the real engine sources; needs `git submodule update --init --depth 1 third_party/keepassdx`), and `tools/compile_check.sh` for app code (it must learn about `:vault` once app code imports it). The clipboard lock (`LockState`, `ClipUnlockActivity`, `LockGate`) is a working biometric-unlock pattern to reuse.
+E1.13: (1) after the owner's test list: fix what he reports (his words go to DECISIONS if they change behaviour). (2) Phase 2 (keyboard picker) only after Phase 1 passes on the phone. (3) Update docs/PASSWORD_MANAGER.md status.
+Before every push of `:vault` code run `tools/vault_compile_check.sh` (~30 s, needs `git submodule update --init --depth 1 third_party/keepassdx`) and `tools/compile_check.sh` for app code (it also compiles VaultModel + VaultClient). Pure vault logic: compile with kotlinc + a main() like /tmp/gentest if no unit-test runner is available.
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
 - Switch languages only through `MonsoonIme.setLanguage`. The strip has an arrow and shows suggestions instead of the icons (D23, D41: `Kind.STRIP` keys are hidden while suggestions show).

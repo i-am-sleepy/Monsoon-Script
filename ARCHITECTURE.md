@@ -233,11 +233,24 @@ The strip's mic icon is drawn but does nothing yet. Everything else below is pla
   falls back to a temporary debug key. versionCode = GitHub run number.
 
 ### Password manager engine (E1, D26/D44/D45/D46/D47/D64; plan and results: docs/PASSWORD_MANAGER.md, docs/PASSWORD_MANAGER_PHASE0.md)
-- `third_party/keepassdx`: KeePassDX as a git SUBMODULE (shallow), pinned to release tag 4.5.8, NEVER edited. A fresh clone needs `git submodule update --init --depth 1`; without it everything else still builds
-  (`settings.gradle.kts` includes `:vault`, `:crypto`, `:database` only when `third_party/keepassdx/gradle/libs.versions.toml` exists). Upstream's version catalog is imported as `libs` (Kotlin overridden to ours).
-- `vault/` (`com.monsoonscript.vault`): our adapter. `VaultEngine.kt` is the ONLY file that talks to the engine (D26); it will grow into the thin vault interface and run in the `:vault` process (D44). `consumer-rules.pro` holds
-  the shrinker rules the engine needs (each fixed a real failure). Tests: 14 emulator tests in `vault/src/androidTest` (all ciphers and key derivations, content, RFC 6238, merge, vaults made by pykeepass and real KeePassXC,
-  fixtures as base64 text in `assets/fixtures/`). Not a dependency of `:app` yet, so the APK is unchanged until Phase 1.
+- `third_party/keepassdx`: KeePassDX as a git SUBMODULE (shallow), pinned to release tag 4.5.8, NEVER edited. Since E1.13 the app depends on `:vault`, so EVERY build needs it:
+  `git submodule update --init --depth 1 third_party/keepassdx` (build.yml and engine.yml do it; `settings.gradle.kts` stops with that command if it is missing). Upstream's version catalog is imported
+  as `libs` (Kotlin overridden to ours). `:app` compiles against SDK 36 because the engine modules do.
+- `vault/` (`com.monsoonscript.vault`), our adapter; only `VaultSession.kt` (and the old `VaultEngine.kt`, kept for its tests) talk to the engine (D26). `consumer-rules.pro` holds the shrinker rules the engine needs (each
+  fixed a real failure).
+  - `VaultModel.kt`: the parcelable data that crosses the process boundary (VaultStatus/Info, GroupListing, EntrySummary, EntryDetail, EntryDraft, FieldItem, Change), `VaultError` codes, `Resolve`, `VaultException`, and
+    `VaultWire` (errors travel as `IllegalStateException("vault-error:<code>:<msg>")` because ServiceSpecificException is not public API). Secrets are never in these objects (D43): `password(id)` / `fieldValue(id,name)` fetch them.
+  - `VaultStore.kt`: where the file lives (`VaultStore`, `FileVaultStore`) + `VaultBackups` (last 5, D36). `UriVaultStore.kt`: a store for content:// and file:// addresses (the file picker, D35).
+  - `VaultSession.kt`: ONE open vault: create/open/lock, list/search/entry, add/edit/move/delete entries and folders, `emptyRecycleBin` (one save), safe save (temp file, then copy, D36), autosave after every change and the
+    D50 "changed elsewhere" flow (`retrySave`, `resolve`: MERGE / OVERWRITE / KEEP_FILE; the last and MERGE need the master password again). Own KDF memory pre-check on open (the engine has none on load).
+  - `IVault.aidl` + `VaultService.kt`: the session in its own process (`android:process=":vault"`, D44), ONE engine thread, auto-lock after the idle time and on screen off (D38; `setAutoLock(ms)`), keeps itself started while
+    unlocked. `VaultClient.kt`: the app side (`call` blocking, `async` for UI threads, reconnects once). Every call re-arms the idle timer, so never poll it.
+  - Tests in `vault/src/androidTest`: the 14 engine tests, `VaultSessionTest` (17), `VaultServiceTest` (6: own process, round trip, error codes, auto-lock, stays open after disconnect, serialization).
+  - Before pushing `:vault` code run `tools/vault_compile_check.sh` (30 s, real engine sources); `tools/compile_check.sh` (app) also compiles `VaultModel` + `VaultClient`.
+- `app/.../keyboard/vault/` (E1.13, plain Views, ThemedActivity + SettingsUi like every app screen, D30): `VaultBaseActivity` (FLAG_SECURE, idle lock, error/conflict dialogs), `VaultMainActivity` (welcome / unlock / list with
+  search, folders, Undo bar, menu), `VaultCreateActivity` (one screen, D81), `EntryActivity` (view: secrets masked, 30 s reveal), `EntryEditActivity` (incl. custom fields), `GeneratorDialog` + `PasswordGenerator` /
+  `PasswordStrength` (pure Kotlin, unit-tested), `VaultSettingsActivity`, `VaultClip` (sensitive + no-history clip, cleared after 30 s only if still ours), `VaultHub` (client, file picker intents, error texts, key file),
+  `VaultPrefs` (which file, key file, idle time; never a password), `VaultViews` / `VaultIcons` (small view helpers and icons). The home screen has a "Password vault" row (SetupActivity) and a search entry.
 - `.github/workflows/engine.yml`: only when `vault/**`, the submodule pointer, `.gitmodules`, the root Gradle files or the workflow itself change: engine unit tests, then the emulator tests (API 34 x86_64, KVM). Result on main:
   branch `ci-status-engine`, file `last-build.txt`. Branch runs are read through the Actions page/API.
 - Updating KeePassDX = moving the submodule pointer to a newer RELEASE tag (never a random commit), on a test branch; `docs/UPSTREAM_COPIES.md` lists any KeePassDX code we copied (D46). A weekly watcher workflow (D48) is not built yet.
