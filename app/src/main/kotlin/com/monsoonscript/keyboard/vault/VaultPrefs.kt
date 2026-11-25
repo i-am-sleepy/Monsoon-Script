@@ -37,9 +37,17 @@ internal class VaultPrefs(context: Context) {
 
     val hasVault: Boolean get() = fileUri != null
 
+    /**
+     * The entries typed last, newest first, for the keyboard's "Recent" view (E1.14). Only ids (random numbers, no titles, no secrets). Kept here and not in the
+     * vault so that using an entry never rewrites the vault file. Dropped with the vault.
+     */
+    var recentIds: List<String>
+        get() = (raw.getString("recent", "") ?: "").split(',').filter { it.isNotEmpty() }
+        set(v) = raw.edit().putString("recent", v.joinToString(",")).apply()
+
     /** Forget which file is the vault (the file itself is not touched). */
     fun forgetVault() {
-        raw.edit().remove("file").remove("name").remove("key").apply()
+        raw.edit().remove("file").remove("name").remove("key").remove("recent").apply()
     }
 
     companion object {

@@ -24,7 +24,7 @@ object Layouts {
 
     /** Strip cell width is `weight * 44dp`; the language key is a text pill, so it is wider. */
     // The language key sits at the far left and the mic at the far right; both stay visible while suggestions show (G5, owner request 2026-11-23).
-    val stripLeft: Array<Key> = arrayOf(strip(Codes.LANG, 1.25f), strip(Codes.GLOBE), strip(Codes.EMOJI), strip(Codes.CLIPBOARD))
+    val stripLeft: Array<Key> = arrayOf(strip(Codes.LANG, 1.25f), strip(Codes.GLOBE), strip(Codes.EMOJI), strip(Codes.CLIPBOARD), strip(Codes.VAULT))
     val stripRight: Array<Key> = arrayOf(strip(Codes.MIC))
 
     private val letters: Array<Array<Key>> = arrayOf(

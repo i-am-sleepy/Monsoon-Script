@@ -18,6 +18,10 @@ internal object VaultHub {
     @Volatile
     private var client: VaultClient? = null
 
+    /** Set by the keyboard: [VaultUnlockActivity] reports the end of its prompt here (true = the vault is open now). */
+    @Volatile
+    var onUnlockFinished: ((Boolean) -> Unit)? = null
+
     fun client(context: Context): VaultClient =
         client ?: synchronized(this) { client ?: VaultClient(context.applicationContext).also { client = it } }
 

@@ -132,6 +132,14 @@
             android:label="@string/vault_title"
             android:launchMode="singleTop"
             android:windowSoftInputMode="adjustResize" />
+        <!-- The see-through master-password card the keyboard's password picker opens over the app in front (E1.14, D37). -->
+        <activity
+            android:name=".vault.VaultUnlockActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
         <activity
             android:name=".vault.VaultCreateActivity"
             android:exported="false"

@@ -59,6 +59,9 @@ class KeyboardView(context: Context) : View(context) {
         /** The clipboard key in the strip was tapped (E3): the IME swaps the keys for the clipboard panel. */
         fun onClipboardKey() {}
 
+        /** The key (password) icon in the strip was tapped (E1.14): the IME swaps the keys for the password picker. */
+        fun onVaultKey() {}
+
         /** The mic key in the strip was tapped (G5, D66). */
         fun onMicTap() {}
 
@@ -965,6 +968,12 @@ class KeyboardView(context: Context) : View(context) {
                 c.drawLine(.34f, .5f, .66f, .5f, iconPaint)
                 c.drawLine(.34f, .68f, .58f, .68f, iconPaint)
             }
+            Codes.VAULT -> {
+                c.drawCircle(.3f, .5f, .2f, iconPaint)
+                c.drawLine(.5f, .5f, .92f, .5f, iconPaint)
+                c.drawLine(.76f, .5f, .76f, .7f, iconPaint)
+                c.drawLine(.9f, .5f, .9f, .66f, iconPaint)
+            }
             Codes.MIC -> {
                 c.drawRoundRect(.38f, .08f, .62f, .55f, .12f, .12f, iconPaint)
                 c.drawArc(.26f, .3f, .74f, .72f, 0f, 180f, false, iconPaint)
@@ -1386,6 +1395,7 @@ class KeyboardView(context: Context) : View(context) {
             Codes.LANG -> listener?.onLanguageToggle()
             Codes.EMOJI -> listener?.onEmojiKey()
             Codes.CLIPBOARD -> listener?.onClipboardKey()
+            Codes.VAULT -> listener?.onVaultKey()
             Codes.MIC -> listener?.onMicTap()
             else -> Unit
         }

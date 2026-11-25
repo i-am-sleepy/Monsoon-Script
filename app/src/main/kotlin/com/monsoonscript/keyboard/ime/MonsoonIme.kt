@@ -52,7 +52,13 @@ import com.monsoonscript.keyboard.view.ClipboardPanelView
 import com.monsoonscript.keyboard.view.EmojiPanelView
 import com.monsoonscript.keyboard.view.KeyboardView
 import com.monsoonscript.keyboard.view.SearchablePanel
+import com.monsoonscript.keyboard.view.VaultPanelView
 import com.monsoonscript.keyboard.view.VoicePanelView
+import com.monsoonscript.keyboard.vault.VaultHub
+import com.monsoonscript.keyboard.vault.VaultMainActivity
+import com.monsoonscript.keyboard.vault.VaultPickerModel
+import com.monsoonscript.keyboard.vault.VaultPrefs
+import com.monsoonscript.keyboard.vault.VaultUnlockActivity
 import com.monsoonscript.keyboard.voice.CrashLog
 import com.monsoonscript.keyboard.voice.VoiceInput
 import com.monsoonscript.keyboard.voice.VoiceLang
@@ -207,6 +213,16 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private var clipPanel: ClipboardPanelView? = null
     private var clipModel: ClipPanelModel? = null
 
+    // ---- password picker (E1.14, D27 / D29 / D87): the key icon in the strip opens it in place of the keys; what it types never reaches the learning (D42)
+    private var vaultPanel: VaultPanelView? = null
+    private var vaultModel: VaultPickerModel? = null
+    private var vaultPrefsCache: VaultPrefs? = null
+    private var vaultPackage = "" // the app whose field has the keyboard (EditorInfo.packageName), for "This app"
+    private var fieldIsPassword = false
+    private var openVaultAfterUnlock = 0L // uptime of the "Unlock" tap that opened the see-through unlock card, 0 = none
+    private var vaultAfterUnlock = false // the unlock that just ended was the picker's (not the clipboard's)
+    private var vaultLearnBlock = false // something from the vault was typed into this field: nothing typed after it is learned until the field is gone
+
     init {
         tracker.onWord = { prev, word -> learnWord(prev, word) }
     }
@@ -253,6 +269,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val hub = ClipHub.get(this)
         clipHub = hub
         hub.onUnlockFinished = { ok -> unlockFinished(ok) }
+        VaultHub.onUnlockFinished = { ok -> vaultUnlockFinished(ok) }
         hub.start()
         clipCapture = ClipCapture(this, hub).also { it.start() }
         hub.onCopied = { refreshRecentChip() }
@@ -271,6 +288,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         emojiPanel = null
         clipPanel = null
         clipModel = null
+        vaultPanel = null
+        vaultModel = null
         shownPanel = null
         panelSearch = false
         searchBuf.setLength(0)
@@ -305,6 +324,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun unlockFinished(ok: Boolean) {
         val pressed = openClipboardAfterUnlock
         if (pressed == 0L || SystemClock.uptimeMillis() - pressed >= UNLOCK_OPEN_MS) return // not ours, or too long ago
+        vaultAfterUnlock = false
         unlockEndedAt = SystemClock.uptimeMillis()
         unlockOk = ok
         unlockRetries = 0
@@ -313,6 +333,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** The keyboard is up after the prompt: the clipboard panel opens when it worked, on cancel the keys stay. May run more than once (a field can start twice). */
     private fun openPanelAfterUnlock() {
+        if (vaultAfterUnlock) { // the picker's unlock card: the picker opens again whatever the answer was, it shows the state the vault is in
+            mainHandler.post { if (shownPanel?.visibility != View.VISIBLE) showVault() }
+            return
+        }
         if (!unlockOk || clipHub?.lockOpen() != true) return
         mainHandler.post { if (shownPanel?.visibility != View.VISIBLE) showClipboard() }
     }
@@ -401,6 +425,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val noLearning = ((info?.imeOptions ?: 0) and EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING) != 0
         learnAllowed = predictionAllowed && !noLearning && LearnSettings.enabled(this)
         emojiRecents = !noLearning && !isPasswordField(inputType)
+        fieldIsPassword = isPasswordField(inputType)
+        vaultPackage = info?.packageName ?: ""
         clipCapture?.fieldAllowed = emojiRecents // nothing copied while a password / incognito field has the keyboard is saved (D65)
         clipHub?.store?.purge() // apply the limit and auto-delete age
         tracker.reset(null)
@@ -442,11 +468,13 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     override fun onFinishInput() {
         super.onFinishInput()
         clipCapture?.fieldAllowed = true
+        vaultLearnBlock = false // the field the vault typed into is gone
     }
 
     override fun onDestroy() {
         clipHub?.onCopied = null
         clipHub?.onUnlockFinished = null
+        VaultHub.onUnlockFinished = null
         clipCapture?.stop()
         clipCapture = null
         Prefs.of(this).unregisterOnSharedPreferenceChangeListener(prefsListener)
@@ -647,7 +675,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun learnWord(prev: String?, word: String) {
-        if (!learnAllowed) return
+        if (!learnAllowed || vaultLearnBlock) return
         if (word.length == 1 && word[0] < '\u0980') return // single Latin letters are not worth remembering
         val w = predWorker ?: PredictionWorker(this, ::onPredictionResult).also { predWorker = it }
         w.learn(prev, word)
@@ -1494,6 +1522,158 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         updateSearchQuery()
     }
 
+    // ---- password picker (E1.14)
+
+    override fun onVaultKey() {
+        commitComposingIfAny()
+        showVault()
+    }
+
+    private fun vaultPrefs(): VaultPrefs = vaultPrefsCache ?: VaultPrefs(this).also { vaultPrefsCache = it }
+
+    /** Every vault call goes to the vault process on the client's own worker thread; the answers come back on the main thread. */
+    private val vaultBackend = object : VaultPickerModel.Backend {
+        private fun client() = VaultHub.client(this@MonsoonIme)
+        override fun status(done: (Result<com.monsoonscript.vault.VaultStatus>) -> Unit) = client().async({ it.status() }, done)
+        override fun info(done: (Result<com.monsoonscript.vault.VaultInfo>) -> Unit) = client().async({ it.info() }, done)
+        override fun forApp(packageName: String, done: (Result<List<com.monsoonscript.vault.EntrySummary>>) -> Unit) = client().async({ it.forApp(packageName) }, done)
+        override fun summaries(ids: List<String>, done: (Result<List<com.monsoonscript.vault.EntrySummary>>) -> Unit) = client().async({ it.summaries(ids) }, done)
+        override fun list(groupId: String?, done: (Result<com.monsoonscript.vault.GroupListing>) -> Unit) = client().async({ it.list(groupId) }, done)
+        override fun search(query: String, done: (Result<List<com.monsoonscript.vault.EntrySummary>>) -> Unit) = client().async({ it.search(query) }, done)
+        override fun password(id: String, done: (Result<CharArray>) -> Unit) = client().async({ it.password(id) }, done)
+    }
+
+    private val vaultHost = object : VaultPickerModel.Host {
+        override val vaultConfigured: Boolean get() = vaultPrefs().hasVault
+        override fun fieldIsPassword(): Boolean = this@MonsoonIme.fieldIsPassword
+        override fun typeText(text: String) = typeFromVault(text)
+        override fun typePassword(chars: CharArray) = typeFromVault(java.nio.CharBuffer.wrap(chars))
+        override fun recentIds(): List<String> = vaultPrefs().recentIds
+        override fun noteUsed(id: String) {
+            val prefs = vaultPrefs()
+            prefs.recentIds = VaultPickerModel.pushRecent(prefs.recentIds, id)
+        }
+
+        override fun describe(e: Throwable): String = VaultHub.message(this@MonsoonIme, e)
+        override fun changed() {
+            vaultPanel?.onModelChanged()
+        }
+
+        override fun closePicker() {
+            closeVault()
+            refreshAutoCaps()
+            dropSuggestions() // no suggestions made from what the vault just typed
+        }
+    }
+
+    private val vaultListener = object : VaultPanelView.Listener {
+        override fun onBackspace() = this@MonsoonIme.onBackspace()
+
+        override fun onClose() {
+            closeVault()
+            refreshAutoCaps()
+            resyncAndPredict()
+        }
+
+        override fun onSearchTap() = startSearchTyping()
+
+        override fun onSearchBack() = endSearchTyping(clear = true)
+
+        override fun onSearchClear() = clearSearch()
+
+        override fun onUnlock() {
+            openVaultAfterUnlock = SystemClock.uptimeMillis()
+            unlockEndedAt = 0L
+            launch(Intent(this@MonsoonIme, VaultUnlockActivity::class.java))
+        }
+
+        override fun onOpenApp() = launch(Intent(this@MonsoonIme, VaultMainActivity::class.java))
+
+        override fun onLockNow() {
+            VaultHub.client(this@MonsoonIme).async({ it.lock() }) { vaultPanel?.open(vaultPackage) }
+        }
+
+        override fun onRetry() {
+            vaultPanel?.open(vaultPackage)
+        }
+    }
+
+    /**
+     * Text from the vault goes into the editor in one commit. It is not typed text: the word tracker forgets what it knew, and until the field is gone nothing typed
+     * is learned any more (D42: a user name or password must never end up in the word lists, however a later re-reading of the field would see it).
+     */
+    private fun typeFromVault(text: CharSequence) {
+        val ic = currentInputConnection ?: return
+        ic.commitText(text, 1)
+        lastEditAt = SystemClock.uptimeMillis()
+        vaultLearnBlock = true
+        tracker.reset(null)
+        triggerRun.clear()
+    }
+
+    /** The unlock card ended ([VaultHub.onUnlockFinished]). Like the clipboard prompt: the keyboard and the picker come back by themselves. */
+    private fun vaultUnlockFinished(ok: Boolean) {
+        val pressed = openVaultAfterUnlock
+        if (pressed == 0L || SystemClock.uptimeMillis() - pressed >= UNLOCK_OPEN_MS) return // not ours, or too long ago
+        vaultAfterUnlock = true
+        unlockEndedAt = SystemClock.uptimeMillis()
+        unlockOk = ok
+        unlockRetries = 0
+        if (isInputViewShown) openPanelAfterUnlock() else showKeyboardAfterUnlock()
+    }
+
+    private fun ensureVaultPanel(): VaultPanelView? {
+        vaultPanel?.let { return it }
+        val r = root ?: return null
+        val kb = keyboard ?: return null
+        val model = VaultPickerModel(vaultBackend, vaultHost)
+        val p = VaultPanelView(this, kb.palette, model)
+        p.listener = vaultListener
+        p.visibility = View.GONE
+        r.addView(p, 0, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, kb.desiredHeight()))
+        vaultModel = model
+        vaultPanel = p
+        return p
+    }
+
+    /** The picker replaces the keys, at the same height so the window does not jump. */
+    private fun showVault() {
+        val kb = keyboard ?: return
+        val panel = ensureVaultPanel() ?: return
+        closeEmoji()
+        closeClipboard()
+        closeVoicePanel()
+        kb.cancelAll()
+        panelSearch = false
+        searchBuf.setLength(0)
+        composer?.clear()
+        dropSuggestions()
+        panel.setSearching(false)
+        panel.setPalette(kb.palette)
+        kb.setStripVisible(true)
+        kb.visibility = View.GONE
+        shownPanel = panel
+        setPanelHeight(kb.desiredHeight())
+        panel.visibility = View.VISIBLE
+        panel.open(vaultPackage)
+    }
+
+    /** Back to the keys (ABC key, a password was typed, new field, keyboard hidden). Safe to call when the picker was never shown. */
+    private fun closeVault() {
+        val panel = vaultPanel ?: return
+        if (panel.visibility != View.VISIBLE) return
+        if (panelSearch) composer?.clear()
+        panelSearch = false
+        searchBuf.setLength(0)
+        panel.close()
+        panel.setSearching(false)
+        panel.visibility = View.GONE
+        if (shownPanel === panel) shownPanel = null
+        val kb = keyboard ?: return
+        kb.setStripVisible(true)
+        kb.visibility = View.VISIBLE
+    }
+
     // ---- clipboard panel (E3, D65)
 
     override fun onClipboardKey() {
@@ -1501,6 +1681,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val hub = clipHub
         if (hub != null && !hub.lockOpen()) { // the clipboard lock (D71): the prompt first; the panel opens by itself when the keyboard comes back
             openClipboardAfterUnlock = SystemClock.uptimeMillis()
+            vaultAfterUnlock = false
             unlockEndedAt = 0L
             launch(ClipUnlockActivity.intent(this))
             return
@@ -1513,6 +1694,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         closeEmoji()
         closeClipboard()
         closeVoicePanel()
+        closeVault()
     }
 
     private val clipListener = object : ClipboardPanelView.Listener {
