@@ -14,7 +14,7 @@ import android.graphics.drawable.Drawable
  * of the theme. [drawable] gives one at any size.
  */
 internal object Icons {
-    enum class Kind { BACK, CHEVRON, KEYBOARD, SPARKLE, DROP, CLIPBOARD, MIC, INFO, SEARCH, CLOSE, CHECK, LOCK }
+    enum class Kind { BACK, CHEVRON, KEYBOARD, SPARKLE, DROP, CLIPBOARD, MIC, INFO, SEARCH, CLOSE, CHECK, LOCK, PALETTE }
 
     fun drawable(kind: Kind, color: Int, sizePx: Int): Drawable = IconDrawable(kind, color, sizePx)
 
@@ -124,6 +124,20 @@ internal object Icons {
                     round(c, 5f, 11f, 19f, 21f, 2f)
                     path(c) { moveTo(8f, 11f); lineTo(8f, 8f); cubicTo(8f, 2.5f, 16f, 2.5f, 16f, 8f); lineTo(16f, 11f) }
                     c.drawCircle(12f, 16f, 1.2f, dot)
+                }
+                Kind.PALETTE -> {
+                    path(c) {
+                        moveTo(12f, 2.5f)
+                        cubicTo(6.5f, 2.5f, 2.5f, 6.5f, 2.5f, 12f)
+                        cubicTo(2.5f, 17.5f, 6.5f, 21.5f, 11.5f, 21.5f)
+                        cubicTo(13.2f, 21.5f, 13.8f, 20.3f, 13.2f, 19f)
+                        cubicTo(12.6f, 17.7f, 13.4f, 16.5f, 15f, 16.5f)
+                        lineTo(18f, 16.5f)
+                        cubicTo(20.5f, 16.5f, 21.5f, 14.5f, 21.5f, 12f)
+                        cubicTo(21.5f, 6.5f, 17.5f, 2.5f, 12f, 2.5f)
+                        close()
+                    }
+                    for ((x, y) in listOf(7.4f to 12.2f, 9.6f to 7.6f, 14.4f to 7.6f, 17f to 12f)) c.drawCircle(x, y, 1.25f, dot)
                 }
                 Kind.CHECK -> path(c) { moveTo(5f, 12.5f); lineTo(10f, 17.5f); lineTo(19f, 7f) }
             }

@@ -10,6 +10,7 @@ import android.widget.LinearLayout
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.settings.BubbleHost
 import com.monsoonscript.keyboard.settings.SettingsUi
+import com.monsoonscript.keyboard.view.KeyboardView
 import com.monsoonscript.keyboard.settings.ThemedActivity
 
 /**
@@ -20,6 +21,7 @@ class ThemeEditActivity : ThemedActivity() {
     private lateinit var ui: SettingsUi
     private lateinit var page: SettingsUi.Page
     private lateinit var spec: ThemeSpec
+    private lateinit var kb: KeyboardView
     private var bubbles: BubbleHost? = null
     private var advanced = false
 
@@ -34,11 +36,15 @@ class ThemeEditActivity : ThemedActivity() {
         advanced = savedInstanceState?.getBoolean(STATE_ADVANCED) ?: false
         ui = SettingsUi(this)
         page = ui.page(getString(R.string.theme_edit_title)) { finish() }
-        val host = BubbleHost(this, ui, page.root) // the "Try it" bubble: the real keyboard shows this theme once it is the day or night theme (L12 R3, D83/D85)
+        kb = KeyboardView(this)
+        val host = BubbleHost(this, ui, page.root) // two bubbles (L12, D83/D85/D86): "Try it" = the real keyboard, palette = a look-only preview of THIS theme docked at the bottom
         host.addTryIt()
+        host.addPreview(kb, 1)
+        if (savedInstanceState == null) host.setDock(true) // opening the editor shows the preview at once; a rebuild keeps what the person chose
         host.restoreState(savedInstanceState)
         bubbles = host
         setContentView(host.root)
+        showPreview()
         render()
     }
 
@@ -48,9 +54,15 @@ class ThemeEditActivity : ThemedActivity() {
         bubbles?.saveState(outState)
     }
 
+    private fun showPreview() {
+        // the theme being edited is shown whatever the phone is doing now
+        ThemePreview.apply(this, kb, spec, spec, ThemePreview.ALWAYS_DAY)
+    }
+
     private fun change(newSpec: ThemeSpec) {
         spec = newSpec
         ThemeStore.save(this, spec)
+        showPreview()
         render()
     }
 

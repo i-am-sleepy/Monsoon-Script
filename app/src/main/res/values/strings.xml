@@ -48,7 +48,7 @@
     <string name="themes_copy_name">%1$s copy</string>
     <string name="themes_new_name">My theme</string>
     <string name="theme_edit_title">Edit theme</string>
-    <string name="theme_edit_preview_note">Every change is saved at once. To see this theme on your keyboard, use it as your day or night theme below, then tap the round keyboard button.</string>
+    <string name="theme_edit_preview_note">Every change is saved at once and shows in the preview at the bottom (the round palette button shows or hides it). To use this theme on your keyboard, set it as your day or night theme below.</string>
     <string name="theme_edit_name">Name</string>
     <string name="theme_edit_colors_header">Colors</string>
     <string name="theme_edit_advanced_show">Show advanced colors</string>

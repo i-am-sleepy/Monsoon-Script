@@ -12,4 +12,7 @@
     <!-- The floating bubbles (L12 R3, D83) -->
     <string name="bubble_try_desc">Try the keyboard: opens a text box</string>
     <string name="bubble_close">Close</string>
+    <!-- The theme preview bubble in the theme editor (L12, D86) -->
+    <string name="bubble_preview_desc">Show or hide the theme preview</string>
+    <string name="bubble_preview_title">Theme preview</string>
 </resources>

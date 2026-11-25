@@ -1,5 +1,6 @@
 package com.monsoonscript.keyboard.settings
 
+import android.animation.LayoutTransition
 import android.annotation.SuppressLint
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
@@ -16,36 +17,47 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.monsoonscript.keyboard.R
+import com.monsoonscript.keyboard.theme.ThemePreview
+import com.monsoonscript.keyboard.view.KeyboardView
 import kotlin.math.abs
 
 /**
- * The floating "Try it" bubble of an app screen (L12 R3, D83/D85): a round bubble the person can drag around and tap. It opens a text box in a floating window
- * at the top, to try the REAL keyboard right where the settings are (the keyboard follows every setting and theme change at once, so there is no separate
- * preview). The screen's content goes into [root] (instead of being the content itself). An open window survives a rebuild of the screen ([saveState] /
- * [restoreState]).
+ * The floating things of an app screen (L12 R3, D83/D85/D86): round bubbles the person can drag around and tap.
+ *  - "Try it" ([addTryIt]): opens a text box in a floating window at the top, to try the REAL keyboard right where the settings are (the keyboard follows every
+ *    setting and theme change at once).
+ *  - A preview ([addPreview], only the theme editor uses it): a keyboard to look at, DOCKED at the bottom like the real one; the page above gets smaller to make room.
+ * The screen's content goes into [root] (instead of being the content itself). The open windows survive a rebuild of the screen ([saveState] / [restoreState]).
  */
 internal class BubbleHost(private val activity: ThemedActivity, private val ui: SettingsUi, content: View) {
-    /** The content, the bubble and the "Try it" window. */
-    val root = FrameLayout(activity)
-    private val area = root
+    val root: LinearLayout = LinearLayout(activity).apply {
+        orientation = LinearLayout.VERTICAL
+        layoutTransition = LayoutTransition().apply { setDuration(220) }
+    }
+
+    /** The part of the screen above the dock: the content, the bubbles and the "Try it" window. */
+    private val area = FrameLayout(activity)
     private val colors = ui.colors
     private val margin = ui.dp(16)
     private val bubbles = ArrayList<View>()
     private var tryWindow: View? = null
     private var tryField: EditText? = null
     private var tryBubble: ImageView? = null
+    private var dock: LinearLayout? = null
+    private var previewBubble: ImageView? = null
+    private var previewIcon = Icons.Kind.PALETTE
 
     init {
         area.addView(content, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        // when the screen changes size (the keyboard opens) keep the bubble inside it
+        root.addView(area, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        // when the area changes size (the keyboard opens, the dock appears) keep every bubble inside it
         area.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> for (b in bubbles) clampInside(b) }
     }
 
     // ---- "Try it"
 
-    /** The "Try it" bubble. */
-    fun addTryIt() {
-        tryBubble = bubble(Icons.Kind.KEYBOARD, activity.getString(R.string.bubble_try_desc), 0) { if (tryWindow == null) openTry() else closeTry() }
+    /** The "Try it" bubble; [slot] 0 is the lowest place, 1 the one above it. */
+    fun addTryIt(slot: Int = 0) {
+        tryBubble = bubble(Icons.Kind.KEYBOARD, activity.getString(R.string.bubble_try_desc), slot) { if (tryWindow == null) openTry() else closeTry() }
     }
 
     private fun openTry() {
@@ -92,14 +104,46 @@ internal class BubbleHost(private val activity: ThemedActivity, private val ui: 
         card.animate().alpha(0f).translationY(-ui.dp(16).toFloat()).setDuration(160).withEndAction { area.removeView(card) }.start()
     }
 
+    // ---- "Live preview"
+
+    /** The preview bubble ([icon], a palette by default) and its dock for [kb] (the screen keeps applying the theme to [kb]); [slot] 1 is the place above "Try it". */
+    fun addPreview(kb: KeyboardView, slot: Int = 1, icon: Icons.Kind = Icons.Kind.PALETTE) {
+        previewIcon = icon
+        val radius = ui.dp(20).toFloat()
+        val fill = colors.card
+        val outline = colors.cardStroke
+        val d = LinearLayout(activity).apply {
+            orientation = LinearLayout.VERTICAL
+            background = GradientDrawable().apply {
+                setColor(fill)
+                cornerRadii = floatArrayOf(radius, radius, radius, radius, 0f, 0f, 0f, 0f)
+                setStroke(maxOf(1, ui.dp(1) / 2), outline)
+            }
+            visibility = View.GONE
+            addView(windowTitle(activity.getString(R.string.bubble_preview_title)) { setDock(false) })
+            addView(ThemePreview.frame(activity, kb))
+        }
+        root.addView(d, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        dock = d
+        previewBubble = bubble(icon, activity.getString(R.string.bubble_preview_desc), slot) { setDock(d.visibility != View.VISIBLE) }
+    }
+
+    fun setDock(open: Boolean) {
+        val d = dock ?: return
+        d.visibility = if (open) View.VISIBLE else View.GONE
+        previewBubble?.setImageDrawable(ui.icon(if (open) Icons.Kind.CLOSE else previewIcon, colors.onAccent, 26))
+    }
+
     // ---- state across a rebuild of the screen (a theme change rebuilds it)
 
     fun saveState(out: Bundle) {
+        out.putBoolean(KEY_DOCK, dock?.visibility == View.VISIBLE)
         out.putBoolean(KEY_TRY, tryWindow != null)
     }
 
     fun restoreState(saved: Bundle?) {
         if (saved == null) return
+        if (saved.getBoolean(KEY_DOCK)) setDock(true)
         if (saved.getBoolean(KEY_TRY) && tryBubble != null) openTry()
     }
 
@@ -212,6 +256,7 @@ internal class BubbleHost(private val activity: ThemedActivity, private val ui: 
     }
 
     private companion object {
+        const val KEY_DOCK = "bubble_dock_open"
         const val KEY_TRY = "bubble_try_open"
     }
 }
