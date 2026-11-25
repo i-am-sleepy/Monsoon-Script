@@ -22,7 +22,7 @@ internal object ThemePreview {
 
     /** Show [day] and [night]; [mode] is the `Prefs.THEME` value: 0 follow the phone, 1 always the day theme ([ALWAYS_DAY]), 2 always the night theme. */
     fun apply(context: Context, kb: KeyboardView, day: ThemeSpec, night: ThemeSpec, mode: Int = Prefs.theme(context)) {
-        kb.setThemes(day.colors().toPalette(), night.colors().toPalette())
+        kb.setThemes(day.palette(context), night.palette(context))
         kb.setAppearance(mode, Prefs.numberRow(context), Prefs.emojiKey(context), Prefs.heightPortrait(context), Prefs.heightLandscape(context), Prefs.keyGap(context))
     }
 }

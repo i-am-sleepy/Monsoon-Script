@@ -545,7 +545,7 @@ class ClipboardPanelView(
     // ---------------------------------------------------------------- drawing
 
     override fun onDraw(canvas: Canvas) {
-        canvas.drawColor(pal.bg)
+        pal.paintBackground(canvas, width, height)
         if (searching) {
             drawResultsRow(canvas)
             drawQueryBar(canvas, resRowH)
@@ -687,8 +687,7 @@ class ClipboardPanelView(
 
     private fun drawToolbar(c: Canvas) {
         val w = width.toFloat()
-        fillPaint.color = pal.bg
-        c.drawRect(0f, 0f, w, barH, fillPaint)
+        pal.erase(c, width, height, 0f, 0f, w, barH, fillPaint)
         val cy = barH / 2f
         val icon = dp(22f)
         if (model.selecting) {
@@ -749,8 +748,7 @@ class ClipboardPanelView(
     private fun drawChips(c: Canvas) {
         val w = width.toFloat()
         val n = model.chips.size
-        fillPaint.color = pal.bg
-        c.drawRect(0f, barH, w, listTop, fillPaint)
+        pal.erase(c, width, height, 0f, barH, w, listTop, fillPaint)
         val cy = barH + chipH / 2f
         val h = chipH - dp(10f)
         c.save()
@@ -774,8 +772,7 @@ class ClipboardPanelView(
         val w = width.toFloat()
         val h = height.toFloat()
         val y0 = h - botH
-        fillPaint.color = pal.bg
-        c.drawRect(0f, y0, w, h, fillPaint)
+        pal.erase(c, width, height, 0f, y0, w, h, fillPaint)
         val cy = y0 + botH / 2f
         if (bottomKey == B_ABC) {
             fillPaint.color = pal.specialPressed
@@ -829,8 +826,7 @@ class ClipboardPanelView(
     /** The query bar: browsing is the toolbar's pill; this is the typing one below the results row. */
     private fun drawQueryBar(c: Canvas, y0: Float) {
         val w = width.toFloat()
-        fillPaint.color = pal.bg
-        c.drawRect(0f, y0, w, y0 + barH, fillPaint)
+        pal.erase(c, width, height, 0f, y0, w, y0 + barH, fillPaint)
         val left = dp(10f)
         val right = w - dp(10f)
         rect.set(left, y0 + dp(5f), right, y0 + barH - dp(5f))

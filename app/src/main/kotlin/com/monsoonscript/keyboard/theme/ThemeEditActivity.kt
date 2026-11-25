@@ -1,6 +1,9 @@
 package com.monsoonscript.keyboard.theme
 
 import android.app.AlertDialog
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.widget.Toast
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
@@ -74,6 +77,7 @@ class ThemeEditActivity : ThemedActivity() {
             page.content.add(header(getString(R.string.theme_edit_colors_header)))
             for (s in MAIN) page.content.add(colorRow(s))
             for (w in spec.warnings()) page.content.add(note("⚠ " + getString(warnText(w))))
+            addPictureSection()
             page.content.add(buttonRow(getString(if (advanced) R.string.theme_edit_advanced_hide else R.string.theme_edit_advanced_show), null) {
                 advanced = !advanced
                 render()
@@ -98,6 +102,75 @@ class ThemeEditActivity : ThemedActivity() {
             })
             page.content.add(buttonRow(getString(R.string.themes_action_delete), null) { confirmDelete() })
         }
+    }
+
+    // ---- the background picture (L10 step 2, D87)
+
+    private fun SettingsUi.addPictureSection() {
+        page.content.add(header(getString(R.string.theme_pic_header)))
+        page.content.add(buttonRow(getString(if (spec.hasPicture) R.string.theme_pic_change else R.string.theme_pic_choose), null) { choosePicture() })
+        if (spec.hasPicture) {
+            val percent = { v: Int -> "$v %" }
+            page.content.add(valueSliderRow(getString(R.string.theme_pic_fade), 0, ThemeSpec.MAX_FADE, spec.pictureFade, percent) { v -> tweak(spec.copy(pictureFade = v)) })
+            page.content.add(valueSliderRow(getString(R.string.theme_pic_keys), ThemeSpec.MIN_KEY_OPACITY, 100, spec.keyOpacity, percent) { v -> tweak(spec.copy(keyOpacity = v)) })
+            page.content.add(buttonRow(getString(R.string.theme_pic_remove), null) {
+                ThemePictures.delete(this@ThemeEditActivity, spec.picture)
+                change(spec.copy(picture = null))
+            })
+        }
+        page.content.add(note(getString(R.string.theme_pic_note)))
+    }
+
+    /** A change while a slider is being dragged: saved and shown, but the page is NOT rebuilt (that would drop the slider from under the finger). */
+    private fun tweak(newSpec: ThemeSpec) {
+        spec = newSpec
+        ThemeStore.save(this, spec)
+        showPreview()
+    }
+
+    private fun choosePicture() {
+        val pick = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "image/*"
+        }
+        try {
+            startActivityForResult(pick, REQ_PICTURE)
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, R.string.theme_pic_failed, Toast.LENGTH_LONG).show()
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        val uri = data?.data
+        if (requestCode != REQ_PICTURE || resultCode != RESULT_OK || uri == null) return
+        val app = applicationContext
+        val id = spec.id
+        Toast.makeText(this, R.string.theme_pic_working, Toast.LENGTH_SHORT).show()
+        Thread {
+            val name = ThemePictures.importFrom(app, uri)
+            runOnUiThread {
+                if (name == null) {
+                    Toast.makeText(app, R.string.theme_pic_failed, Toast.LENGTH_LONG).show()
+                    return@runOnUiThread
+                }
+                // saved through the store (not only into this screen) so the picture is not lost when the screen was rebuilt in the meantime
+                val current = ThemeStore.find(app, id)
+                if (current == null) {
+                    ThemePictures.delete(app, name)
+                    return@runOnUiThread
+                }
+                ThemePictures.delete(app, current.picture)
+                val updated = current.copy(picture = name)
+                ThemeStore.save(app, updated)
+                if (!isDestroyed) {
+                    spec = updated
+                    showPreview()
+                    render()
+                }
+            }
+        }.start()
     }
 
     private fun colorRow(slot: Slot): View = ui.row().apply {
@@ -168,6 +241,7 @@ class ThemeEditActivity : ThemedActivity() {
     companion object {
         const val EXTRA_ID = "theme_id"
         private const val STATE_ADVANCED = "advanced"
+        private const val REQ_PICTURE = 71
         private val MAIN = listOf(Slot.BG, Slot.KEY, Slot.SPECIAL, Slot.ACCENT, Slot.TEXT)
         private val DERIVED = listOf(Slot.KEY_PRESSED, Slot.SPECIAL_PRESSED, Slot.ACCENT_PRESSED, Slot.TEXT_MUTED, Slot.ON_ACCENT, Slot.BUBBLE)
     }

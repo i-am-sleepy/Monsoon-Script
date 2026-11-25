@@ -29,6 +29,11 @@ object ThemeCodec {
         val o = LinkedHashMap<String, Any?>()
         for ((slot, key) in SLOT_KEYS) t.overrides[slot]?.let { o[key] = ColorMath.hex(it) }
         if (o.isNotEmpty()) m["o"] = o
+        if (t.picture != null) {
+            m["pic"] = t.picture
+            m["fade"] = t.pictureFade
+            m["keys"] = t.keyOpacity
+        }
         return m
     }
 
@@ -46,7 +51,11 @@ object ThemeCodec {
         val overrides = LinkedHashMap<Slot, Int>()
         val o = m["o"] as? Map<*, *>
         if (o != null) for ((slot, k) in SLOT_KEYS) (o[k] as? String)?.let { s -> ColorMath.parseHex(s)?.let { overrides[slot] = it } }
-        return ThemeSpec(id, name, bg, key, special, accent, text, overrides)
+        // the picture: only a plain file name made by this app (never a path), the two numbers are kept inside their limits
+        val picture = (m["pic"] as? String)?.takeIf { PictureMath.isValidFileName(it) }
+        val fade = (m["fade"] as? Number)?.toInt() ?: ThemeSpec.DEFAULT_FADE
+        val keys = (m["keys"] as? Number)?.toInt() ?: ThemeSpec.DEFAULT_KEY_OPACITY
+        return ThemeSpec(id, name, bg, key, special, accent, text, overrides, picture, fade.coerceIn(0, ThemeSpec.MAX_FADE), keys.coerceIn(ThemeSpec.MIN_KEY_OPACITY, 100))
     }
 
     fun cleanName(raw: String?): String {

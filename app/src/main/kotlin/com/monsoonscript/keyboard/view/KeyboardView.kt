@@ -709,7 +709,7 @@ class KeyboardView(context: Context) : View(context) {
     // ---------------------------------------------------------------- drawing
 
     override fun onDraw(canvas: Canvas) {
-        canvas.drawColor(pal.bg)
+        pal.paintBackground(canvas, width, height)
         if (page >= keys.size) return
         val ks = keys[page]
         val rs = rects[page]
@@ -1059,8 +1059,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawFlash(c: Canvas, msg: String) {
         val l = padX + stripLeadW
         val r = width - padX - stripMicW
-        fillPaint.color = pal.bg
-        c.drawRect(l, 0f, r, stripH, fillPaint)
+        pal.erase(c, width, height, l, 0f, r, stripH, fillPaint)
         sugPaint.color = pal.text
         sugPaint.textSize = dp(13f)
         val fit = android.text.TextUtils.ellipsize(msg, android.text.TextPaint(sugPaint), r - l - dp(16f), android.text.TextUtils.TruncateAt.END).toString()
@@ -1436,7 +1435,29 @@ class KeyboardView(context: Context) : View(context) {
         val textMuted: Int,
         val onAccent: Int,
         val bubble: Int,
-    )
+        /** The picture behind everything (L10 step 2, D87), or null: then the plain [bg] color. */
+        val backdrop: Backdrop? = null,
+    ) {
+        /** Paint the whole background of a view [w] x [h] (the picture, faded, or the plain color). */
+        fun paintBackground(c: Canvas, w: Int, h: Int) {
+            val b = backdrop
+            if (b != null) b.draw(c, w, h) else c.drawColor(bg)
+        }
+
+        /** Paint the rectangle as background again: it hides what is under it and still shows the picture. [paint] is only used for the plain color. */
+        fun erase(c: Canvas, w: Int, h: Int, l: Float, t: Float, r: Float, b: Float, paint: Paint) {
+            val bd = backdrop
+            if (bd == null) {
+                paint.color = bg
+                c.drawRect(l, t, r, b, paint)
+            } else {
+                c.save()
+                c.clipRect(l, t, r, b)
+                bd.draw(c, w, h)
+                c.restore()
+            }
+        }
+    }
 
     private companion object {
         const val MAX_PTR = 4

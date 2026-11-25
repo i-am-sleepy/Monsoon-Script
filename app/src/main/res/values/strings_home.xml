@@ -15,4 +15,14 @@
     <!-- The theme preview bubble in the theme editor (L12, D86) -->
     <string name="bubble_preview_desc">Show or hide the theme preview</string>
     <string name="bubble_preview_title">Theme preview</string>
+    <!-- The background picture of a theme (L10 step 2, D87) -->
+    <string name="theme_pic_header">Background picture</string>
+    <string name="theme_pic_choose">Choose a picture</string>
+    <string name="theme_pic_change">Change picture</string>
+    <string name="theme_pic_fade">Fade</string>
+    <string name="theme_pic_keys">Key opacity</string>
+    <string name="theme_pic_remove">Remove picture</string>
+    <string name="theme_pic_working">Getting the picture…</string>
+    <string name="theme_pic_failed">That picture could not be read.</string>
+    <string name="theme_pic_note">The picture goes behind the keys, the emoji panel and the clipboard panel. Fade makes it lighter or darker so the letters stay readable. Lower the key opacity to see the picture through the keys.</string>
 </resources>

@@ -14,6 +14,9 @@ object ColorMath {
     fun rgb(r: Int, g: Int, b: Int): Int = (0xFF shl 24) or (r.coerceIn(0, 255) shl 16) or (g.coerceIn(0, 255) shl 8) or b.coerceIn(0, 255)
 
     /** [a] moved [t] (0..1) of the way to [b]. */
+    /** [c] with a see-through of [percent] % opaque (100 = solid, 0 = invisible). */
+    fun withAlpha(c: Int, percent: Int): Int = (((percent.coerceIn(0, 100) * 255 + 50) / 100) shl 24) or (c and 0x00FFFFFF)
+
     fun mix(a: Int, b: Int, t: Float): Int {
         val k = t.coerceIn(0f, 1f)
         return rgb(

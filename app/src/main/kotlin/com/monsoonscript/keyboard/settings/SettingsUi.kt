@@ -396,8 +396,12 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
     }
 
     /** A row with a slider for the Int preference [key] from [minValue] to [maxValue]; [format] writes the current value next to the title. */
-    fun sliderRow(title: String, key: String, minValue: Int, maxValue: Int, default: Int, format: (Int) -> String): View {
-        val start = prefs.getInt(key, default).coerceIn(minValue, maxValue)
+    fun sliderRow(title: String, key: String, minValue: Int, maxValue: Int, default: Int, format: (Int) -> String): View =
+        valueSliderRow(title, minValue, maxValue, prefs.getInt(key, default), format) { prefs.edit().putInt(key, it).apply() }
+
+    /** A row with a slider from [minValue] to [maxValue] that starts at [current]; [onChange] gets the value each time the person moves it. */
+    fun valueSliderRow(title: String, minValue: Int, maxValue: Int, current: Int, format: (Int) -> String, onChange: (Int) -> Unit): View {
+        val start = current.coerceIn(minValue, maxValue)
         val valueText = TextView(context).apply {
             text = format(start)
             textSize = 14f
@@ -412,7 +416,7 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
             setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
                     valueText.text = format(progress + minValue)
-                    if (fromUser) prefs.edit().putInt(key, progress + minValue).apply()
+                    if (fromUser) onChange(progress + minValue)
                 }
 
                 override fun onStartTrackingTouch(seekBar: SeekBar) {}

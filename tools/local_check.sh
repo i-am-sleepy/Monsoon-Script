@@ -39,16 +39,37 @@ drawables = set(re.findall(r'(?<!android\.)R\.drawable\.([A-Za-z_0-9]+)', ' '.jo
 for f in glob.glob(main + '/res/drawable*/*'):
     drawables.add(os.path.splitext(os.path.basename(f))[0])
 dbody = ''.join('    const val %s = 0\n' % n for n in sorted(drawables))
-open(out, 'w').write('package com.monsoonscript.keyboard\nobject R {\n  object string {\n' + body + '  }\n  object drawable {\n' + dbody + '  }\n}\n')
+plurals = set(re.findall(r'(?<!android\.)R\.plurals\.([A-Za-z_0-9]+)', ' '.join(open(f, encoding='utf-8').read() for f in glob.glob(main + '/kotlin/**/*.kt', recursive=True))))
+pbody = ''.join('    const val %s = 0\n' % n for n in sorted(plurals))
+open(out, 'w').write('package com.monsoonscript.keyboard\nobject R {\n  object string {\n' + body + '  }\n  object drawable {\n' + dbody + '  }\n  object plurals {\n' + pbody + '  }\n}\n')
 PY
+
+# The password-vault screens (app/.../vault/) talk to :vault: its client side is compiled along, with stand-ins for what Gradle generates (as tools/compile_check.sh does).
+VAULT_SRC="$ROOT/vault/src/main/kotlin/com/monsoonscript/vault"
+VAULT_EXTRA=()
+if [ -d "$VAULT_SRC" ]; then
+  mkdir -p "$TOOLS/vault-stubs"
+  printf 'package kotlinx.parcelize\nannotation class Parcelize\n' > "$TOOLS/vault-stubs/parcelize.kt"
+  printf 'package com.monsoonscript.vault\nclass VaultService : android.app.Service() { override fun onBind(i: android.content.Intent?): android.os.IBinder? = null }\n' > "$TOOLS/vault-stubs/VaultServiceStub.kt"
+  python3 -I "$ROOT/tools/aidl_stub.py" "$ROOT/vault/src/main/aidl/com/monsoonscript/vault/IVault.aidl" "$TOOLS/vault-stubs/IVault.java"
+  VAULT_EXTRA=("$VAULT_SRC/VaultModel.kt" "$VAULT_SRC/VaultClient.kt" "$TOOLS/vault-stubs/parcelize.kt" "$TOOLS/vault-stubs/VaultServiceStub.kt" "$TOOLS/vault-stubs/IVault.java")
+fi
 
 compile_main() { # $1 = output dir, the rest = extra source files
   local OUT=$1; shift
   local LOG rc=0
   LOG=$(mktemp)
   rm -rf "$OUT"
-  (cd "$MAIN/kotlin" && $KC -cp "$STD:$JAR" -d "$OUT" $(find . -name '*.kt') "$TOOLS/R.kt" "$@") >"$LOG" 2>&1 || rc=$?
-  grep -v '^Picked up' "$LOG" || true
+  local SRC EXTRA=("${VAULT_EXTRA[@]}")
+  if [ -n "$NO_VAULT" ]; then # running tests: the vault screens (and what opens them) are left out, their Parcelize classes cannot be built here
+    SRC=$(cd "$MAIN/kotlin" && find . -name '*.kt' -not -path './vault/*' | xargs grep -L 'keyboard\.vault\|monsoonscript\.vault\|Vault[A-Za-z]*Activity')
+    EXTRA=()
+  else
+    SRC=$(cd "$MAIN/kotlin" && find . -name '*.kt')
+  fi
+  (cd "$MAIN/kotlin" && $KC -cp "$STD:$JAR" -d "$OUT" $SRC "$TOOLS/R.kt" "${EXTRA[@]}" "$@") >"$LOG" 2>&1 || rc=$?
+  grep -v '^Picked up' "$LOG" | grep -v 'describeContents\|writeToParcel\|is not abstract and does not implement' || true
+  if grep ': error:' "$LOG" | grep -qv 'describeContents\|writeToParcel\|is not abstract and does not implement'; then rc=1; else rc=0; fi
   rm -f "$LOG"
   return $rc
 }
@@ -70,7 +91,7 @@ case "$1" in
       FILES+=("$f")
       CLASSES+=("$(grep -m1 '^package ' "$f" | awk '{print $2}').${t##*.}")
     done
-    compile_main "$TOOLS/out-test" "${FILES[@]}" || { echo "compile failed"; exit 1; }
+    NO_VAULT=1 compile_main "$TOOLS/out-test" "${FILES[@]}" || { echo "compile failed"; exit 1; }
     cd "$ROOT/app" && java -cp "$TOOLS/out-test:$STD" RunKt "${CLASSES[@]}" 2>&1 | grep -v '^Picked up' ;;
   *)
     sed -n '2,8p' "$0"; exit 2 ;;

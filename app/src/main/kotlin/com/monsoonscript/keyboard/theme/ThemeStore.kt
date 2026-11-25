@@ -60,6 +60,7 @@ object ThemeStore {
     /** Delete the custom theme [id]; day or night that used it go back to the default theme (High contrast, D83). */
     @Synchronized
     fun delete(context: Context, id: String) {
+        ThemePictures.delete(context, find(context, id)?.picture) // a deleted theme takes its picture file along
         val list = custom(context).filter { it.id != id }
         val edit = Prefs.of(context).edit()
         if (dayId(context) == id) edit.putString(KEY_DAY, Themes.DEFAULT_ID)
@@ -81,7 +82,10 @@ object ThemeStore {
 
     /** A new custom theme with the colors of [source]; [baseName] gets a number when the name is taken. */
     fun copyOf(context: Context, source: ThemeSpec, baseName: String): ThemeSpec =
-        ThemeSpec(newId(context), uniqueName(context, baseName), source.bg, source.key, source.special, source.accent, source.text, source.overrides)
+        ThemeSpec(
+            newId(context), uniqueName(context, baseName), source.bg, source.key, source.special, source.accent, source.text, source.overrides,
+            ThemePictures.copy(context, source.picture), source.pictureFade, source.keyOpacity,
+        )
 
     fun uniqueName(context: Context, base: String): String {
         val names = all(context).map { it.name.lowercase() }.toSet()

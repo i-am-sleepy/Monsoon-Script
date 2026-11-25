@@ -28,8 +28,16 @@ class ThemeSpec(
     val accent: Int,
     val text: Int,
     val overrides: Map<Slot, Int> = emptyMap(),
+    /** The file name of the background picture (in [ThemePictures]' folder), or null for none (L10 step 2, D87). */
+    val picture: String? = null,
+    /** How much the picture is faded towards the theme's background color, in percent (0 = as it is, [MAX_FADE] = nearly hidden). */
+    val pictureFade: Int = DEFAULT_FADE,
+    /** How solid the keys are on top of the picture, in percent ([MIN_KEY_OPACITY]..100); it only matters while there is a picture. */
+    val keyOpacity: Int = DEFAULT_KEY_OPACITY,
 ) {
     val builtIn: Boolean get() = id.startsWith(BUILTIN_PREFIX)
+
+    val hasPicture: Boolean get() = picture != null
 
     /** A light keyboard: its window and navigation bar get dark icons. */
     val isLight: Boolean get() = ColorMath.isLight(bg)
@@ -83,7 +91,11 @@ class ThemeSpec(
     fun copy(
         id: String = this.id, name: String = this.name, bg: Int = this.bg, key: Int = this.key, special: Int = this.special,
         accent: Int = this.accent, text: Int = this.text, overrides: Map<Slot, Int> = this.overrides,
-    ): ThemeSpec = ThemeSpec(id, name, bg, key, special, accent, text, overrides)
+        picture: String? = this.picture, pictureFade: Int = this.pictureFade, keyOpacity: Int = this.keyOpacity,
+    ): ThemeSpec = ThemeSpec(
+        id, name, bg, key, special, accent, text, overrides, picture,
+        pictureFade.coerceIn(0, MAX_FADE), keyOpacity.coerceIn(MIN_KEY_OPACITY, 100),
+    )
 
     /** Colors that are hard to read together (D75: shown as a note, never blocked). */
     fun warnings(): List<Warning> {
@@ -102,5 +114,9 @@ class ThemeSpec(
         const val MIN_TEXT_CONTRAST = 3.0
         const val MIN_KEY_CONTRAST = 1.08
         const val MAX_NAME = 40
+        const val DEFAULT_FADE = 35
+        const val MAX_FADE = 90
+        const val DEFAULT_KEY_OPACITY = 85
+        const val MIN_KEY_OPACITY = 20
     }
 }
