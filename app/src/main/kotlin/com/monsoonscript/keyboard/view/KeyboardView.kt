@@ -709,7 +709,7 @@ class KeyboardView(context: Context) : View(context) {
     // ---------------------------------------------------------------- drawing
 
     override fun onDraw(canvas: Canvas) {
-        pal.paintBackground(canvas, width, height)
+        pal.paintBackground(this, canvas)
         if (page >= keys.size) return
         val ks = keys[page]
         val rs = rects[page]
@@ -1059,7 +1059,7 @@ class KeyboardView(context: Context) : View(context) {
     private fun drawFlash(c: Canvas, msg: String) {
         val l = padX + stripLeadW
         val r = width - padX - stripMicW
-        pal.erase(c, width, height, l, 0f, r, stripH, fillPaint)
+        pal.erase(this, c, l, 0f, r, stripH, fillPaint)
         sugPaint.color = pal.text
         sugPaint.textSize = dp(13f)
         val fit = android.text.TextUtils.ellipsize(msg, android.text.TextPaint(sugPaint), r - l - dp(16f), android.text.TextUtils.TruncateAt.END).toString()
@@ -1438,14 +1438,14 @@ class KeyboardView(context: Context) : View(context) {
         /** The picture behind everything (L10 step 2, D87), or null: then the plain [bg] color. */
         val backdrop: Backdrop? = null,
     ) {
-        /** Paint the whole background of a view [w] x [h] (the picture, faded, or the plain color). */
-        fun paintBackground(c: Canvas, w: Int, h: Int) {
+        /** Paint the whole background of [view] (the picture, faded and placed for the way the phone is held, or the plain color). */
+        fun paintBackground(view: View, c: Canvas) {
             val b = backdrop
-            if (b != null) b.draw(c, w, h) else c.drawColor(bg)
+            if (b != null) b.draw(c, view.width, view.height, landscape(view)) else c.drawColor(bg)
         }
 
         /** Paint the rectangle as background again: it hides what is under it and still shows the picture. [paint] is only used for the plain color. */
-        fun erase(c: Canvas, w: Int, h: Int, l: Float, t: Float, r: Float, b: Float, paint: Paint) {
+        fun erase(view: View, c: Canvas, l: Float, t: Float, r: Float, b: Float, paint: Paint) {
             val bd = backdrop
             if (bd == null) {
                 paint.color = bg
@@ -1453,10 +1453,12 @@ class KeyboardView(context: Context) : View(context) {
             } else {
                 c.save()
                 c.clipRect(l, t, r, b)
-                bd.draw(c, w, h)
+                bd.draw(c, view.width, view.height, landscape(view))
                 c.restore()
             }
         }
+
+        private fun landscape(view: View): Boolean = view.resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
     }
 
     private companion object {

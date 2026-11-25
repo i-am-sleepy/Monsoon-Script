@@ -34,6 +34,9 @@ class ThemeSpec(
     val pictureFade: Int = DEFAULT_FADE,
     /** How solid the keys are on top of the picture, in percent ([MIN_KEY_OPACITY]..100); it only matters while there is a picture. */
     val keyOpacity: Int = DEFAULT_KEY_OPACITY,
+    /** Where the picture sits in the keyboard held upright / on its side (D90). */
+    val cropPortrait: PictureCrop = PictureCrop.AUTO,
+    val cropLandscape: PictureCrop = PictureCrop.AUTO,
 ) {
     val builtIn: Boolean get() = id.startsWith(BUILTIN_PREFIX)
 
@@ -92,9 +95,10 @@ class ThemeSpec(
         id: String = this.id, name: String = this.name, bg: Int = this.bg, key: Int = this.key, special: Int = this.special,
         accent: Int = this.accent, text: Int = this.text, overrides: Map<Slot, Int> = this.overrides,
         picture: String? = this.picture, pictureFade: Int = this.pictureFade, keyOpacity: Int = this.keyOpacity,
+        cropPortrait: PictureCrop = this.cropPortrait, cropLandscape: PictureCrop = this.cropLandscape,
     ): ThemeSpec = ThemeSpec(
         id, name, bg, key, special, accent, text, overrides, picture,
-        pictureFade.coerceIn(0, MAX_FADE), keyOpacity.coerceIn(MIN_KEY_OPACITY, 100),
+        pictureFade.coerceIn(0, MAX_FADE), keyOpacity.coerceIn(MIN_KEY_OPACITY, 100), cropPortrait, cropLandscape,
     )
 
     /** Colors that are hard to read together (D75: shown as a note, never blocked). */

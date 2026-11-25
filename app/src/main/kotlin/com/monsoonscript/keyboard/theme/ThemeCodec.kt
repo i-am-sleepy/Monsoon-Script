@@ -33,6 +33,8 @@ object ThemeCodec {
             m["pic"] = t.picture
             m["fade"] = t.pictureFade
             m["keys"] = t.keyOpacity
+            if (!t.cropPortrait.isAuto) m["cp"] = t.cropPortrait.toMap()
+            if (!t.cropLandscape.isAuto) m["cl"] = t.cropLandscape.toMap()
         }
         return m
     }
@@ -55,7 +57,10 @@ object ThemeCodec {
         val picture = (m["pic"] as? String)?.takeIf { PictureMath.isValidFileName(it) }
         val fade = (m["fade"] as? Number)?.toInt() ?: ThemeSpec.DEFAULT_FADE
         val keys = (m["keys"] as? Number)?.toInt() ?: ThemeSpec.DEFAULT_KEY_OPACITY
-        return ThemeSpec(id, name, bg, key, special, accent, text, overrides, picture, fade.coerceIn(0, ThemeSpec.MAX_FADE), keys.coerceIn(ThemeSpec.MIN_KEY_OPACITY, 100))
+        return ThemeSpec(
+            id, name, bg, key, special, accent, text, overrides, picture, fade.coerceIn(0, ThemeSpec.MAX_FADE), keys.coerceIn(ThemeSpec.MIN_KEY_OPACITY, 100),
+            PictureCrop.fromMap(m["cp"] as? Map<*, *>), PictureCrop.fromMap(m["cl"] as? Map<*, *>),
+        )
     }
 
     fun cleanName(raw: String?): String {

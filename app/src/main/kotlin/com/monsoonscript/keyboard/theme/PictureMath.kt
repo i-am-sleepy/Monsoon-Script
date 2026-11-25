@@ -30,23 +30,58 @@ object PictureMath {
     }
 
     /**
-     * The part of a [bw] x [bh] picture that fills a [w] x [h] view when the picture is scaled to cover the view and cut at the edges, in the middle:
-     * left, top, right, bottom in picture pixels.
+     * The part of a [bw] x [bh] picture a [w] x [h] view shows, in picture pixels: left, top, right, bottom (floats). At [zoom] 1 the picture is scaled to just
+     * cover the view; a bigger zoom shows a smaller part. [x] / [y] (0..100) say where that part sits in the room the picture leaves (50 = the middle).
      */
-    fun cropRect(bw: Int, bh: Int, w: Int, h: Int): IntArray {
-        if (bw <= 0 || bh <= 0 || w <= 0 || h <= 0) return intArrayOf(0, 0, max(bw, 0), max(bh, 0))
-        val sw: Int
-        val sh: Int
-        if (bw.toLong() * h > bh.toLong() * w) { // the picture is wider than the view: use the full height
-            sh = bh
-            sw = (bh.toLong() * w / h).toInt().coerceIn(1, bw)
+    fun visibleRect(bw: Int, bh: Int, w: Float, h: Float, zoom: Float, x: Float, y: Float): FloatArray {
+        if (bw <= 0 || bh <= 0 || w <= 0f || h <= 0f) return floatArrayOf(0f, 0f, max(bw, 0).toFloat(), max(bh, 0).toFloat())
+        val z = zoom.coerceAtLeast(1f)
+        val baseW: Float
+        val baseH: Float
+        if (bw.toDouble() * h > bh.toDouble() * w) { // the picture is wider than the view: at zoom 1 the full height shows
+            baseH = bh.toFloat()
+            baseW = bh * w / h
         } else {
-            sw = bw
-            sh = (bw.toLong() * h / w).toInt().coerceIn(1, bh)
+            baseW = bw.toFloat()
+            baseH = bw * h / w
         }
-        val l = (bw - sw) / 2
-        val t = (bh - sh) / 2
-        return intArrayOf(l, t, l + sw, t + sh)
+        val sw = (baseW / z).coerceIn(1f, bw.toFloat())
+        val sh = (baseH / z).coerceIn(1f, bh.toFloat())
+        val l = (bw - sw) * x.coerceIn(0f, 100f) / 100f
+        val t = (bh - sh) * y.coerceIn(0f, 100f) / 100f
+        return floatArrayOf(l, t, l + sw, t + sh)
+    }
+
+    /** [visibleRect] as whole pixels for the given [crop]: left, top, right, bottom. */
+    fun cropRect(bw: Int, bh: Int, w: Int, h: Int, crop: PictureCrop = PictureCrop.AUTO): IntArray {
+        if (bw <= 0 || bh <= 0 || w <= 0 || h <= 0) return intArrayOf(0, 0, max(bw, 0), max(bh, 0))
+        val v = visibleRect(bw, bh, w.toFloat(), h.toFloat(), crop.zoom / 100f, crop.x.toFloat(), crop.y.toFloat())
+        val l = v[0].roundToInt().coerceIn(0, bw - 1)
+        val t = v[1].roundToInt().coerceIn(0, bh - 1)
+        val r = v[2].roundToInt().coerceIn(l + 1, bw)
+        val b = v[3].roundToInt().coerceIn(t + 1, bh)
+        return intArrayOf(l, t, r, b)
+    }
+
+    /** The [x] / [y] (0..100) that put the visible part of a [bw] x [bh] picture, shown at [zoom] in a [w] x [h] view, at [left] / [top] picture pixels. */
+    fun positionFor(bw: Int, bh: Int, w: Float, h: Float, zoom: Float, left: Float, top: Float): FloatArray {
+        val v = visibleRect(bw, bh, w, h, zoom, 0f, 0f)
+        val roomX = bw - (v[2] - v[0])
+        val roomY = bh - (v[3] - v[1])
+        val x = if (roomX > 0.5f) (left / roomX * 100f).coerceIn(0f, 100f) else 50f
+        val y = if (roomY > 0.5f) (top / roomY * 100f).coerceIn(0f, 100f) else 50f
+        return floatArrayOf(x, y)
+    }
+
+    /**
+     * The shape (width / height) of the keyboard, to draw the crop frame in: [widthDp] is the screen's short side in portrait or its long side in landscape,
+     * [heightPercent] the key height setting, [rows] 4 or 5 (number row). The same sizes the keyboard view uses (strip 44 / 38 dp, key row 52 / 42 dp, small padding).
+     */
+    fun keyboardAspect(landscape: Boolean, widthDp: Float, heightPercent: Int, rows: Int): Float {
+        val strip = if (landscape) 38f else 44f
+        val row = (if (landscape) 42f else 52f) * heightPercent.coerceIn(60, 160) / 100f
+        val h = strip + row * rows + 8f
+        return (widthDp / h).coerceIn(1f, 8f)
     }
 
     /** The alpha (0..255) of the veil that fades a picture by [fadePercent] %. */

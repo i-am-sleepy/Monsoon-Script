@@ -25,4 +25,12 @@
     <string name="theme_pic_working">Getting the picture…</string>
     <string name="theme_pic_failed">That picture could not be read.</string>
     <string name="theme_pic_note">The picture goes behind the keys, the emoji panel and the clipboard panel. Fade makes it lighter or darker so the letters stay readable. Lower the key opacity to see the picture through the keys.</string>
+    <!-- Placing the picture (L10 step 2b, D90) -->
+    <string name="theme_crop_row">Position and zoom</string>
+    <string name="theme_crop_row_summary">Choose which part of the picture shows, for portrait and landscape</string>
+    <string name="theme_crop_title">Position the picture</string>
+    <string name="theme_crop_note">Drag the picture to move it, pinch to zoom. The bright frame is your keyboard, the dimmed part is cut off. Portrait and landscape are set separately.</string>
+    <string name="theme_crop_portrait">Portrait</string>
+    <string name="theme_crop_landscape">Landscape</string>
+    <string name="theme_crop_reset">Reset this to automatic</string>
 </resources>

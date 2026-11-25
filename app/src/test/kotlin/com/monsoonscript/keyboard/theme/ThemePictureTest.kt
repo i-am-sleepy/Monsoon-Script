@@ -109,4 +109,80 @@ class ThemePictureTest {
         assertEquals(0, ColorMath.withAlpha(0x123456, 0) ushr 24)
         assertEquals(0xFF, ColorMath.withAlpha(0x123456, 500) ushr 24)
     }
+
+    // ---- placing the picture (D90)
+
+    @Test
+    fun zoomShowsASmallerPartAndPositionMovesIt() {
+        // a 1000 x 1000 picture in a 400 x 400 view
+        val auto = PictureMath.visibleRect(1000, 1000, 400f, 400f, 1f, 50f, 50f)
+        assertEquals(listOf(0f, 0f, 1000f, 1000f), auto.toList())
+        val zoomed = PictureMath.visibleRect(1000, 1000, 400f, 400f, 2f, 50f, 50f)
+        assertEquals(listOf(250f, 250f, 750f, 750f), zoomed.toList())
+        val topLeft = PictureMath.visibleRect(1000, 1000, 400f, 400f, 2f, 0f, 0f)
+        assertEquals(listOf(0f, 0f, 500f, 500f), topLeft.toList())
+        val bottomRight = PictureMath.visibleRect(1000, 1000, 400f, 400f, 2f, 100f, 100f)
+        assertEquals(listOf(500f, 500f, 1000f, 1000f), bottomRight.toList())
+    }
+
+    @Test
+    fun theVisiblePartNeverLeavesThePicture() {
+        for (zoom in listOf(1f, 1.3f, 2.7f, 4f, 9f)) for (x in listOf(-20f, 0f, 37f, 100f, 250f)) for (y in listOf(-5f, 50f, 100f, 300f)) {
+            val v = PictureMath.visibleRect(1600, 900, 1080f, 600f, zoom, x, y)
+            assertTrue("left", v[0] >= -0.001f && v[1] >= -0.001f)
+            assertTrue("right", v[2] <= 1600.001f && v[3] <= 900.001f)
+            assertTrue("size", v[2] > v[0] && v[3] > v[1])
+        }
+    }
+
+    @Test
+    fun theAutomaticCropIsTheMiddle() {
+        assertEquals(listOf(300, 0, 700, 400), PictureMath.cropRect(1000, 400, 400, 400, PictureCrop.AUTO).toList())
+        // the same picture, the crop moved all the way left
+        assertEquals(listOf(0, 0, 400, 400), PictureMath.cropRect(1000, 400, 400, 400, PictureCrop(100, 0, 50)).toList())
+        assertEquals(listOf(600, 0, 1000, 400), PictureMath.cropRect(1000, 400, 400, 400, PictureCrop(100, 100, 50)).toList())
+    }
+
+    @Test
+    fun aPositionSurvivesTheRoundTripThroughPixels() {
+        for (zoom in listOf(1f, 2f, 3.5f)) for (x in listOf(0f, 25f, 50f, 100f)) {
+            val v = PictureMath.visibleRect(1600, 900, 1080f, 600f, zoom, x, 40f)
+            val back = PictureMath.positionFor(1600, 900, 1080f, 600f, zoom, v[0], v[1])
+            val roomX = 1600 - (v[2] - v[0])
+            val roomY = 900 - (v[3] - v[1])
+            if (roomX > 0.5f) assertEquals(x, back[0], 0.01f) else assertEquals(50f, back[0], 0.01f)
+            if (roomY > 0.5f) assertEquals(40f, back[1], 0.01f) else assertEquals(50f, back[1], 0.01f)
+        }
+    }
+
+    @Test
+    fun theKeyboardIsAboutOneAndAHalfTimesWiderThanTallUprightAndFarWiderOnItsSide() {
+        val portrait = PictureMath.keyboardAspect(false, 360f, 100, 4)
+        val landscape = PictureMath.keyboardAspect(true, 800f, 100, 4)
+        assertTrue("portrait $portrait", portrait in 1.2f..1.7f)
+        assertTrue("landscape $landscape", landscape in 3f..5f)
+        assertTrue(PictureMath.keyboardAspect(false, 360f, 100, 5) < portrait) // the number row makes it taller
+        assertTrue(PictureMath.keyboardAspect(false, 360f, 150, 4) < portrait) // taller keys too
+    }
+
+    @Test
+    fun theCropIsKeptInsideItsLimitsAndRoundTripsThroughText() {
+        val c = PictureCrop(9999, -5, 500)
+        assertEquals(PictureCrop.MAX_ZOOM, c.zoom)
+        assertEquals(0, c.x)
+        assertEquals(100, c.y)
+        assertEquals(PictureCrop.MIN_ZOOM, PictureCrop(1, 50, 50).zoom)
+        assertTrue(PictureCrop().isAuto)
+        assertFalse(PictureCrop(150, 50, 50).isAuto)
+        val t = custom("p1.jpg").copy(cropPortrait = PictureCrop(180, 20, 70), cropLandscape = PictureCrop(250, 90, 10))
+        val back = ThemeCodec.decodeList(ThemeCodec.encodeList(listOf(t))).single()
+        assertEquals(PictureCrop(180, 20, 70), back.cropPortrait)
+        assertEquals(PictureCrop(250, 90, 10), back.cropLandscape)
+        // automatic crops are not written at all, and an old theme loads with automatic ones
+        assertFalse(ThemeCodec.encodeList(listOf(custom("p1.jpg"))).contains("\"cp\""))
+        assertTrue(ThemeCodec.decodeList(ThemeCodec.encodeList(listOf(custom("p1.jpg")))).single().cropPortrait.isAuto)
+        assertTrue(PictureCrop.fromMap(mapOf("z" to "bad")).isAuto)
+        assertTrue(PictureCrop.fromMap(null).isAuto)
+    }
 }
+

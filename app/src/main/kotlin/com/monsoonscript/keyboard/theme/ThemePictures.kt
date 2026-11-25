@@ -102,8 +102,8 @@ object ThemePictures {
         }
     }
 
-    /** The backdrop to draw for [spec], or null when it has no picture (or the file is gone or damaged: then the plain background color is used). */
-    fun backdrop(context: Context, spec: ThemeSpec): Backdrop? {
+    /** The decoded picture of [spec] and its cache key, or null when it has no picture (or the file is gone or damaged). */
+    private fun load(context: Context, spec: ThemeSpec): Pair<String, Bitmap>? {
         val name = spec.picture ?: return null
         val f = file(context, name)?.takeIf { it.isFile } ?: return null
         val key = "$name:${f.lastModified()}:${f.length()}"
@@ -113,9 +113,21 @@ object ThemePictures {
                 while (bitmaps.size > KEEP) bitmaps.remove(bitmaps.keys.first())
             }
         } ?: return null
-        // the fade is a veil of the theme's own side: dark themes fade towards black, light ones towards white
+        return key to bitmap
+    }
+
+    /** The picture of [spec] itself (for the crop screen), or null. */
+    fun bitmap(context: Context, spec: ThemeSpec): Bitmap? = load(context, spec)?.second
+
+    /** The veil color of [spec]: its fade as a see-through color of the theme's own side (dark themes fade towards black, light ones towards white). */
+    fun veil(spec: ThemeSpec): Int {
         val veilColor = if (spec.isLight) Color.WHITE else Color.BLACK
-        val veil = (PictureMath.veilAlpha(spec.pictureFade) shl 24) or (veilColor and 0x00FFFFFF)
-        return Backdrop(key, bitmap, veil)
+        return (PictureMath.veilAlpha(spec.pictureFade) shl 24) or (veilColor and 0x00FFFFFF)
+    }
+
+    /** The backdrop to draw for [spec], or null when it has no picture (or the file is gone or damaged: then the plain background color is used). */
+    fun backdrop(context: Context, spec: ThemeSpec): Backdrop? {
+        val (key, bitmap) = load(context, spec) ?: return null
+        return Backdrop(key, bitmap, veil(spec), spec.cropPortrait, spec.cropLandscape)
     }
 }

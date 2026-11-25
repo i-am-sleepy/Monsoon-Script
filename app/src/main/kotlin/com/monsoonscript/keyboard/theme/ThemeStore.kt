@@ -84,7 +84,7 @@ object ThemeStore {
     fun copyOf(context: Context, source: ThemeSpec, baseName: String): ThemeSpec =
         ThemeSpec(
             newId(context), uniqueName(context, baseName), source.bg, source.key, source.special, source.accent, source.text, source.overrides,
-            ThemePictures.copy(context, source.picture), source.pictureFade, source.keyOpacity,
+            ThemePictures.copy(context, source.picture), source.pictureFade, source.keyOpacity, source.cropPortrait, source.cropLandscape,
         )
 
     fun uniqueName(context: Context, base: String): String {

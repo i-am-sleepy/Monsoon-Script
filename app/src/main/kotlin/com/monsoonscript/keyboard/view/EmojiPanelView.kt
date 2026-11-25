@@ -410,7 +410,7 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
     // ---------------------------------------------------------------- drawing
 
     override fun onDraw(canvas: Canvas) {
-        pal.paintBackground(canvas, width, height)
+        pal.paintBackground(this, canvas)
         if (searching) {
             drawResultsRow(canvas)
             drawPill(canvas, resH, true)
@@ -479,7 +479,7 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
     /** The search pill: browsing (top of the panel) or typing (below the results row). */
     private fun drawPill(c: Canvas, y0: Float, typing: Boolean) {
         val w = width.toFloat()
-        pal.erase(c, width, height, 0f, y0, w, y0 + barH, fillPaint)
+        pal.erase(this, c, 0f, y0, w, y0 + barH, fillPaint)
         val left = dp(10f)
         val right = if (typing) w - dp(10f) else w - kbBtnW // not typing: the keyboard button sits right of the bar
         rect.set(left, y0 + dp(5f), right, y0 + barH - dp(5f))
@@ -541,7 +541,7 @@ class EmojiPanelView(context: Context, private var pal: KeyboardView.Palette) : 
         val w = width.toFloat()
         val h = height.toFloat()
         val y0 = h - barH
-        pal.erase(c, width, height, 0f, y0, w, h, fillPaint)
+        pal.erase(this, c, 0f, y0, w, h, fillPaint)
         val cy = y0 + barH / 2f
         if (bottomKey == KEY_ABC) {
             fillPaint.color = pal.specialPressed

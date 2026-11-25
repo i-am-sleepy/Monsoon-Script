@@ -57,6 +57,16 @@ class ThemeEditActivity : ThemedActivity() {
         bubbles?.saveState(outState)
     }
 
+    override fun onResume() {
+        super.onResume()
+        // the crop screen saves its own changes: take them over, so the next change here does not undo them
+        val fresh = ThemeStore.find(this, spec.id)
+        if (fresh != null && (fresh.cropPortrait != spec.cropPortrait || fresh.cropLandscape != spec.cropLandscape)) {
+            spec = spec.copy(cropPortrait = fresh.cropPortrait, cropLandscape = fresh.cropLandscape)
+            showPreview()
+        }
+    }
+
     private fun showPreview() {
         // the theme being edited is shown whatever the phone is doing now
         ThemePreview.apply(this, kb, spec, spec, ThemePreview.ALWAYS_DAY)
@@ -111,6 +121,9 @@ class ThemeEditActivity : ThemedActivity() {
         page.content.add(buttonRow(getString(if (spec.hasPicture) R.string.theme_pic_change else R.string.theme_pic_choose), null) { choosePicture() })
         if (spec.hasPicture) {
             val percent = { v: Int -> "$v %" }
+            page.content.add(navRow(getString(R.string.theme_crop_row), getString(R.string.theme_crop_row_summary)) {
+                startActivity(Intent(this@ThemeEditActivity, PictureCropActivity::class.java).putExtra(PictureCropActivity.EXTRA_ID, spec.id))
+            })
             page.content.add(valueSliderRow(getString(R.string.theme_pic_fade), 0, ThemeSpec.MAX_FADE, spec.pictureFade, percent) { v -> tweak(spec.copy(pictureFade = v)) })
             page.content.add(valueSliderRow(getString(R.string.theme_pic_keys), ThemeSpec.MIN_KEY_OPACITY, 100, spec.keyOpacity, percent) { v -> tweak(spec.copy(keyOpacity = v)) })
             page.content.add(buttonRow(getString(R.string.theme_pic_remove), null) {

@@ -149,7 +149,7 @@ class VoicePanelView(context: Context, private var pal: KeyboardView.Palette) : 
     }
 
     override fun onDraw(c: Canvas) {
-        pal.paintBackground(c, width, height)
+        pal.paintBackground(this, c)
         place()
         val now = SystemClock.uptimeMillis()
         val canInsert = text.isNotBlank() && state == 0

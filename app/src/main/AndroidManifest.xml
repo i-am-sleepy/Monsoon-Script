@@ -59,6 +59,11 @@
             android:label="@string/themes_title" />
 
         <activity
+            android:name=".theme.PictureCropActivity"
+            android:exported="false"
+            android:label="@string/theme_crop_title" />
+
+        <activity
             android:name=".theme.ThemeEditActivity"
             android:exported="false"
             android:label="@string/theme_edit_title"
