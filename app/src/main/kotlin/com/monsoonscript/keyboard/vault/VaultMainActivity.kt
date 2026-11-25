@@ -171,9 +171,9 @@ internal class VaultMainActivity : VaultBaseActivity() {
             page.content.add(note(getString(R.string.vault_unlock_for, name)))
             page.content.add(padded(field))
             page.content.add(padded(error, 20, 0))
-            page.content.add(keyRow)
+            page.content.add(padded(filledButton(getString(R.string.vault_unlock)) { unlock(field, error) })) // right under the field: the keyboard cannot hide it
             page.content.add(gap(12))
-            page.content.add(padded(filledButton(getString(R.string.vault_unlock)) { unlock(field, error) }))
+            page.content.add(keyRow)
             page.content.add(buttonRow(getString(R.string.vault_other_vault), null) { confirmForget() })
         }
         setContentView(page.root)

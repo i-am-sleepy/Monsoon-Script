@@ -7,11 +7,8 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.text.TextUtils
 import android.view.View
-import android.view.ViewGroup
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import com.monsoonscript.keyboard.R
@@ -68,15 +65,9 @@ internal class EntryActivity : VaultBaseActivity() {
         secrets.clear()
         val title = d.summary.title.ifEmpty { getString(R.string.vault_untitled) }
         val page = ui.page(title, onBack = { finish() })
-        page.bar?.apply {
-            (getChildAt(childCount - 1) as? TextView)?.apply {
-                maxLines = 1
-                ellipsize = TextUtils.TruncateAt.END
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
-            }
-            addView(ui.iconButton(VaultIcons.Kind.EDIT, getString(R.string.vault_edit), ui.colors.text) { edit() })
-            addView(ui.iconButton(VaultIcons.Kind.TRASH, getString(R.string.vault_delete_entry), VAULT_RED) { delete(d) })
-        }
+        ui.addToBar(page.bar,
+            ui.iconButton(VaultIcons.Kind.EDIT, getString(R.string.vault_edit), ui.colors.text) { edit() },
+            ui.iconButton(VaultIcons.Kind.TRASH, getString(R.string.vault_delete_entry), VAULT_RED) { delete(d) })
         with(ui) {
             val c = page.content
             if (d.summary.username.isNotEmpty()) c.add(valueRow(getString(R.string.vault_username), d.summary.username, getString(R.string.vault_username_copied)))

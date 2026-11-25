@@ -60,6 +60,29 @@ internal fun SettingsUi.letterChip(letter: String, chipDp: Int = 40): View = Tex
     layoutParams = LinearLayout.LayoutParams(dp(chipDp), dp(chipDp))
 }
 
+/** An accent-colored action word for the page bar ("Save", "Create"): always on screen, even with the keyboard open. */
+internal fun SettingsUi.barAction(label: String, onClick: () -> Unit): TextView = TextView(ctx).apply {
+    text = label
+    textSize = 16f
+    typeface = android.graphics.Typeface.DEFAULT_BOLD
+    setTextColor(colors.accent)
+    gravity = Gravity.CENTER
+    setPadding(dp(14), dp(8), dp(14), dp(8))
+    background = ripple()
+    setOnClickListener { onClick() }
+}
+
+/** Puts [views] at the right end of a page bar (the title takes the space in between and is cut short if it must be). */
+internal fun SettingsUi.addToBar(bar: LinearLayout?, vararg views: View) {
+    bar ?: return
+    (bar.getChildAt(bar.childCount - 1) as? TextView)?.apply {
+        maxLines = 1
+        ellipsize = android.text.TextUtils.TruncateAt.END
+        layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+    }
+    for (v in views) bar.addView(v)
+}
+
 /** An accent-colored text button in a dialog, the way the rest of the app does it. */
 internal fun SettingsUi.styleDialog(dialog: AlertDialog) {
     for (b in intArrayOf(AlertDialog.BUTTON_POSITIVE, AlertDialog.BUTTON_NEGATIVE, AlertDialog.BUTTON_NEUTRAL)) dialog.getButton(b)?.setTextColor(colors.accent)

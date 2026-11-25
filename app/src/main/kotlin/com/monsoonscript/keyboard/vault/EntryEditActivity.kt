@@ -61,6 +61,7 @@ internal class EntryEditActivity : VaultBaseActivity() {
 
     private fun build(d: EntryDetail?) {
         val page = ui.page(getString(if (d == null) R.string.vault_new_entry else R.string.vault_edit), onBack = { leave() })
+        ui.addToBar(page.bar, ui.barAction(getString(R.string.vault_save)) { save() }) // in the bar, so it is never hidden below the keyboard
         titleBox = ui.textBox(getString(R.string.vault_title_hint), inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES)
         username = ui.textBox(getString(R.string.vault_username), inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS)
         val generate = ui.iconButton(VaultIcons.Kind.REFRESH, getString(R.string.vault_generator), ui.colors.accent) {

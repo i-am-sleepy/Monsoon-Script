@@ -36,6 +36,7 @@ internal class VaultCreateActivity : VaultBaseActivity() {
         super.onCreate(savedInstanceState)
         window.setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
         val page = ui.page(getString(R.string.vault_create_title), onBack = { finish() })
+        ui.addToBar(page.bar, ui.barAction(getString(R.string.vault_create_button)) { create() }) // in the bar, so it is never hidden below the keyboard
         nameBox = ui.textBox(getString(R.string.vault_name_hint)).apply { setText(getString(R.string.vault_default_name)) }
         password = PasswordField(this, ui, getString(R.string.vault_master_password))
         confirm = PasswordField(this, ui, getString(R.string.vault_master_password_again))
