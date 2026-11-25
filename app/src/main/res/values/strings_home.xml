@@ -11,7 +11,5 @@
     <string name="search_in">In %1$s</string>
     <!-- The floating bubbles (L12 R3, D83) -->
     <string name="bubble_try_desc">Try the keyboard: opens a text box</string>
-    <string name="bubble_preview_desc">Live preview of the keyboard</string>
-    <string name="bubble_preview_title">Live preview</string>
     <string name="bubble_close">Close</string>
 </resources>

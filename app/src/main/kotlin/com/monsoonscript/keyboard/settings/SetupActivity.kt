@@ -65,7 +65,7 @@ class SetupActivity : ThemedActivity() {
         renderSetup()
         val root = FrameLayout(this)
         val host = BubbleHost(this, ui, page.root)
-        host.addTryIt(0)
+        host.addTryIt()
         host.restoreState(savedInstanceState)
         bubbles = host
         root.addView(host.root, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))

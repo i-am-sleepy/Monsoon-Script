@@ -11,7 +11,6 @@ import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.settings.BubbleHost
 import com.monsoonscript.keyboard.settings.SettingsUi
 import com.monsoonscript.keyboard.settings.ThemedActivity
-import com.monsoonscript.keyboard.view.KeyboardView
 
 /**
  * The editor of one custom theme (L10, D75): a live preview, the name, the five main colors, "advanced colors" (the six that follow by themselves unless set), and
@@ -21,7 +20,6 @@ class ThemeEditActivity : ThemedActivity() {
     private lateinit var ui: SettingsUi
     private lateinit var page: SettingsUi.Page
     private lateinit var spec: ThemeSpec
-    private lateinit var kb: KeyboardView
     private var bubbles: BubbleHost? = null
     private var advanced = false
 
@@ -36,13 +34,11 @@ class ThemeEditActivity : ThemedActivity() {
         advanced = savedInstanceState?.getBoolean(STATE_ADVANCED) ?: false
         ui = SettingsUi(this)
         page = ui.page(getString(R.string.theme_edit_title)) { finish() }
-        kb = KeyboardView(this)
-        val host = BubbleHost(this, ui, page.root) // the live preview is a bubble that opens a keyboard docked at the bottom (L12 R3, D83)
-        host.addPreview(kb, 0)
+        val host = BubbleHost(this, ui, page.root) // the "Try it" bubble: the real keyboard shows this theme once it is the day or night theme (L12 R3, D83/D85)
+        host.addTryIt()
         host.restoreState(savedInstanceState)
         bubbles = host
         setContentView(host.root)
-        showPreview()
         render()
     }
 
@@ -52,15 +48,9 @@ class ThemeEditActivity : ThemedActivity() {
         bubbles?.saveState(outState)
     }
 
-    private fun showPreview() {
-        // the theme being edited is shown whatever the phone is doing now
-        ThemePreview.apply(this, kb, spec, spec, ThemePreview.ALWAYS_DAY)
-    }
-
     private fun change(newSpec: ThemeSpec) {
         spec = newSpec
         ThemeStore.save(this, spec)
-        showPreview()
         render()
     }
 

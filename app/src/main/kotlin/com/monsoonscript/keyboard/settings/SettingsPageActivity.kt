@@ -3,7 +3,6 @@ package com.monsoonscript.keyboard.settings
 import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
@@ -11,11 +10,8 @@ import android.widget.Toast
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.ime.LearnSettings
 import com.monsoonscript.keyboard.prefs.Prefs
-import com.monsoonscript.keyboard.view.KeyboardView
 import com.monsoonscript.keyboard.view.SpaceDrag
-import com.monsoonscript.keyboard.theme.ThemeStore
 import com.monsoonscript.keyboard.theme.ThemesActivity
-import com.monsoonscript.keyboard.theme.toPalette
 
 /**
  * One settings sub-page (D55): which one comes in the intent extra [EXTRA_PAGE]. Each page is its own activity, so the system Back button
@@ -23,9 +19,6 @@ import com.monsoonscript.keyboard.theme.toPalette
  */
 class SettingsPageActivity : ThemedActivity() {
 
-    /** The keyboard shown on the Appearance page; it follows every change of a setting while the page is open. */
-    private var preview: KeyboardView? = null
-    private val previewListener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> applyPreview() }
     private var bubbles: BubbleHost? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,10 +30,9 @@ class SettingsPageActivity : ThemedActivity() {
             ABOUT -> about(ui)
             else -> typing(ui)
         }
-        // the floating bubbles (L12 R3, D83): "Try it" on every page, "Live preview" (docked at the bottom) on Appearance
+        // the floating "Try it" bubble (L12 R3, D83/D85) on every page
         val host = BubbleHost(this, ui, page.root)
-        host.addTryIt(0)
-        preview?.let { host.addPreview(it, 1) }
+        host.addTryIt()
         host.restoreState(savedInstanceState)
         bubbles = host
         setContentView(host.root)
@@ -118,9 +110,6 @@ class SettingsPageActivity : ThemedActivity() {
 
     private fun appearance(ui: SettingsUi): SettingsUi.Page {
         val page = ui.page(getString(R.string.settings_appearance)) { finish() }
-        val kb = KeyboardView(this)
-        preview = kb
-        applyPreview()
         with(ui) {
             page.content.add(note(getString(R.string.settings_preview_note)))
             page.content.add(header(getString(R.string.settings_look_header)))
@@ -134,22 +123,6 @@ class SettingsPageActivity : ThemedActivity() {
             page.content.add(sliderRow(getString(R.string.settings_key_gap), Prefs.KEY_GAP, Prefs.GAP_MIN, Prefs.GAP_MAX, Prefs.GAP_DEFAULT) { getString(R.string.settings_dp, it) })
         }
         return page
-    }
-
-    private fun applyPreview() {
-        preview?.setThemes(ThemeStore.day(this).colors().toPalette(), ThemeStore.night(this).colors().toPalette()) // the owner's themes (L10, D75)
-        preview?.setAppearance(Prefs.theme(this), Prefs.numberRow(this), Prefs.emojiKey(this), Prefs.heightPortrait(this), Prefs.heightLandscape(this), Prefs.keyGap(this))
-    }
-
-    override fun onResume() {
-        super.onResume()
-        Prefs.of(this).registerOnSharedPreferenceChangeListener(previewListener)
-        applyPreview()
-    }
-
-    override fun onPause() {
-        Prefs.of(this).unregisterOnSharedPreferenceChangeListener(previewListener)
-        super.onPause()
     }
 
     private fun about(ui: SettingsUi): SettingsUi.Page {

@@ -17,15 +17,13 @@
     <string name="settings_suggestions_summary">Learning from your typing</string>
     <string name="settings_appearance">Appearance</string>
     <string name="settings_appearance_summary">Theme, number row, keyboard size and key spacing</string>
-    <string name="settings_preview_header">Preview</string>
-    <string name="settings_preview_note">Tap the round eye button to see your keyboard live at the bottom of the screen. It shows the height for the way you hold the phone now. Very tall settings are limited so the keyboard never covers more than about two thirds of the screen.</string>
+    <string name="settings_preview_note">Changes show on your keyboard at once. Tap the round keyboard button to open a text box and see them while you adjust.</string>
     <string name="settings_look_header">Look</string>
     <string name="settings_theme">Theme</string>
     <!-- Themes (L10, D75) -->
     <string name="themes_title">Themes</string>
     <string name="themes_row_summary">Colors for day and night. Make your own.</string>
-    <string name="themes_preview_header">Preview</string>
-    <string name="themes_intro">Tap the round eye button to see the keyboard live. Pick one theme for day and one for night. \"Follow the phone\" switches between them when your phone goes light or dark. Tap a theme to use it or to change it.</string>
+    <string name="themes_intro">Pick one theme for day and one for night. \"Follow the phone\" switches between them when your phone goes light or dark. Tap a theme to use it or to change it.</string>
     <string name="themes_mode">When to use which</string>
     <string name="themes_mode_system">Follow the phone</string>
     <string name="themes_mode_day">Always the day theme</string>
@@ -50,7 +48,7 @@
     <string name="themes_copy_name">%1$s copy</string>
     <string name="themes_new_name">My theme</string>
     <string name="theme_edit_title">Edit theme</string>
-    <string name="theme_edit_preview_note">Every change is saved at once. Tap the round eye button to see it on a keyboard at the bottom of the screen.</string>
+    <string name="theme_edit_preview_note">Every change is saved at once. To see this theme on your keyboard, use it as your day or night theme below, then tap the round keyboard button.</string>
     <string name="theme_edit_name">Name</string>
     <string name="theme_edit_colors_header">Colors</string>
     <string name="theme_edit_advanced_show">Show advanced colors</string>

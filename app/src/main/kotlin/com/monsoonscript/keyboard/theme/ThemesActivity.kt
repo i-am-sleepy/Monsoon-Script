@@ -14,7 +14,6 @@ import com.monsoonscript.keyboard.prefs.Prefs
 import com.monsoonscript.keyboard.settings.BubbleHost
 import com.monsoonscript.keyboard.settings.SettingsUi
 import com.monsoonscript.keyboard.settings.ThemedActivity
-import com.monsoonscript.keyboard.view.KeyboardView
 
 /**
  * The list of themes (L10, D75): a preview, the choice "follow the phone / always day / always night", and every theme (ready-made first, then the owner's own).
@@ -23,7 +22,6 @@ import com.monsoonscript.keyboard.view.KeyboardView
 class ThemesActivity : ThemedActivity() {
     private lateinit var ui: SettingsUi
     private lateinit var page: SettingsUi.Page
-    private lateinit var kb: KeyboardView
     private var bubbles: BubbleHost? = null
     private val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> render() }
 
@@ -34,9 +32,8 @@ class ThemesActivity : ThemedActivity() {
         super.onCreate(savedInstanceState)
         ui = SettingsUi(this)
         page = ui.page(getString(R.string.themes_title)) { finish() }
-        kb = KeyboardView(this)
-        val host = BubbleHost(this, ui, page.root) // the live preview is a bubble that opens a keyboard docked at the bottom (L12 R3, D83)
-        host.addPreview(kb, 0)
+        val host = BubbleHost(this, ui, page.root) // the "Try it" bubble: the real keyboard follows the chosen themes at once (L12 R3, D83/D85)
+        host.addTryIt()
         host.restoreState(savedInstanceState)
         bubbles = host
         setContentView(host.root)
@@ -63,7 +60,6 @@ class ThemesActivity : ThemedActivity() {
         page.content.removeAllViews()
         val day = ThemeStore.day(this)
         val night = ThemeStore.night(this)
-        ThemePreview.apply(this, kb, day, night)
         with(ui) {
             page.content.add(note(getString(R.string.themes_intro)))
             val modes = listOf(R.string.themes_mode_system, R.string.themes_mode_day, R.string.themes_mode_night).map { getString(it) }
