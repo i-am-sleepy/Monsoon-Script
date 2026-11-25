@@ -211,6 +211,40 @@ class VaultSession(
         return found.sortedBy { it.title.lowercase() }
     }
 
+    /**
+     * Entries that store [packageName] as an app link (E1.14, D32): the custom field "AndroidApp", "AndroidApp1", ... that KeePassDX writes.
+     * The recycle bin is not searched. A blank package name finds nothing.
+     */
+    @Synchronized
+    fun forApp(packageName: String): List<EntrySummary> {
+        val d = requireDb()
+        if (packageName.isBlank()) return emptyList()
+        val root = d.rootGroup ?: return emptyList()
+        val found = ArrayList<EntrySummary>()
+        walk(root, binId(d)) { e ->
+            if (e.getExtraFields().any { isAppField(it.name) && it.protectedValue.toString() == packageName }) found.add(summary(e))
+        }
+        return found.sortedBy { it.title.lowercase() }
+    }
+
+    /** The summaries of [ids] in the same order; ids that do not exist any more (or are in the recycle bin) are left out. For the picker's "recent" list. */
+    @Synchronized
+    fun summaries(ids: List<String>): List<EntrySummary> {
+        val d = requireDb()
+        val bin = d.recycleBin
+        val out = ArrayList<EntrySummary>(ids.size)
+        for (id in ids) {
+            val e = try {
+                entryById(d, id)
+            } catch (_: VaultException) {
+                continue
+            }
+            if (bin != null && isUnder(e, bin)) continue
+            out.add(summary(e))
+        }
+        return out
+    }
+
     @Synchronized
     fun entry(id: String): EntryDetail {
         val d = requireDb()
@@ -486,6 +520,18 @@ class VaultSession(
         return d.getEntryById(NodeIdUUID(uuid)) ?: throw VaultException(VaultError.NOT_FOUND, "Entry not found")
     }
 
+    private fun isAppField(name: String): Boolean =
+        name.startsWith(APP_FIELD) && name.length >= APP_FIELD.length && name.substring(APP_FIELD.length).all { it.isDigit() }
+
+    private fun isUnder(e: Entry, group: Group): Boolean {
+        var p: Group? = e.parent
+        while (p != null) {
+            if (p.nodeId == group.nodeId) return true
+            p = p.parent
+        }
+        return false
+    }
+
     private fun binId(d: DatabaseInfo): String? = d.recycleBin?.let { idOf(it.nodeId) }
 
     private fun walk(group: Group, skipId: String?, visit: (Entry) -> Unit) {
@@ -579,6 +625,9 @@ class VaultSession(
     companion object {
         const val ROOT_NAME = "Root"
         const val RECYCLE_BIN_NAME = "Recycle Bin"
+
+        /** The custom field KeePassDX uses for an Android app link (AppOriginEntryField.APPLICATION_ID_FIELD_NAME); more apps: "AndroidApp1", "AndroidApp2" ... */
+        const val APP_FIELD = "AndroidApp"
 
         /** The engine's own standard field names: a custom field may not use them. */
         private val STANDARD_FIELDS = setOf("title", "username", "password", "url", "notes")

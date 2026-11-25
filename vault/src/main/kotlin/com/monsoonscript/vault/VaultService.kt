@@ -134,6 +134,8 @@ class VaultService : Service() {
 
         override fun list(groupId: String?): GroupListing = onEngine { session.list(groupId) }
         override fun search(query: String?): List<EntrySummary> = onEngine { session.search(query ?: "") }
+        override fun forApp(packageName: String?): List<EntrySummary> = onEngine { session.forApp(packageName ?: "") }
+        override fun summaries(ids: MutableList<String>?): List<EntrySummary> = onEngine { session.summaries(ids ?: emptyList()) }
         override fun entry(id: String?): EntryDetail = onEngine { session.entry(need(id)) }
         override fun password(id: String?): CharArray = onEngine { session.password(need(id)) }
         override fun fieldValue(id: String?, name: String?): String? = onEngine { session.fieldValue(need(id), need(name)) }

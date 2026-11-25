@@ -29,6 +29,10 @@ interface IVault {
 
     GroupListing list(String groupId);
     List<EntrySummary> search(String query);
+    /** Entries that store this Android package as an app link (E1.14, D32). */
+    List<EntrySummary> forApp(String packageName);
+    /** Summaries for these ids, same order; missing ones are left out (the picker's recent list). */
+    List<EntrySummary> summaries(in List<String> ids);
     EntryDetail entry(String id);
     char[] password(String id);
     String fieldValue(String id, String name);

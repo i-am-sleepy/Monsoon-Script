@@ -334,6 +334,35 @@ class VaultSessionTest {
     }
 
     @Test
+    fun forAppFindsEntriesByTheirAppLinkAndSkipsTheRecycleBin() {
+        val s = newVault()
+        val root = s.info().rootId
+        val bank = s.saveEntry(draft("Bank", root, fields = listOf(FieldItem("AndroidApp", "com.example.bank", false)))).id!!
+        s.saveEntry(draft("Two apps", root, fields = listOf(FieldItem("AndroidApp", "com.other", false), FieldItem("AndroidApp1", "com.example.bank", false))))
+        s.saveEntry(draft("Signature only", root, fields = listOf(FieldItem("AndroidApp Signature", "com.example.bank", false))))
+        s.saveEntry(draft("Other", root, fields = listOf(FieldItem("AndroidApp", "com.example.bank.pro", false))))
+        s.saveEntry(draft("No link", root))
+        assertEquals(listOf("Bank", "Two apps"), s.forApp("com.example.bank").map { it.title })
+        assertTrue(s.forApp("").isEmpty())
+        assertTrue(s.forApp("com.nothing").isEmpty())
+        s.deleteEntry(bank)
+        assertEquals(listOf("Two apps"), s.forApp("com.example.bank").map { it.title })
+    }
+
+    @Test
+    fun summariesKeepTheOrderAndDropMissingOrDeletedEntries() {
+        val s = newVault()
+        val root = s.info().rootId
+        val a = s.saveEntry(draft("A", root)).id!!
+        val b = s.saveEntry(draft("B", root)).id!!
+        val c = s.saveEntry(draft("C", root)).id!!
+        assertEquals(listOf("C", "A", "B"), s.summaries(listOf(c, a, b)).map { it.title })
+        s.deleteEntry(a)
+        assertEquals(listOf("C", "B"), s.summaries(listOf(c, a, "not-an-id", b, "00000000-0000-0000-0000-000000000000")).map { it.title })
+        assertTrue(s.summaries(emptyList()).isEmpty())
+    }
+
+    @Test
     fun conflictMergeNeedsTheRightPassword() {
         val (_, b) = conflictScenario()
         expectError(VaultError.WRONG_CREDENTIALS) { b.resolve(Resolve.MERGE, "wrong".toCharArray(), null) }
