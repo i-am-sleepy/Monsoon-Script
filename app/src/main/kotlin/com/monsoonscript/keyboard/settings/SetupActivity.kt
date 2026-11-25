@@ -14,6 +14,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.clipboard.app.ClipboardActivity
+import com.monsoonscript.keyboard.vault.VaultMainActivity
 import com.monsoonscript.keyboard.theme.ThemesActivity
 import com.monsoonscript.keyboard.voice.VoiceSettingsActivity
 
@@ -55,6 +56,7 @@ class SetupActivity : ThemedActivity() {
             page.content.add(navRow(getString(R.string.settings_appearance), getString(R.string.settings_appearance_summary), Icons.Kind.DROP) { open(SettingsPageActivity.APPEARANCE) })
             page.content.add(gap())
             page.content.add(navRow(getString(R.string.clip_title), getString(R.string.clip_row_summary), Icons.Kind.CLIPBOARD) { startActivity(Intent(this@SetupActivity, ClipboardActivity::class.java)) })
+            page.content.add(navRow(getString(R.string.vault_title), getString(R.string.vault_row_summary), Icons.Kind.LOCK) { startActivity(Intent(this@SetupActivity, VaultMainActivity::class.java)) })
             page.content.add(navRow(getString(R.string.voice_settings_title), getString(R.string.voice_settings_summary), Icons.Kind.MIC) { startActivity(Intent(this@SetupActivity, VoiceSettingsActivity::class.java)) })
             page.content.add(gap())
             page.content.add(navRow(getString(R.string.settings_about), getString(R.string.settings_about_summary), Icons.Kind.INFO) { open(SettingsPageActivity.ABOUT) })
@@ -111,6 +113,7 @@ class SetupActivity : ThemedActivity() {
             SettingsIndex.THEMES -> startActivity(Intent(this, ThemesActivity::class.java))
             SettingsIndex.CLIPBOARD -> startActivity(Intent(this, ClipboardActivity::class.java))
             SettingsIndex.VOICE -> startActivity(Intent(this, VoiceSettingsActivity::class.java))
+            SettingsIndex.VAULT -> startActivity(Intent(this, VaultMainActivity::class.java))
             else -> startActivity(SettingsPageActivity.intent(this, e.page, getString(e.title)))
         }
     }

@@ -10,6 +10,7 @@ internal object SettingsIndex {
     const val THEMES = "themes"
     const val CLIPBOARD = "clipboard"
     const val VOICE = "voice"
+    const val VAULT = "vault"
 
     class Entry(val title: Int, val summary: Int, val page: String, val icon: Icons.Kind)
 
@@ -44,6 +45,7 @@ internal object SettingsIndex {
         appearance(R.string.settings_height_landscape),
         appearance(R.string.settings_key_gap),
         Entry(R.string.clip_title, R.string.clip_row_summary, CLIPBOARD, Icons.Kind.CLIPBOARD),
+        Entry(R.string.vault_title, R.string.vault_row_summary, VAULT, Icons.Kind.LOCK),
         Entry(R.string.voice_settings_title, R.string.voice_settings_summary, VOICE, Icons.Kind.MIC),
         Entry(R.string.settings_licenses, R.string.settings_licenses_summary, SettingsPageActivity.ABOUT, Icons.Kind.INFO),
     )
@@ -55,6 +57,7 @@ internal object SettingsIndex {
         SettingsPageActivity.APPEARANCE -> R.string.settings_appearance
         CLIPBOARD -> R.string.clip_title
         VOICE -> R.string.voice_settings_title
+        VAULT -> R.string.vault_title
         THEMES -> R.string.themes_title
         else -> R.string.settings_about
     }

@@ -2,6 +2,7 @@
 <!-- Password vault screens (E1.13, claude-e). Plain words, no engine jargon (D33). -->
 <resources>
     <string name="vault_title">Password vault</string>
+    <string name="vault_row_summary">Passwords in one encrypted KeePass file</string>
     <string name="vault_welcome_text">Keep your passwords in one encrypted file that only you can open. It is a standard KeePass file, so KeePassDX and KeePassXC can open it too.</string>
     <string name="vault_welcome_note">The vault never leaves your phone unless you put the file somewhere yourself, for example in a synced folder.</string>
     <string name="vault_create">Create a new vault</string>
