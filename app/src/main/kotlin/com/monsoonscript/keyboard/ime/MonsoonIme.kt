@@ -53,6 +53,7 @@ import com.monsoonscript.keyboard.view.EmojiPanelView
 import com.monsoonscript.keyboard.view.KeyboardView
 import com.monsoonscript.keyboard.view.SearchablePanel
 import com.monsoonscript.keyboard.view.VoicePanelView
+import com.monsoonscript.keyboard.voice.CrashLog
 import com.monsoonscript.keyboard.voice.VoiceInput
 import com.monsoonscript.keyboard.voice.VoiceLang
 import java.io.IOException
@@ -243,6 +244,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     override fun onCreate() {
         super.onCreate()
+        CrashLog.install(this) // uncaught exceptions are written to a file (Settings > Voice typing > Problem report)
         language = Prefs.language(this) // where the keyboard was left (saved by name, unknown = English)
         lastBangla = Prefs.lastBangla(this)
         autoShow = Prefs.autoShow(this) // asked before the keyboard view exists
@@ -1095,13 +1097,39 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private fun voiceLang() = if (language.isBangla) VoiceLang.BANGLA else VoiceLang.ENGLISH
 
     override fun onMicTap() {
-        commitComposingIfAny()
-        showVoicePanel()
+        try {
+            commitComposingIfAny()
+            showVoicePanel()
+        } catch (t: Throwable) {
+            voiceFailed("mic tap / voice panel", t)
+        }
+    }
+
+    /** The voice code must never take the keyboard down or leave it invisible: record the problem, put the keys back and say what happened over the strip. */
+    private fun voiceFailed(what: String, t: Throwable) {
+        try {
+            CrashLog.record(this, what, t)
+        } catch (x: Throwable) {
+        }
+        voicePanel?.let {
+            it.visibility = View.GONE
+            if (shownPanel === it) shownPanel = null
+        }
+        panelSearch = false
+        keyboard?.let {
+            it.visibility = View.VISIBLE
+            it.setStripVisible(true)
+            it.flash("Voice problem: " + t.javaClass.simpleName + " " + (t.message ?: ""))
+        }
     }
 
     override fun onMicHoldStart() {
-        commitComposingIfAny()
-        ensureVoice().holdStart(voiceLang())
+        try {
+            commitComposingIfAny()
+            ensureVoice().holdStart(voiceLang())
+        } catch (t: Throwable) {
+            voiceFailed("mic hold", t)
+        }
     }
 
     override fun onMicHoldEnd(cancel: Boolean) {

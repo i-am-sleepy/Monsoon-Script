@@ -89,6 +89,11 @@
             android:label="@string/voice_settings_title" />
 
         <activity
+            android:name=".voice.ProblemsActivity"
+            android:exported="false"
+            android:label="@string/voice_problems_title" />
+
+        <activity
             android:name=".voice.VoiceDiagActivity"
             android:exported="false"
             android:label="@string/voice_diag_title" />

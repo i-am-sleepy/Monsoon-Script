@@ -59,4 +59,10 @@
     <string name="voice_google_perm_title">Google voice needs one permission</string>
     <string name="voice_google_perm_summary">Speech Recognition &amp; Synthesis from Google has no microphone permission on this phone, so Google voice fails with "insufficient permissions". Open its settings, then Permissions, and allow the microphone.</string>
     <string name="voice_google_perm_open">Open its settings</string>
+    <string name="voice_problems_title">Problem report</string>
+    <string name="voice_problems_summary">Why the keyboard last stopped or vanished: Android\'s record and the errors the app saw</string>
+    <string name="voice_problems_copy">Copy the report</string>
+    <string name="voice_problems_copy_summary">Then paste it in the chat</string>
+    <string name="voice_problems_clear">Clear the saved errors</string>
+    <string name="voice_problems_copied">Report copied</string>
 </resources>

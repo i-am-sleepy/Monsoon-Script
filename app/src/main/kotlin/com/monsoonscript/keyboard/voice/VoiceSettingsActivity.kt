@@ -40,6 +40,7 @@ class VoiceSettingsActivity : ThemedActivity() {
             modelBox = LinearLayout(this@VoiceSettingsActivity).apply { orientation = LinearLayout.VERTICAL }
             page.content.add(modelBox)
             page.content.add(navRow(getString(R.string.voice_diag_title), getString(R.string.voice_diag_summary)) { startActivity(Intent(this@VoiceSettingsActivity, VoiceDiagActivity::class.java)) })
+            page.content.add(navRow(getString(R.string.voice_problems_title), getString(R.string.voice_problems_summary)) { startActivity(Intent(this@VoiceSettingsActivity, ProblemsActivity::class.java)) })
             page.content.add(note(getString(R.string.voice_models_note)))
             page.content.add(header(getString(R.string.voice_privacy_header)))
             page.content.add(switchRow(getString(R.string.voice_offline), getString(R.string.voice_offline_summary), Prefs.VOICE_OFFLINE, false))
