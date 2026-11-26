@@ -6,7 +6,7 @@ import android.os.Build
 import com.monsoonscript.keyboard.R
 
 /**
- * The live "Wallpaper" theme (L10 step 3, D91): a ready-made theme (Android 12 and newer only) whose colors are the system's own palette made from the wallpaper
+ * The live "Wallpaper" theme (L10 step 3, D93): a ready-made theme (Android 12 and newer only) whose colors are the system's own palette made from the wallpaper
  * ("Material You"), light for the day slot and dark for the night slot. It is read from the system every time (the keyboard asks each time it opens), so it follows
  * the wallpaper without anything being saved. Like every ready-made theme it is read-only; "Copy" makes a normal theme with today's colors.
  */

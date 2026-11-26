@@ -3,7 +3,7 @@ package com.monsoonscript.keyboard.theme
 import java.util.Base64
 
 /**
- * Sharing a theme as text (L10 step 3, D91): a theme becomes one line of letters and digits that starts with [PREFIX] and survives being pasted into any chat; the
+ * Sharing a theme as text (L10 step 3, D93): a theme becomes one line of letters and digits that starts with [PREFIX] and survives being pasted into any chat; the
  * other person pastes the whole message (or just the line) into "Import a theme". The line holds the colors and the two sliders' numbers, never the picture or its
  * placement (a photo does not fit in text), and never an id (the importer makes a new one). Whatever is pasted is treated as untrusted: it goes through the same
  * checked reading as the saved themes ([ThemeCodec]), so a damaged or hostile text gives null, never a crash and never a path or an out-of-range number.

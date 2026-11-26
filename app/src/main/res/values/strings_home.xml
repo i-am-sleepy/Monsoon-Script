@@ -33,7 +33,7 @@
     <string name="theme_crop_portrait">Portrait</string>
     <string name="theme_crop_landscape">Landscape</string>
     <string name="theme_crop_reset">Reset this to automatic</string>
-    <!-- Wallpaper theme, share and import (L10 step 3, D91) -->
+    <!-- Wallpaper theme, share and import (L10 step 3, D93) -->
     <string name="themes_wallpaper_name">Wallpaper colors</string>
     <string name="themes_tag_wallpaper">Follows your wallpaper</string>
     <string name="themes_import">Import a theme</string>
