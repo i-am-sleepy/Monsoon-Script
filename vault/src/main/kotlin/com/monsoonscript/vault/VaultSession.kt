@@ -165,6 +165,59 @@ class VaultSession(
     @Synchronized
     fun status(): VaultStatus = VaultStatus(db != null, dirty, conflict, db?.isReadOnly == true)
 
+    // ---------------------------------------------------------------- backups (E1.16, D94)
+
+    /** The earlier versions of the open vault that were kept before a save replaced them (D36), newest first. */
+    @Synchronized
+    fun backups(): List<BackupInfo> {
+        requireDb()
+        val st = store ?: throw VaultException(VaultError.LOCKED, "The vault is locked")
+        return VaultBackups.list(st.backupDir).reversed().map { BackupInfo(it.name, it.lastModified(), it.length()) }
+    }
+
+    /** Replaces the vault with a kept version, then locks (see [restore]). */
+    @Synchronized
+    fun restoreBackup(id: String) {
+        val st = store ?: throw VaultException(VaultError.LOCKED, "The vault is locked")
+        val kept = VaultBackups.list(st.backupDir).firstOrNull { it.name == id } // only a real backup of this vault: the id is never used as a path
+            ?: throw VaultException(VaultError.NOT_FOUND, "That saved version is gone")
+        restore { kept.inputStream() }
+    }
+
+    /** Replaces the vault with the KeePass file [source], then locks (see [restore]). */
+    @Synchronized
+    fun restoreFromFile(source: VaultStore) {
+        restore { source.openInput() }
+    }
+
+    /**
+     * The version being replaced is kept as a backup first (so a restore can be undone, D94). The new content is copied into a private file and checked
+     * (a KeePass header the engine accepts, and its key-derivation memory within the limits) BEFORE the vault file is touched; then it is copied over the
+     * vault. The vault is locked afterwards: the restored file has the master password and key file of its own time, and the open session would be stale.
+     */
+    private fun restore(open: () -> java.io.InputStream) {
+        requireWritable()
+        val st = store ?: throw VaultException(VaultError.LOCKED, "The vault is locked")
+        workDir.mkdirs()
+        val tmp = File(workDir, "restore-${System.nanoTime()}.tmp")
+        try {
+            open().use { input -> tmp.outputStream().use { out -> input.copyTo(out) } }
+            if (tmp.length() == 0L) throw VaultException(VaultError.NOT_A_VAULT, "This is not a valid KeePass file, or it is damaged")
+            tmp.inputStream().use { input ->
+                val probe = DatabaseKDBX()
+                DatabaseHeaderKDBX(probe).loadFromFile(input)
+                probe.kdfEngine?.checkLimits(limits)
+            }
+            VaultBackups.backup(st, force = true)
+            tmp.inputStream().use { input -> st.openOutput().use { out -> input.copyTo(out) } }
+        } catch (e: Throwable) {
+            throw map(e)
+        } finally {
+            tmp.delete()
+        }
+        lock()
+    }
+
     @Synchronized
     fun info(): VaultInfo {
         val d = requireDb()

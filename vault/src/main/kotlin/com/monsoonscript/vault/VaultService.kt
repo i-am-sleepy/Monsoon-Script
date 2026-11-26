@@ -140,6 +140,10 @@ class VaultService : Service() {
         override fun password(id: String?): CharArray = onEngine { session.password(need(id)) }
         override fun fieldValue(id: String?, name: String?): String? = onEngine { session.fieldValue(need(id), need(name)) }
 
+        override fun backups(): List<BackupInfo> = onEngine { session.backups() }
+        override fun restoreBackup(id: String?) = onEngine { session.restoreBackup(need(id)) }
+        override fun restoreFromFile(file: Uri?) = onEngine { session.restoreFromFile(storeFor(need(file))) }
+
         override fun saveEntry(draft: EntryDraft?): Change = onEngine { session.saveEntry(need(draft)) }
         override fun deleteEntry(id: String?): Change = onEngine { session.deleteEntry(need(id)) }
         override fun moveEntry(id: String?, groupId: String?): Change = onEngine { session.moveEntry(need(id), need(groupId)) }

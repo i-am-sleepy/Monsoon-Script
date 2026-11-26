@@ -59,6 +59,12 @@ internal object VaultHub {
         .putExtra(Intent.EXTRA_TITLE, suggestedName)
         .addFlags(PICK_FLAGS)
 
+    /** The picker for a vault file to restore from (E1.16): read only, used once. */
+    fun readFileIntent(): Intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
+        .addCategory(Intent.CATEGORY_OPENABLE)
+        .setType("*/*")
+        .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+
     /** The picker for a key file (read only). */
     fun keyFileIntent(): Intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
         .addCategory(Intent.CATEGORY_OPENABLE)

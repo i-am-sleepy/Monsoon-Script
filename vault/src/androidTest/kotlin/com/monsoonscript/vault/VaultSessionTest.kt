@@ -288,6 +288,93 @@ class VaultSessionTest {
         assertTrue("the newest backup is the file as it was when opened", backups.last().readBytes().contentEquals(before))
     }
 
+    // ------------------------------------------------------------------ E1.16: the backups screen's engine side
+
+    /** A vault whose file holds "One" and whose backups hold the version before "Two" was added; returns the session that did the second save. */
+    private fun vaultWithABackup(): VaultSession {
+        val first = newVault()
+        first.saveEntry(draft("One", first.info().rootId))
+        first.lock()
+        val again = openVault()
+        again.saveEntry(draft("Two", again.info().rootId)) // the first save of a session keeps the version just opened
+        return again
+    }
+
+    @Test
+    fun backupsAreListedNewestFirstWithTheirSize() {
+        val s = vaultWithABackup()
+        val list = s.backups()
+        assertTrue(list.isNotEmpty())
+        assertEquals(list.sortedByDescending { it.time }, list)
+        assertEquals(VaultBackups.list(File(dir, "backups")).last().length(), list.first().size)
+    }
+
+    @Test
+    fun restoringABackupBringsTheOlderVersionBackLocksAndKeepsTheCurrentOneAsABackup() {
+        val s = vaultWithABackup()
+        assertEquals(setOf("One", "Two"), titles(s))
+        val current = file.readBytes()
+        s.restoreBackup(s.backups().first().id)
+        assertFalse("the restored file has its own master password: the vault locks", s.status().unlocked)
+        assertEquals(setOf("One"), titles(openVault()))
+        assertTrue("the version that was replaced must be a backup, so a restore can be undone",
+            VaultBackups.list(File(dir, "backups")).any { it.readBytes().contentEquals(current) })
+    }
+
+    @Test
+    fun aBackupIdThatIsNotABackupOfThisVaultIsRefused() {
+        val s = vaultWithABackup()
+        val before = file.readBytes()
+        expectError(VaultError.NOT_FOUND) { s.restoreBackup("../v.kdbx") }
+        expectError(VaultError.NOT_FOUND) { s.restoreBackup("nope.bak") }
+        assertTrue(s.status().unlocked)
+        assertTrue(file.readBytes().contentEquals(before))
+    }
+
+    @Test
+    fun restoringAPickedKeepassFileReplacesTheVault() {
+        val other = File(dir, "other.kdbx")
+        val otherStore = FileVaultStore(other, File(dir, "other-backups"))
+        session().also {
+            it.create(otherStore, "Other", pw, null, tune = false)
+            it.saveEntry(draft("FromTheOtherFile", it.info().rootId))
+            it.lock()
+        }
+        val s = newVault()
+        s.saveEntry(draft("Mine", s.info().rootId))
+        val mine = file.readBytes()
+        s.restoreFromFile(otherStore)
+        assertFalse(s.status().unlocked)
+        assertEquals(setOf("FromTheOtherFile"), titles(openVault()))
+        assertTrue("my version is kept as a backup", VaultBackups.list(File(dir, "backups")).any { it.readBytes().contentEquals(mine) })
+    }
+
+    @Test
+    fun aFileThatIsNotAVaultIsRefusedBeforeAnythingIsTouched() {
+        val s = newVault()
+        s.saveEntry(draft("Mine", s.info().rootId))
+        val before = file.readBytes()
+        val junk = File(dir, "junk.kdbx").also { it.writeText("this is not a vault at all, just some text") }
+        expectError(VaultError.NOT_A_VAULT) { s.restoreFromFile(FileVaultStore(junk, File(dir, "junk-backups"))) }
+        val empty = File(dir, "empty.kdbx").also { it.writeBytes(ByteArray(0)) }
+        expectError(VaultError.NOT_A_VAULT) { s.restoreFromFile(FileVaultStore(empty, File(dir, "empty-backups"))) }
+        assertTrue("the vault stays open", s.status().unlocked)
+        assertTrue("and the file is untouched", file.readBytes().contentEquals(before))
+    }
+
+    @Test
+    fun restoringNeedsAnOpenWritableVault() {
+        val s = vaultWithABackup()
+        val id = s.backups().first().id
+        s.lock()
+        expectError(VaultError.LOCKED) { s.restoreBackup(id) }
+        expectError(VaultError.LOCKED) { s.backups() }
+        val ro = session()
+        ro.open(store(), pw, null, readOnly = true)
+        expectError(VaultError.READ_ONLY) { ro.restoreBackup(id) }
+        assertTrue(ro.status().unlocked)
+    }
+
     // ------------------------------------------------------------------ D50: the file changed elsewhere
 
     /** Vault with entry "One", opened twice: [a] saves "Two" (the file changes), then [b]'s change "Three" finds a conflict. */

@@ -1,6 +1,7 @@
 package com.monsoonscript.vault;
 
 import android.net.Uri;
+import com.monsoonscript.vault.BackupInfo;
 import com.monsoonscript.vault.Change;
 import com.monsoonscript.vault.EntryDetail;
 import com.monsoonscript.vault.EntryDraft;
@@ -44,6 +45,13 @@ interface IVault {
     Change renameGroup(String id, String name);
     Change deleteGroup(String id);
     Change emptyRecycleBin();
+
+    /** The kept earlier versions of the open vault, newest first (E1.16). */
+    List<BackupInfo> backups();
+    /** Replaces the vault file with that kept version (the current one is kept first) and LOCKS the vault: the restored file has its own master password. */
+    void restoreBackup(String id);
+    /** The same with a KeePass file the owner picked (checked before anything is touched). */
+    void restoreFromFile(in Uri file);
 
     Change retrySave();
     Change resolve(int choice, in char[] password, in byte[] keyFile);

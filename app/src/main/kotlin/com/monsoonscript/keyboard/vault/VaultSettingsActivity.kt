@@ -1,6 +1,7 @@
 package com.monsoonscript.keyboard.vault
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.os.Bundle
 import android.view.View
@@ -11,8 +12,8 @@ import com.monsoonscript.keyboard.R
 import com.monsoonscript.vault.VaultInfo
 
 /**
- * The vault's settings (E1.13): how long it stays unlocked (D38), the fingerprint switch (E1.15), facts about the open vault, locking it and choosing another one.
- * Backup screens and so on come in later phases (D51).
+ * The vault's settings (E1.13): how long it stays unlocked (D38), the fingerprint switch (E1.15), facts about the open vault, the Backups screen (E1.16),
+ * locking it and choosing another one.
  */
 internal class VaultSettingsActivity : VaultBaseActivity() {
     override val needsUnlocked: Boolean get() = false
@@ -55,9 +56,11 @@ internal class VaultSettingsActivity : VaultBaseActivity() {
             }
             if (!prefs.writable) c.add(note(getString(R.string.vault_read_only_note)))
             c.add(gap(12))
+            c.add(buttonRow(getString(R.string.vault_backups_title), getString(R.string.vault_backups_row_summary)) {
+                startActivity(Intent(this@VaultSettingsActivity, VaultBackupsActivity::class.java))
+            })
             c.add(buttonRow(getString(R.string.vault_lock_now), null) { lockNow() })
             c.add(buttonRow(getString(R.string.vault_other_vault), null) { confirmForget() })
-            c.add(note(getString(R.string.vault_backups_note)))
         }
         setContentView(page.root)
     }

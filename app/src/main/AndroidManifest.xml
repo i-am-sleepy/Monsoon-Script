@@ -164,6 +164,10 @@
             android:name=".vault.VaultSettingsActivity"
             android:exported="false"
             android:label="@string/vault_settings" />
+        <activity
+            android:name=".vault.VaultBackupsActivity"
+            android:exported="false"
+            android:label="@string/vault_backups_title" />
 
     </application>
 </manifest>

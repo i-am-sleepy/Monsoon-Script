@@ -225,4 +225,27 @@
     <string name="fp_setting_no_sensor">This phone cannot unlock the vault with a fingerprint.</string>
     <string name="fp_setting_not_enrolled">Add a fingerprint in the phone\'s settings first.</string>
     <string name="fp_setting_note">The master password is kept encrypted by a key that only your fingerprint can use. A fingerprint added to the phone later destroys that key.</string>
+
+    <!-- Backups screen (E1.16) -->
+    <string name="vault_backups_title">Backups</string>
+    <string name="vault_backups_row_summary">Saved versions, save a copy, restore from a file</string>
+    <string name="vault_backups_versions">Saved versions</string>
+    <string name="vault_backups_none">No saved versions yet. The app keeps the version that a save is about to replace.</string>
+    <string name="vault_backups_hint">The last 5 versions are kept on this phone. Tap one to restore it.</string>
+    <string name="vault_backups_newest">Newest</string>
+    <string name="vault_backups_copies">Copies</string>
+    <string name="vault_backups_save_copy">Save a copy now</string>
+    <string name="vault_backups_save_copy_text">Writes the encrypted vault file to a place you choose.</string>
+    <string name="vault_backups_restore_file">Restore from a file</string>
+    <string name="vault_backups_restore_file_text">Replace the vault with a KeePass file (.kdbx) you pick.</string>
+    <string name="vault_backups_read_only">The vault was opened read-only, so it cannot be restored here.</string>
+    <string name="vault_backups_restore_title">Replace the vault?</string>
+    <string name="vault_backups_restore_text_version">The vault will be replaced by the version from %1$s. The current version is kept as a saved version first, so you can undo this. The vault locks afterwards: unlock it with the master password that version had.</string>
+    <string name="vault_backups_restore_text_file">The vault will be replaced by “%1$s”. The current version is kept as a saved version first, so you can undo this. The vault locks afterwards: unlock it with the master password that file has.</string>
+    <string name="vault_backups_restore_yes">Replace</string>
+    <string name="vault_backups_restoring">Restoring…</string>
+    <string name="vault_backups_saving">Saving the copy…</string>
+    <string name="vault_backups_saved">Copy saved</string>
+    <string name="vault_backups_save_failed">The copy could not be saved</string>
+    <string name="vault_backups_restored">Restored. Unlock the vault again.</string>
 </resources>

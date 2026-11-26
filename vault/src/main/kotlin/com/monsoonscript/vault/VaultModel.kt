@@ -139,3 +139,11 @@ data class EntryDraft(
     val notes: String,
     val fields: List<FieldItem>,
 ) : Parcelable
+
+/** One earlier version of the vault file that the app kept before replacing it (E1.16, D36, D94). [id] is the backup's file name; [time] is when it was kept. */
+@Parcelize
+data class BackupInfo(
+    val id: String,
+    val time: Long,
+    val size: Long,
+) : Parcelable
