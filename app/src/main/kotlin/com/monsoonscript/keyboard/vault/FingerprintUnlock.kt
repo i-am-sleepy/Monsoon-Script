@@ -25,7 +25,10 @@ internal class FingerprintUnlock(private val activity: Activity, private val pre
     private val prompt = FingerprintPrompt(activity)
     private var pending: CharArray? = null // the typed password copy while the set-up prompt is up
 
-    /** True when [begin] is going to show the prompt (the screen can keep its soft keyboard down until it fails). Cheap, no side effects. */
+    /**
+     * True when [begin] is going to show the prompt: the screen keeps its soft keyboard down until it fails, and offers the "Use fingerprint" button (for the
+     * owner who dismissed or missed the prompt) only while this is true. Cheap, no side effects.
+     */
     fun willPrompt(): Boolean =
         prefs.fingerprintOn && store.availability() == FingerprintStore.Availability.READY && store.armed && store.verdict() == FingerprintPolicy.Verdict.OK
 

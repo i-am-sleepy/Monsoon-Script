@@ -211,6 +211,7 @@
     <string name="fp_setup_subtitle">Touch the sensor once to finish.</string>
     <string name="fp_use_password">Master password</string>
     <string name="fp_not_now">Not now</string>
+    <string name="fp_button">Use fingerprint</string>
     <string name="fp_note_restart">The phone restarted. Type the master password once.</string>
     <string name="fp_note_old">It has been more than 3 days since you typed the master password. Type it once.</string>
     <string name="fp_note_changed">The fingerprints on this phone changed. Type the master password to set fingerprint unlock up again.</string>

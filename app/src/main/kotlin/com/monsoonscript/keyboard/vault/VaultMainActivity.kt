@@ -15,6 +15,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.BaseAdapter
 import android.widget.EditText
 import android.widget.FrameLayout
@@ -51,6 +52,7 @@ internal class VaultMainActivity : VaultBaseActivity() {
     private var keyClear: View? = null
     private var fp: FingerprintUnlock? = null
     private var unlockNote: TextView? = null
+    private var fpButton: View? = null
 
     // list page
     private var group: String? = null // the open folder; null = the root
@@ -178,10 +180,17 @@ internal class VaultMainActivity : VaultBaseActivity() {
             @Suppress("DEPRECATION")
             startActivityForResult(VaultHub.keyFileIntent(), REQ_KEYFILE)
         }
+        // next to the password: the way back to the fingerprint when its prompt was missed or dismissed (shown only when the fingerprint is set up and allowed now)
+        val useFingerprint = ui.outlineButton(getString(R.string.fp_button)) { startFingerprint(field, error) }.apply {
+            visibility = if (fingerprint.willPrompt()) View.VISIBLE else View.GONE
+        }
+        fpButton = useFingerprint
         with(ui) {
             page.content.add(note(getString(R.string.vault_unlock_for, name)))
             page.content.add(padded(reasonView, 20, 0))
             page.content.add(padded(field))
+            page.content.add(gap(8))
+            page.content.add(padded(useFingerprint))
             page.content.add(padded(error, 20, 0))
             page.content.add(padded(filledButton(getString(R.string.vault_unlock)) { unlock(field, error) })) // right under the field: the keyboard cannot hide it
             page.content.add(gap(12))
@@ -189,7 +198,16 @@ internal class VaultMainActivity : VaultBaseActivity() {
             page.content.add(buttonRow(getString(R.string.vault_other_vault), null) { confirmForget() })
         }
         setContentView(page.root)
-        fingerprint.begin(
+        startFingerprint(field, error)
+    }
+
+    /** The fingerprint prompt (again): when the page opens, and from the "Use fingerprint" button for the owner who missed or dismissed it. */
+    private fun startFingerprint(field: PasswordField, error: TextView) {
+        val f = fp ?: return
+        unlockNote?.visibility = View.GONE
+        error.visibility = View.GONE
+        field.edit.windowToken?.let { getSystemService(InputMethodManager::class.java)?.hideSoftInputFromWindow(it, 0) } // the prompt is not covered by the keyboard
+        f.begin(
             onPassword = { pw -> unlock(field, error, pw, typed = false) },
             onTyping = { why -> showTyping(field, why) },
         )
@@ -202,6 +220,7 @@ internal class VaultMainActivity : VaultBaseActivity() {
             it.text = why
             it.visibility = View.VISIBLE
         }
+        fpButton?.visibility = if (fp?.willPrompt() == true) View.VISIBLE else View.GONE // only while the fingerprint can still be used
         keyboard(true)
         SoftKeyboard.show(field.edit)
     }

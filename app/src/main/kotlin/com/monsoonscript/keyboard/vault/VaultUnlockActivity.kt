@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -30,6 +31,7 @@ internal class VaultUnlockActivity : Activity() {
     private lateinit var fp: FingerprintUnlock
     private lateinit var field: PasswordField
     private lateinit var info: TextView
+    private lateinit var fpButton: View
     private lateinit var error: TextView
     private lateinit var button: TextView
     private var busy = false
@@ -52,6 +54,15 @@ internal class VaultUnlockActivity : Activity() {
         val keyboardNow = if (fp.willPrompt()) WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN else WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
         window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING or keyboardNow)
         build()
+        startFingerprint()
+    }
+
+    /** The fingerprint prompt (again): at the start, and from the "Use fingerprint" button for the owner who missed or dismissed it. */
+    private fun startFingerprint() {
+        if (busy || done) return
+        info.visibility = View.GONE
+        error.visibility = View.GONE
+        field.edit.windowToken?.let { getSystemService(InputMethodManager::class.java)?.hideSoftInputFromWindow(it, 0) } // the prompt is not covered by the keyboard
         fp.begin(onPassword = { pw -> open(pw, typed = false) }, onTyping = { showTyping(it) })
     }
 
@@ -62,6 +73,7 @@ internal class VaultUnlockActivity : Activity() {
             info.text = note
             info.visibility = View.VISIBLE
         }
+        fpButton.visibility = if (fp.willPrompt()) View.VISIBLE else View.GONE // only while the fingerprint can still be used
         SoftKeyboard.show(field.edit)
     }
 
@@ -105,6 +117,9 @@ internal class VaultUnlockActivity : Activity() {
             } else false
         }
         card.addView(field, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        // next to the password: the way back to the fingerprint when its prompt was missed or dismissed (shown only when the fingerprint is set up and allowed now)
+        fpButton = ui.outlineButton(getString(R.string.fp_button)) { startFingerprint() }.apply { visibility = if (fp.willPrompt()) View.VISIBLE else View.GONE }
+        card.addView(fpButton, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = ui.dp(10) })
         error = TextView(this).apply {
             textSize = 14f
             setTextColor(VAULT_RED)

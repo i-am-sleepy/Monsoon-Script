@@ -36,6 +36,7 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
     E1.15.1 [x] `FingerprintPolicy` (pure) + 10 JVM tests (kotlinc + JUnitCore recipe, all green); `FingerprintStore` (Keystore AES-GCM, availability, arm/read/disarm/skip); `FingerprintPrompt` (platform BiometricPrompt + CryptoObject).
     E1.15.2 [x] `FingerprintUnlock` flow (begin / passwordRejected / afterTyped / stop) + `SoftKeyboard.show`; hooked into `VaultUnlockActivity` (card) and `VaultMainActivity.showUnlock/unlock`; `VaultSettingsActivity` switch row; `VaultPrefs.fingerprintOn` + `forgetVault` turns it off; strings `fp_*`. `tools/compile_check.sh` clean.
     E1.15.3 [~] pushed, waiting for CI + the owner's phone test (only the owner's phone can prove the sensor path: prompt shows, set-up touch, restart / 3-day rules, adding a fingerprint). Test list in STATUS Needs user #23.
+    E1.15.3b [x] owner's extra request (D95): "Use fingerprint" button under the password field on the card and the app unlock page.
     E1.15.4 [ ] after the test: fix what he finds, docs/PASSWORD_MANAGER.md status. Then E1.16 backup/restore screens, E1.17 attachments, E1.18 one-time codes + Code chip (D40). Phase 4 Autofill (D28).
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; D87 is the last one I wrote, check the file for the next free id) and update the docs.
 
