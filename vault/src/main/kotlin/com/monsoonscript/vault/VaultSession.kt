@@ -175,6 +175,19 @@ class VaultSession(
         return VaultBackups.list(st.backupDir).reversed().map { BackupInfo(it.name, it.lastModified(), it.length()) }
     }
 
+    /** The two signature words every KDBX file starts with (the header reader alone would call a text file "unsupported"). */
+    private fun startsLikeKeepass(file: File): Boolean = file.inputStream().use { input ->
+        val b = ByteArray(8)
+        var n = 0
+        while (n < b.size) {
+            val r = input.read(b, n, b.size - n)
+            if (r < 0) break
+            n += r
+        }
+        fun word(at: Int): UInt = (0..3).fold(0u) { acc, i -> acc or ((b[at + i].toUInt() and 0xFFu) shl (8 * i)) }
+        n == b.size && DatabaseHeaderKDBX.matchesHeader(word(0), word(4))
+    }
+
     /** Replaces the vault with a kept version, then locks (see [restore]). */
     @Synchronized
     fun restoreBackup(id: String) {
@@ -202,7 +215,7 @@ class VaultSession(
         val tmp = File(workDir, "restore-${System.nanoTime()}.tmp")
         try {
             open().use { input -> tmp.outputStream().use { out -> input.copyTo(out) } }
-            if (tmp.length() == 0L) throw VaultException(VaultError.NOT_A_VAULT, "This is not a valid KeePass file, or it is damaged")
+            if (!startsLikeKeepass(tmp)) throw VaultException(VaultError.NOT_A_VAULT, "This is not a valid KeePass file, or it is damaged")
             tmp.inputStream().use { input ->
                 val probe = DatabaseKDBX()
                 DatabaseHeaderKDBX(probe).loadFromFile(input)
