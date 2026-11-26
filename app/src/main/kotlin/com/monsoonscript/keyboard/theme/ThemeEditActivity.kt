@@ -110,6 +110,9 @@ class ThemeEditActivity : ThemedActivity() {
                 ThemeStore.setNight(this@ThemeEditActivity, spec.id)
                 render()
             })
+            page.content.add(buttonRow(getString(R.string.theme_share_row), getString(if (spec.hasPicture) R.string.theme_share_row_picture else R.string.theme_share_row_summary)) {
+                ThemeSharing.send(this@ThemeEditActivity, spec)
+            })
             page.content.add(buttonRow(getString(R.string.themes_action_delete), null) { confirmDelete() })
         }
     }

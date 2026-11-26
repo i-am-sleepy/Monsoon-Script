@@ -3,6 +3,10 @@ package com.monsoonscript.keyboard.theme
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.ClipboardManager
+import android.content.res.Configuration
+import android.view.Gravity
+import android.widget.Toast
 import android.os.Bundle
 import android.text.InputType
 import android.view.View
@@ -65,6 +69,7 @@ class ThemesActivity : ThemedActivity() {
             val modes = listOf(R.string.themes_mode_system, R.string.themes_mode_day, R.string.themes_mode_night).map { getString(it) }
             page.content.add(choiceRow(getString(R.string.themes_mode), Prefs.THEME, modes, 0))
             page.content.add(buttonRow(getString(R.string.themes_new), getString(R.string.themes_new_summary)) { createNew() })
+            page.content.add(buttonRow(getString(R.string.themes_import), getString(R.string.themes_import_summary)) { importDialog() })
             page.content.add(header(getString(R.string.themes_list_header)))
             for (t in ThemeStore.all(this@ThemesActivity)) page.content.add(themeRow(t, day.id, night.id))
         }
@@ -77,6 +82,7 @@ class ThemesActivity : ThemedActivity() {
         )
         val tags = ArrayList<String>()
         tags += getString(if (t.builtIn) R.string.themes_tag_builtin else R.string.themes_tag_yours)
+        if (t.id == WallpaperTheme.ID) tags += getString(R.string.themes_tag_wallpaper)
         if (t.id == dayId) tags += getString(R.string.themes_tag_day)
         if (t.id == nightId) tags += getString(R.string.themes_tag_night)
         addView(ui.texts(t.name, tags.joinToString(" · ")), ui.weighted())
@@ -88,9 +94,12 @@ class ThemesActivity : ThemedActivity() {
         items += getString(R.string.themes_action_day) to { ThemeStore.setDay(this, t.id) }
         items += getString(R.string.themes_action_night) to { ThemeStore.setNight(this, t.id) }
         if (t.builtIn) {
-            items += getString(R.string.themes_action_copy) to { edit(copy(t)) }
+            // the live Wallpaper theme is copied as it looks right now (dark when the phone is dark)
+            val source = if (t.id == WallpaperTheme.ID) WallpaperTheme.spec(this, phoneIsDark()) ?: t else t
+            items += getString(R.string.themes_action_copy) to { edit(copy(source)) }
         } else {
             items += getString(R.string.themes_action_edit) to { edit(t) }
+            items += getString(R.string.themes_action_share) to { ThemeSharing.send(this, t) }
             items += getString(R.string.themes_action_duplicate) to { copy(t) }
             items += getString(R.string.themes_action_rename) to { rename(t) }
             items += getString(R.string.themes_action_delete) to { confirmDelete(t) }
@@ -105,6 +114,44 @@ class ThemesActivity : ThemedActivity() {
         val c = ThemeStore.copyOf(this, t, getString(R.string.themes_copy_name, t.name))
         ThemeStore.save(this, c)
         return c
+    }
+
+    private fun phoneIsDark(): Boolean =
+        (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+    /** Ask for the shared text and add the theme in it. */
+    private fun importDialog() {
+        val field = EditText(this).apply {
+            hint = getString(R.string.themes_import_hint)
+            minLines = 4
+            gravity = Gravity.TOP or Gravity.START
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_MULTI_LINE
+        }
+        val dialog = AlertDialog.Builder(this).setTitle(R.string.themes_import).setView(field)
+            .setPositiveButton(R.string.themes_import_do) { _, _ -> importFrom(field.text.toString()) }
+            .setNeutralButton(R.string.themes_import_paste, null)
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
+        // "Paste" fills the field from the clipboard and keeps the dialog open
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL).setOnClickListener {
+            val clip = getSystemService(ClipboardManager::class.java).primaryClip
+            val text = if (clip != null && clip.itemCount > 0) clip.getItemAt(0).coerceToText(this).toString() else ""
+            field.setText(text)
+        }
+    }
+
+    private fun importFrom(text: String) {
+        val shared = ThemeShare.decode(text)
+        if (shared == null) {
+            Toast.makeText(this, R.string.themes_import_bad, Toast.LENGTH_LONG).show()
+            return
+        }
+        val added = ThemeStore.importShared(this, shared)
+        if (added == null) {
+            Toast.makeText(this, R.string.themes_import_full, Toast.LENGTH_LONG).show()
+            return
+        }
+        Toast.makeText(this, getString(R.string.themes_import_ok, added.name), Toast.LENGTH_LONG).show()
     }
 
     private fun createNew() {

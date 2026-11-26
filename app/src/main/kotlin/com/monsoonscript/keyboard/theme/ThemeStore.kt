@@ -26,18 +26,26 @@ object ThemeStore {
         return cachedList
     }
 
-    /** The ready-made themes, then the owner's own. */
-    fun all(context: Context): List<ThemeSpec> = Themes.ALL + custom(context)
+    /** The ready-made themes (and, on Android 12+, the live Wallpaper theme), then the owner's own. */
+    fun all(context: Context): List<ThemeSpec> = presets(context) + custom(context)
 
-    fun find(context: Context, id: String?): ThemeSpec? =
-        if (id == null) null else Themes.builtIn(id) ?: custom(context).firstOrNull { it.id == id }
+    fun presets(context: Context): List<ThemeSpec> = Themes.ALL + listOfNotNull(WallpaperTheme.spec(context, night = false))
+
+    /** The theme [id]; the live Wallpaper theme comes in its day (light) form here, see [day] / [night] for the slots. */
+    fun find(context: Context, id: String?): ThemeSpec? = resolve(context, id, night = false)
+
+    private fun resolve(context: Context, id: String?, night: Boolean): ThemeSpec? = when {
+        id == null -> null
+        id == WallpaperTheme.ID -> WallpaperTheme.spec(context, night)
+        else -> Themes.builtIn(id) ?: custom(context).firstOrNull { it.id == id }
+    }
 
     fun dayId(context: Context): String = Prefs.of(context).getString(KEY_DAY, null) ?: Themes.DEFAULT_ID
     fun nightId(context: Context): String = Prefs.of(context).getString(KEY_NIGHT, null) ?: Themes.DEFAULT_ID
 
     /** The theme for day (a missing one, for example a deleted theme, gives the default, High contrast, D83). */
-    fun day(context: Context): ThemeSpec = find(context, dayId(context)) ?: Themes.DEFAULT
-    fun night(context: Context): ThemeSpec = find(context, nightId(context)) ?: Themes.DEFAULT
+    fun day(context: Context): ThemeSpec = resolve(context, dayId(context), night = false) ?: Themes.DEFAULT
+    fun night(context: Context): ThemeSpec = resolve(context, nightId(context), night = true) ?: Themes.DEFAULT
 
     fun setDay(context: Context, id: String) {
         if (find(context, id) != null) Prefs.of(context).edit().putString(KEY_DAY, id).apply()
@@ -86,6 +94,14 @@ object ThemeStore {
             newId(context), uniqueName(context, baseName), source.bg, source.key, source.special, source.accent, source.text, source.overrides,
             ThemePictures.copy(context, source.picture), source.pictureFade, source.keyOpacity, source.cropPortrait, source.cropLandscape,
         )
+
+    /** Add a theme that came from shared text: a new id, a name that is not taken, no picture. Null when there is no room for another theme. */
+    fun importShared(context: Context, shared: ThemeSpec): ThemeSpec? {
+        if (custom(context).size >= ThemeCodec.MAX_THEMES) return null
+        val t = copyOf(context, shared.copy(picture = null), shared.name)
+        save(context, t)
+        return t
+    }
 
     fun uniqueName(context: Context, base: String): String {
         val names = all(context).map { it.name.lowercase() }.toSet()
