@@ -41,12 +41,12 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
   E1.16 [~] Phase 3 step 2 backups screen (D51; owner's answers D94: list + Restore, Save a copy now, Restore from a file; row in Vault settings; confirm; keep current as backup; lock after).
     E1.16.1 [x] engine: `BackupInfo`, `VaultSession.backups/restoreBackup/restoreFromFile`, AIDL + service, 6 new androidTest cases in VaultSessionTest (run on the emulator in engine.yml; `tools/vault_compile_check.sh` clean).
     E1.16.2 [x] app: `VaultBackupsActivity`, Backups row in `VaultSettingsActivity`, manifest, strings `vault_backups_*`, `VaultHub.readFileIntent`; ARCHITECTURE updated. `tools/compile_check.sh` clean.
-    E1.16.3 [~] pushed; waiting for CI (app + engine emulator tests on `ci-status-engine`) and the owner's phone test (STATUS Needs user #24).
+    E1.16.3 [~] pushed in 5c2f232 + 2d983a8; CI green (app #102, engine unit + all 44 emulator tests #12). Waiting for the owner's phone tests (STATUS Needs user #23 fingerprint incl. the new button, #24 backups).
     E1.16.4 [ ] after the test: fix findings; docs/PASSWORD_MANAGER.md status. Then E1.17 attachments, E1.18 one-time codes + Code chip (D40).
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; D87 is the last one I wrote, check the file for the next free id) and update the docs.
 
 ## Next step
-E1.16.3: read `ci-status` and `ci-status-engine` for the E1.16 commit; wait for the owner's fingerprint test (STATUS Needs user #23) and backups test (#24) and the Phase 2 re-test (#22; if the card still goes to the home screen read Problem report `CrashLog.note` lines first). Next after that: E1.17 attachments (UI task: ask the owner the screen questions first, CLAUDE.md), then E1.18.
+Wait for the owner's fingerprint test (STATUS Needs user #23) and backups test (#24); read `ci-status` first if anything was pushed meanwhile and the Phase 2 re-test (#22; if the card still goes to the home screen read Problem report `CrashLog.note` lines first). Next after that: E1.17 attachments (UI task: ask the owner the screen questions first, CLAUDE.md), then E1.18.
 Before every push of `:vault` code run `tools/vault_compile_check.sh` (~30 s, needs `git submodule update --init --depth 1 third_party/keepassdx`) and `tools/compile_check.sh` for app code (it also compiles VaultModel + VaultClient). Pure vault logic: compile with kotlinc + a main() like /tmp/gentest if no unit-test runner is available.
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
