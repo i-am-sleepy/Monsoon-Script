@@ -357,13 +357,17 @@ internal class SettingsUi(private val context: Context, private val prefs: Share
     fun weighted(): LinearLayout.LayoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
 
     /** A row with a switch that reads and writes the boolean preference [key]. */
-    fun switchRow(title: String, summary: String?, key: String, default: Boolean): View {
+    fun switchRow(title: String, summary: String?, key: String, default: Boolean): View =
+        valueSwitchRow(title, summary, prefs.getBoolean(key, default)) { prefs.edit().putBoolean(key, it).apply() }
+
+    /** A row with a switch that starts at [checked]; [onChange] gets the new state each time it is flipped. */
+    fun valueSwitchRow(title: String, summary: String?, checked: Boolean, onChange: (Boolean) -> Unit): View {
         val sw = Switch(context).apply {
-            isChecked = prefs.getBoolean(key, default)
+            isChecked = checked
             val states = arrayOf(intArrayOf(android.R.attr.state_checked), intArrayOf())
             thumbTintList = ColorStateList(states, intArrayOf(colors.accent, colors.muted))
             trackTintList = ColorStateList(states, intArrayOf(colors.accent, colors.muted))
-            setOnCheckedChangeListener { _, on -> prefs.edit().putBoolean(key, on).apply() }
+            setOnCheckedChangeListener { _, on -> onChange(on) }
         }
         return row().apply {
             addView(texts(title, summary), weighted())

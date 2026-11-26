@@ -241,6 +241,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         keyboard?.let { kb ->
             kb.setThemes(ThemeStore.day(this).palette(this), ThemeStore.night(this).palette(this)) // the owner's themes (L10, D75)
             kb.setAppearance(Prefs.theme(this), Prefs.numberRow(this), Prefs.emojiKey(this), Prefs.heightPortrait(this), Prefs.heightLandscape(this), Prefs.keyGap(this))
+            kb.setTextSizes(Prefs.keyTextSize(this), Prefs.stripTextSize(this))
             applySystemBars() // the theme setting can change the keyboard color
             emojiPanel?.setPalette(kb.palette)
             clipPanel?.setPalette(kb.palette)

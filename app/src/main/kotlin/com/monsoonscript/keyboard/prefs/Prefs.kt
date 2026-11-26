@@ -36,6 +36,11 @@ object Prefs {
     const val HEIGHT_PORTRAIT = "appearance_height_portrait" // percent of the standard key height
     const val HEIGHT_LANDSCAPE = "appearance_height_landscape"
     const val KEY_GAP = "appearance_key_gap" // dp between keys
+    const val KEY_TEXT_SIZE = "appearance_key_text" // percent of the standard size of the letters on the keys (L10 step 4, D94)
+    const val STRIP_TEXT_SIZE = "appearance_strip_text" // percent of the standard size of the text in the suggestion bar
+    const val TEXT_SIZE_MIN = 80
+    const val TEXT_SIZE_MAX = 130
+    const val TEXT_SIZE_DEFAULT = 100
     const val HEIGHT_MIN = 70
     const val HEIGHT_MAX = 130
     const val HEIGHT_DEFAULT = 100
@@ -102,6 +107,10 @@ object Prefs {
     fun heightPortrait(context: Context): Int = of(context).getInt(HEIGHT_PORTRAIT, HEIGHT_DEFAULT).coerceIn(HEIGHT_MIN, HEIGHT_MAX)
 
     fun heightLandscape(context: Context): Int = of(context).getInt(HEIGHT_LANDSCAPE, HEIGHT_DEFAULT).coerceIn(HEIGHT_MIN, HEIGHT_MAX)
+
+    fun keyTextSize(context: Context): Int = of(context).getInt(KEY_TEXT_SIZE, TEXT_SIZE_DEFAULT).coerceIn(TEXT_SIZE_MIN, TEXT_SIZE_MAX)
+
+    fun stripTextSize(context: Context): Int = of(context).getInt(STRIP_TEXT_SIZE, TEXT_SIZE_DEFAULT).coerceIn(TEXT_SIZE_MIN, TEXT_SIZE_MAX)
 
     fun keyGap(context: Context): Int = of(context).getInt(KEY_GAP, GAP_DEFAULT).coerceIn(GAP_MIN, GAP_MAX)
 

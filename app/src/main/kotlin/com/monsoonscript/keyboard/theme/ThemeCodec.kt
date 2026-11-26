@@ -29,6 +29,9 @@ object ThemeCodec {
         val o = LinkedHashMap<String, Any?>()
         for ((slot, key) in SLOT_KEYS) t.overrides[slot]?.let { o[key] = ColorMath.hex(it) }
         if (o.isNotEmpty()) m["o"] = o
+        if (t.keyRoundness != ThemeSpec.DEFAULT_ROUNDNESS) m["kr"] = t.keyRoundness
+        if (t.keyBorder) m["kb"] = true
+        if (t.keyShadow) m["ks"] = true
         if (t.picture != null) {
             m["pic"] = t.picture
             m["fade"] = t.pictureFade
@@ -60,6 +63,7 @@ object ThemeCodec {
         return ThemeSpec(
             id, name, bg, key, special, accent, text, overrides, picture, fade.coerceIn(0, ThemeSpec.MAX_FADE), keys.coerceIn(ThemeSpec.MIN_KEY_OPACITY, 100),
             PictureCrop.fromMap(m["cp"] as? Map<*, *>), PictureCrop.fromMap(m["cl"] as? Map<*, *>),
+            ((m["kr"] as? Number)?.toInt() ?: ThemeSpec.DEFAULT_ROUNDNESS).coerceIn(0, 100), m["kb"] == true, m["ks"] == true,
         )
     }
 

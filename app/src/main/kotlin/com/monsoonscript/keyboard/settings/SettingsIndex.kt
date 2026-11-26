@@ -44,6 +44,8 @@ internal object SettingsIndex {
         appearance(R.string.settings_height_portrait),
         appearance(R.string.settings_height_landscape),
         appearance(R.string.settings_key_gap),
+        appearance(R.string.settings_key_text),
+        appearance(R.string.settings_strip_text),
         Entry(R.string.clip_title, R.string.clip_row_summary, CLIPBOARD, Icons.Kind.CLIPBOARD),
         Entry(R.string.vault_title, R.string.vault_row_summary, VAULT, Icons.Kind.LOCK),
         Entry(R.string.voice_settings_title, R.string.voice_settings_summary, VOICE, Icons.Kind.MIC),

@@ -121,6 +121,8 @@ class SettingsPageActivity : ThemedActivity() {
             page.content.add(sliderRow(getString(R.string.settings_height_portrait), Prefs.HEIGHT_PORTRAIT, Prefs.HEIGHT_MIN, Prefs.HEIGHT_MAX, Prefs.HEIGHT_DEFAULT, percent))
             page.content.add(sliderRow(getString(R.string.settings_height_landscape), Prefs.HEIGHT_LANDSCAPE, Prefs.HEIGHT_MIN, Prefs.HEIGHT_MAX, Prefs.HEIGHT_DEFAULT, percent))
             page.content.add(sliderRow(getString(R.string.settings_key_gap), Prefs.KEY_GAP, Prefs.GAP_MIN, Prefs.GAP_MAX, Prefs.GAP_DEFAULT) { getString(R.string.settings_dp, it) })
+            page.content.add(sliderRow(getString(R.string.settings_key_text), Prefs.KEY_TEXT_SIZE, Prefs.TEXT_SIZE_MIN, Prefs.TEXT_SIZE_MAX, Prefs.TEXT_SIZE_DEFAULT, percent))
+            page.content.add(sliderRow(getString(R.string.settings_strip_text), Prefs.STRIP_TEXT_SIZE, Prefs.TEXT_SIZE_MIN, Prefs.TEXT_SIZE_MAX, Prefs.TEXT_SIZE_DEFAULT, percent))
         }
         return page
     }

@@ -661,16 +661,30 @@ class KeyboardView(context: Context) : View(context) {
         for (p in rects.indices) for (i in stripLeadCount until stripLeftCount.coerceAtMost(rects[p].size)) rects[p][i].offset(d, 0f)
     }
 
+    private var keyTextScale = 1f
+    private var stripTextScale = 1f
+
+    /** The text sizes of the letters on the keys and of the suggestion bar, in percent of the standard (Settings > Appearance). */
+    fun setTextSizes(keyPercent: Int, stripPercent: Int) {
+        val k = keyPercent / 100f
+        val s = stripPercent / 100f
+        if (k == keyTextScale && s == stripTextScale) return
+        keyTextScale = k
+        stripTextScale = s
+        updateTextSizes()
+        invalidate()
+    }
+
     private fun updateTextSizes() {
-        letterPaint.textSize = rowH * 0.40f
-        labelPaint.textSize = rowH * 0.27f
-        hintPaint.textSize = rowH * 0.22f
+        letterPaint.textSize = rowH * 0.40f * keyTextScale
+        labelPaint.textSize = rowH * 0.27f * keyTextScale
+        hintPaint.textSize = rowH * 0.22f * keyTextScale
         popupPaint.textSize = dp(16f)
         popupBase = baseline(popupPaint)
         bubblePaint.textSize = rowH * 0.62f
-        stripTextPaint.textSize = stripH * 0.36f
-        sugPaint.textSize = stripH * 0.40f
-        sugBoldPaint.textSize = stripH * 0.40f
+        stripTextPaint.textSize = stripH * 0.36f * stripTextScale
+        sugPaint.textSize = stripH * 0.40f * stripTextScale
+        sugBoldPaint.textSize = stripH * 0.40f * stripTextScale
         sugBase = baseline(sugPaint)
         letterBase = baseline(letterPaint)
         labelBase = baseline(labelPaint)
@@ -863,7 +877,7 @@ class KeyboardView(context: Context) : View(context) {
             k.kind == Kind.ACTION -> if (pressed) pal.accentPressed else pal.accent
             else -> if (pressed) pal.keyPressed else pal.key
         }
-        c.drawRoundRect(tmp, radius, radius, fillPaint)
+        drawKeyShape(c, tmp, pressed)
 
         val cx = tmp.centerX()
         val cy = tmp.centerY()
@@ -873,9 +887,9 @@ class KeyboardView(context: Context) : View(context) {
                 val hint = hintDrawnOf(k)
                 if (hint != null) {
                     val small = hint.length > 2 // "ZWNJ" / "ZWJ" must still fit in the corner
-                    if (small) hintPaint.textSize = rowH * 0.15f
+                    if (small) hintPaint.textSize = rowH * 0.15f * keyTextScale
                     c.drawText(hint, tmp.right - dp(6f), tmp.top + hintTop, hintPaint)
-                    if (small) hintPaint.textSize = rowH * 0.22f
+                    if (small) hintPaint.textSize = rowH * 0.22f * keyTextScale
                 }
             }
             Codes.SPACE -> {
@@ -1054,6 +1068,30 @@ class KeyboardView(context: Context) : View(context) {
     private fun isSugPressed(i: Int): Boolean {
         for (s in 0 until MAX_PTR) if (ptrInSug[s] && ptrSug[s] == i) return true
         return false
+    }
+
+    private val shadowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val shape = android.graphics.RectF()
+
+    /** The key's body in [r] with the theme's shape (L10 step 4, D94): a soft shadow under it (not while pressed), the filled rounded rectangle, an outline. */
+    private fun drawKeyShape(c: Canvas, r: android.graphics.RectF, pressed: Boolean) {
+        val kr = dp(pal.keyRadiusDp)
+        if (pal.keyShadow && !pressed) {
+            shadowPaint.color = 0x24000000
+            shape.set(r.left - dp(0.5f), r.top + dp(0.5f), r.right + dp(0.5f), r.bottom + dp(2.2f))
+            c.drawRoundRect(shape, kr + dp(1f), kr + dp(1f), shadowPaint)
+            shadowPaint.color = 0x38000000
+            shape.set(r.left, r.top + dp(1f), r.right, r.bottom + dp(1.1f))
+            c.drawRoundRect(shape, kr, kr, shadowPaint)
+        }
+        c.drawRoundRect(r, kr, kr, fillPaint)
+        if (pal.keyBorderColor != 0) {
+            borderPaint.color = pal.keyBorderColor
+            borderPaint.strokeWidth = dp(1f)
+            shape.set(r.left + dp(0.5f), r.top + dp(0.5f), r.right - dp(0.5f), r.bottom - dp(0.5f))
+            c.drawRoundRect(shape, kr, kr, borderPaint)
+        }
     }
 
     private fun drawFlash(c: Canvas, msg: String) {
@@ -1437,6 +1475,10 @@ class KeyboardView(context: Context) : View(context) {
         val bubble: Int,
         /** The picture behind everything (L10 step 2, D87), or null: then the plain [bg] color. */
         val backdrop: Backdrop? = null,
+        /** The key shape of the theme (L10 step 4, D94): corner radius in dp (8 = the keyboard's old look), outline color (0 = none), soft shadow. */
+        val keyRadiusDp: Float = 8f,
+        val keyBorderColor: Int = 0,
+        val keyShadow: Boolean = false,
     ) {
         /** Paint the whole background of [view] (the picture, faded and placed for the way the phone is held, or the plain color). */
         fun paintBackground(view: View, c: Canvas) {

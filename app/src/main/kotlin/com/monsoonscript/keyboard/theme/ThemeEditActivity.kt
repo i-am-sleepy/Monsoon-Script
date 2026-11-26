@@ -87,6 +87,7 @@ class ThemeEditActivity : ThemedActivity() {
             page.content.add(header(getString(R.string.theme_edit_colors_header)))
             for (s in MAIN) page.content.add(colorRow(s))
             for (w in spec.warnings()) page.content.add(note("⚠ " + getString(warnText(w))))
+            addShapeSection()
             addPictureSection()
             page.content.add(buttonRow(getString(if (advanced) R.string.theme_edit_advanced_hide else R.string.theme_edit_advanced_show), null) {
                 advanced = !advanced
@@ -115,6 +116,15 @@ class ThemeEditActivity : ThemedActivity() {
             })
             page.content.add(buttonRow(getString(R.string.themes_action_delete), null) { confirmDelete() })
         }
+    }
+
+    // ---- the key shape (L10 step 4, D94)
+
+    private fun SettingsUi.addShapeSection() {
+        page.content.add(header(getString(R.string.theme_shape_header)))
+        page.content.add(valueSliderRow(getString(R.string.theme_shape_round), 0, 100, spec.keyRoundness, { v: Int -> "$v %" }) { v -> tweak(spec.copy(keyRoundness = v)) })
+        page.content.add(valueSwitchRow(getString(R.string.theme_shape_border), getString(R.string.theme_shape_border_summary), spec.keyBorder) { on -> tweak(spec.copy(keyBorder = on)) })
+        page.content.add(valueSwitchRow(getString(R.string.theme_shape_shadow), getString(R.string.theme_shape_shadow_summary), spec.keyShadow) { on -> tweak(spec.copy(keyShadow = on)) })
     }
 
     // ---- the background picture (L10 step 2, D87)

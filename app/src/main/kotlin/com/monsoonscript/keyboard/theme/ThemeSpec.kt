@@ -37,6 +37,12 @@ class ThemeSpec(
     /** Where the picture sits in the keyboard held upright / on its side (D90). */
     val cropPortrait: PictureCrop = PictureCrop.AUTO,
     val cropLandscape: PictureCrop = PictureCrop.AUTO,
+    /** How round the keys' corners are, 0 (square) .. 100 (pills); [DEFAULT_ROUNDNESS] is today's look (L10 step 4, D94). */
+    val keyRoundness: Int = DEFAULT_ROUNDNESS,
+    /** A thin outline around every key. */
+    val keyBorder: Boolean = false,
+    /** A soft shadow under the keys. */
+    val keyShadow: Boolean = false,
 ) {
     val builtIn: Boolean get() = id.startsWith(BUILTIN_PREFIX)
 
@@ -96,9 +102,11 @@ class ThemeSpec(
         accent: Int = this.accent, text: Int = this.text, overrides: Map<Slot, Int> = this.overrides,
         picture: String? = this.picture, pictureFade: Int = this.pictureFade, keyOpacity: Int = this.keyOpacity,
         cropPortrait: PictureCrop = this.cropPortrait, cropLandscape: PictureCrop = this.cropLandscape,
+        keyRoundness: Int = this.keyRoundness, keyBorder: Boolean = this.keyBorder, keyShadow: Boolean = this.keyShadow,
     ): ThemeSpec = ThemeSpec(
         id, name, bg, key, special, accent, text, overrides, picture,
         pictureFade.coerceIn(0, MAX_FADE), keyOpacity.coerceIn(MIN_KEY_OPACITY, 100), cropPortrait, cropLandscape,
+        keyRoundness.coerceIn(0, 100), keyBorder, keyShadow,
     )
 
     /** Colors that are hard to read together (D75: shown as a note, never blocked). */
@@ -118,6 +126,12 @@ class ThemeSpec(
         const val MIN_TEXT_CONTRAST = 3.0
         const val MIN_KEY_CONTRAST = 1.08
         const val MAX_NAME = 40
+        /** 30 gives exactly the corner radius the keyboard always had (8 dp, see [cornerDp]). */
+        const val DEFAULT_ROUNDNESS = 30
+
+        /** The corner radius in dp for a roundness of 0..100 (a radius bigger than half a key just makes a pill). */
+        fun cornerDp(roundness: Int): Float = roundness.coerceIn(0, 100) * 8f / 30f
+
         const val DEFAULT_FADE = 35
         const val MAX_FADE = 90
         const val DEFAULT_KEY_OPACITY = 85
