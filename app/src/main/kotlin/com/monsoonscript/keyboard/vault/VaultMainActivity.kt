@@ -49,6 +49,8 @@ internal class VaultMainActivity : VaultBaseActivity() {
     // unlock page
     private var keySummary: TextView? = null
     private var keyClear: View? = null
+    private var fp: FingerprintUnlock? = null
+    private var unlockNote: TextView? = null
 
     // list page
     private var group: String? = null // the open folder; null = the root
@@ -135,7 +137,10 @@ internal class VaultMainActivity : VaultBaseActivity() {
 
     private fun showUnlock() {
         state = State.UNLOCK
-        keyboard(true)
+        fp?.stop()
+        val fingerprint = FingerprintUnlock(this, prefs)
+        fp = fingerprint
+        keyboard(!fingerprint.willPrompt()) // with the fingerprint prompt coming, the soft keyboard stays down until the master password is chosen (D91)
         val name = prefs.fileName.ifEmpty { getString(R.string.vault_title) }
         val page = ui.page(getString(R.string.vault_unlock_title), onBack = { finish() })
         val field = PasswordField(this, ui, getString(R.string.vault_master_password))
@@ -150,6 +155,12 @@ internal class VaultMainActivity : VaultBaseActivity() {
                 true
             } else false
         }
+        val reasonView = TextView(this).apply { // why the fingerprint is not used (restart, 3 days, new fingerprints ...)
+            textSize = 14f
+            setTextColor(ui.colors.accent)
+            visibility = View.GONE
+        }
+        unlockNote = reasonView
         val keyRow = ui.row()
         val keyTexts = ui.texts(getString(R.string.vault_key_file), keyFileLabel())
         keySummary = keyTexts.getChildAt(1) as TextView
@@ -169,6 +180,7 @@ internal class VaultMainActivity : VaultBaseActivity() {
         }
         with(ui) {
             page.content.add(note(getString(R.string.vault_unlock_for, name)))
+            page.content.add(padded(reasonView, 20, 0))
             page.content.add(padded(field))
             page.content.add(padded(error, 20, 0))
             page.content.add(padded(filledButton(getString(R.string.vault_unlock)) { unlock(field, error) })) // right under the field: the keyboard cannot hide it
@@ -177,7 +189,21 @@ internal class VaultMainActivity : VaultBaseActivity() {
             page.content.add(buttonRow(getString(R.string.vault_other_vault), null) { confirmForget() })
         }
         setContentView(page.root)
-        field.edit.requestFocus()
+        fingerprint.begin(
+            onPassword = { pw -> unlock(field, error, pw, typed = false) },
+            onTyping = { why -> showTyping(field, why) },
+        )
+    }
+
+    /** The master password field gets the focus and the soft keyboard (now, or as soon as the fingerprint prompt has closed), with a line saying why when there is one. */
+    private fun showTyping(field: PasswordField, why: String?) {
+        if (isDestroyed || state != State.UNLOCK) return
+        if (why != null) unlockNote?.let {
+            it.text = why
+            it.visibility = View.VISIBLE
+        }
+        keyboard(true)
+        SoftKeyboard.show(field.edit)
     }
 
     private fun keyFileLabel(): String {
@@ -191,8 +217,8 @@ internal class VaultMainActivity : VaultBaseActivity() {
         keyClear?.visibility = if (uri == null) View.GONE else View.VISIBLE
     }
 
-    private fun unlock(field: PasswordField, error: TextView) {
-        val pw = field.chars()
+    /** Opens the vault with [pw] (wiped here); [typed] false = it came out of the fingerprint's storage. */
+    private fun unlock(field: PasswordField, error: TextView, pw: CharArray = field.chars(), typed: Boolean = true) {
         val keyUri = prefs.keyFileUri
         if (pw.isEmpty() && keyUri == null) {
             error.text = getString(R.string.vault_need_password)
@@ -204,6 +230,7 @@ internal class VaultMainActivity : VaultBaseActivity() {
         val autoLock = prefs.autoLockMs
         error.visibility = View.GONE
         busy.show(getString(R.string.vault_unlocking))
+        val keep = if (typed && pw.isNotEmpty()) pw.copyOf() else CharArray(0) // for the fingerprint set-up after a typed unlock; wiped on every path
         call({ v ->
             val key = keyUri?.let { VaultHub.readKeyFile(this, Uri.parse(it)) }
             try {
@@ -213,13 +240,28 @@ internal class VaultMainActivity : VaultBaseActivity() {
                 pw.fill('\u0000')
             }
         }, fail = { e ->
+            keep.fill('\u0000')
             busy.hide()
-            error.text = VaultHub.message(this, e)
-            error.visibility = View.VISIBLE
+            if (!typed && fp?.passwordRejected(e) == true) { // the stored password is out of date: back to typing, and the fingerprint is off until it is set up again
+                showTyping(field, fp?.passwordNote)
+            } else {
+                error.text = VaultHub.message(this, e)
+                error.visibility = View.VISIBLE
+                if (!typed) showTyping(field, null)
+            }
         }) {
-            busy.hide()
             field.clear()
-            showList()
+            val f = fp
+            if (typed && f != null) {
+                f.afterTyped(keep) { // one touch to finish a fingerprint set-up, or the 72 hours start again
+                    busy.hide()
+                    showList()
+                }
+            } else {
+                keep.fill('\u0000')
+                busy.hide()
+                showList()
+            }
         }
     }
 
@@ -684,6 +726,7 @@ internal class VaultMainActivity : VaultBaseActivity() {
 
     override fun onDestroy() {
         main.removeCallbacksAndMessages(null)
+        fp?.stop()
         super.onDestroy()
     }
 

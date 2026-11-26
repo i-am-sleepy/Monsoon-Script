@@ -257,12 +257,19 @@ The strip's mic icon is drawn but does nothing yet. Everything else below is pla
   `vault/VaultPickerModel` (pure Kotlin, 14 JVM tests): views "This app" (entries whose custom field `AndroidApp[n]` equals the field's `EditorInfo.packageName`, `IVault.forApp`), "Recent" (ids kept by `VaultPrefs.recentIds`, `IVault.summaries`;
   using an entry never rewrites the vault) and "All" (folders; the recycle bin is hidden), search (`IVault.search`), tap an entry = chips Username / Password open under it, tap a chip = type it. Password: fetched with
   `IVault.password(id)`, committed once, the char array wiped, the picker closes (D87); in a non-password field the panel asks first (D40). Username stays open.
-  - Locked: the panel shows "Unlock", which opens `VaultUnlockActivity` (translucent, own task, `singleInstance`, FLAG_SECURE; master password only, fingerprint is Phase 3). It reports the end through `VaultHub.onUnlockFinished` from
+  - Locked: the panel shows "Unlock", which opens `VaultUnlockActivity` (translucent, own task, `singleInstance`, FLAG_SECURE; master password or fingerprint, see the next bullet). It reports the end through `VaultHub.onUnlockFinished` from
     `onDestroy` (the card's own text field is gone by then). The IME then brings back keyboard and picker ONLY for a real field of the same app (`vaultEditorIsBack`: card gone, input started, same package) and never asks the system to show
     the keyboard without a field attached (`editorAttached`); cancelled = the keys come back, not the picker. The card, `VaultHub` and the IME write notes with `CrashLog.note` (Settings > Voice typing > Problem report) to trace
     "back to the home screen" cases.
   - D42: what the vault types goes in with one `commitText`; `typeFromVault` resets the word tracker and sets `vaultLearnBlock`, so nothing typed in that field is learned until the field is gone (`onFinishInput`). Predictions are
     dropped after a password. The panel never shows secrets (D43).
+- Fingerprint unlock (E1.15, D39/D91; all in `app/.../keyboard/vault/`, main process only, the vault process never sees it): `FingerprintPolicy` (pure, 10 JVM tests) decides OK / NOT_SET_UP / AFTER_RESTART / TOO_OLD from the boot counter
+  (`Settings.Global.BOOT_COUNT`) and two clocks (wall clock and `elapsedRealtime`, both max 72 h since the last TYPED master password; a clock moved back = expired). `FingerprintStore` keeps the master password text as AES-GCM ciphertext
+  (prefs file `vault_fp`) under an Android Keystore key (`monsoon_vault_fp`) that needs a fingerprint for every use and is destroyed when fingerprints are added; it also answers `availability()` (API 28+, sensor, enrolled; below that the
+  switch is not offered). `FingerprintPrompt` wraps the platform `BiometricPrompt` with a `CryptoObject` (strong sensors only on API 30+; negative button = "Master password"). `FingerprintUnlock` is the one flow both unlock screens use:
+  `begin` (prompt at once, soft keyboard stays down until the fallback, a line says why when it switched itself off), `passwordRejected` (stored password no longer opens the vault: switched off), `afterTyped` (typed unlock: restarts the
+  72 h, or finishes a pending set-up with one sensor touch; "Not now" is not asked again until the phone restarts). `VaultPrefs.fingerprintOn` is the switch (Vault settings row); `forgetVault()` and switching off call
+  `FingerprintStore.turnOff()`. `SoftKeyboard.show` raises the soft keyboard when the window regains focus after the prompt. A fingerprint unlock does NOT restart the 72 h.
 - `.github/workflows/engine.yml`: only when `vault/**`, the submodule pointer, `.gitmodules`, the root Gradle files or the workflow itself change: engine unit tests, then the emulator tests (API 34 x86_64, KVM). Result on main:
   branch `ci-status-engine`, file `last-build.txt`. Branch runs are read through the Actions page/API.
 - Updating KeePassDX = moving the submodule pointer to a newer RELEASE tag (never a random commit), on a test branch; `docs/UPSTREAM_COPIES.md` lists any KeePassDX code we copied (D46). A weekly watcher workflow (D48) is not built yet.

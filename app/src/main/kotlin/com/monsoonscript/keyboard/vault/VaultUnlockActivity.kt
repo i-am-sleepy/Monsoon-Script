@@ -19,14 +19,17 @@ import com.monsoonscript.keyboard.voice.CrashLog
 /**
  * The see-through unlock screen of the keyboard's password picker (E1.14, D37): the app in front stays visible behind a dim layer, one card asks for the master
  * password (typed with the keyboard itself), and when the vault is open it closes and tells the keyboard ([VaultHub.onUnlockFinished]), which comes back with the
- * picker open. Not a full screen of its own, like the clipboard's unlock prompt, so the keyboard returns to the app's field. Fingerprint unlock comes in Phase 3.
+ * picker open. Not a full screen of its own, like the clipboard's unlock prompt, so the keyboard returns to the app's field. With fingerprint unlock set up
+ * (E1.15) the phone's fingerprint prompt shows first and the soft keyboard stays down until the owner chooses the master password.
  *
  * A plain Activity (not [VaultBaseActivity]): that base paints an opaque screen. It still blocks screenshots (D43) and wipes the typed password right after use.
  */
 internal class VaultUnlockActivity : Activity() {
     private lateinit var prefs: VaultPrefs
     private lateinit var ui: SettingsUi
+    private lateinit var fp: FingerprintUnlock
     private lateinit var field: PasswordField
+    private lateinit var info: TextView
     private lateinit var error: TextView
     private lateinit var button: TextView
     private var busy = false
@@ -38,14 +41,28 @@ internal class VaultUnlockActivity : Activity() {
         super.onCreate(savedInstanceState)
         CrashLog.note(this, "vault unlock card: onCreate (recreated=${savedInstanceState != null})")
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
-        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING or WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE)
         prefs = VaultPrefs(this)
         ui = SettingsUi(this, prefs.raw)
+        fp = FingerprintUnlock(this, prefs)
         if (prefs.fileUri == null || savedInstanceState != null) { // no vault chosen, or recreated while asking: start over from the keyboard
             finishWith(false)
             return
         }
+        // With the fingerprint prompt coming, the soft keyboard stays down until the owner chooses the master password (D91).
+        val keyboardNow = if (fp.willPrompt()) WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN else WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_VISIBLE
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING or keyboardNow)
         build()
+        fp.begin(onPassword = { pw -> open(pw, typed = false) }, onTyping = { showTyping(it) })
+    }
+
+    /** The master password field gets the focus and the soft keyboard (at once, or as soon as the fingerprint prompt has closed), with a line saying why when there is one. */
+    private fun showTyping(note: String?) {
+        if (isDestroyed || done) return
+        if (note != null) {
+            info.text = note
+            info.visibility = View.VISIBLE
+        }
+        SoftKeyboard.show(field.edit)
     }
 
     private fun build() {
@@ -73,6 +90,13 @@ internal class VaultUnlockActivity : Activity() {
             setTextColor(c.muted)
             setPadding(0, ui.dp(4), 0, ui.dp(12))
         })
+        info = TextView(this).apply {
+            textSize = 14f
+            setTextColor(c.accent)
+            visibility = View.GONE
+            setPadding(0, 0, 0, ui.dp(10))
+        }
+        card.addView(info)
         field = PasswordField(this, ui, getString(R.string.vault_master_password))
         field.edit.setOnEditorActionListener { _, action, _ ->
             if (action == EditorInfo.IME_ACTION_DONE) {
@@ -105,12 +129,15 @@ internal class VaultUnlockActivity : Activity() {
         if (resources.displayMetrics.widthPixels - ui.dp(32) > maxW) lp.width = maxW
         root.addView(card, lp)
         setContentView(root)
-        field.edit.requestFocus()
     }
 
     private fun unlock() {
         if (busy) return
-        val pw = field.chars()
+        open(field.chars(), typed = true)
+    }
+
+    /** Opens the vault with [pw] (wiped here). [typed] = the owner typed it; false = it came out of the fingerprint's storage. */
+    private fun open(pw: CharArray, typed: Boolean) {
         val keyUri = prefs.keyFileUri
         if (pw.isEmpty() && keyUri == null) {
             showError(getString(R.string.vault_need_password))
@@ -122,6 +149,7 @@ internal class VaultUnlockActivity : Activity() {
         busy = true
         error.visibility = View.GONE
         button.text = getString(R.string.vault_unlocking)
+        val keep = if (typed && pw.isNotEmpty()) pw.copyOf() else CharArray(0) // for the fingerprint set-up after a typed unlock; wiped on every path
         VaultHub.client(this).async({ v ->
             val key = keyUri?.let { VaultHub.readKeyFile(this, Uri.parse(it)) }
             try {
@@ -132,13 +160,24 @@ internal class VaultUnlockActivity : Activity() {
             }
         }) { r ->
             busy = false
-            if (isDestroyed) return@async
+            if (isDestroyed) {
+                keep.fill('\u0000')
+                return@async
+            }
             r.onSuccess {
                 field.clear()
-                finishWith(true)
-            }.onFailure {
+                if (typed) fp.afterTyped(keep) { finishWith(true) } else finishWith(true)
+            }.onFailure { e ->
+                keep.fill('\u0000')
                 button.text = getString(R.string.vault_unlock)
-                showError(VaultHub.message(this, it))
+                if (!typed) { // the fingerprint's password failed: back to typing, saying why when the stored password is out of date
+                    if (fp.passwordRejected(e)) showTyping(fp.passwordNote) else {
+                        showError(VaultHub.message(this, e))
+                        showTyping(null)
+                    }
+                } else {
+                    showError(VaultHub.message(this, e))
+                }
             }
         }
     }
@@ -168,6 +207,7 @@ internal class VaultUnlockActivity : Activity() {
     }
 
     override fun onDestroy() {
+        if (::fp.isInitialized) fp.stop()
         if (::field.isInitialized) field.clear()
         if (!notified) {
             notified = true

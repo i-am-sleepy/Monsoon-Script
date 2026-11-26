@@ -8,7 +8,8 @@ import android.content.SharedPreferences
  * an optional key file, and the idle time before the vault locks (D38). Never a password. One vault at a time for now (D52).
  */
 internal class VaultPrefs(context: Context) {
-    val raw: SharedPreferences = context.applicationContext.getSharedPreferences(FILE, Context.MODE_PRIVATE)
+    private val app = context.applicationContext
+    val raw: SharedPreferences = app.getSharedPreferences(FILE, Context.MODE_PRIVATE)
 
     var fileUri: String?
         get() = raw.getString("file", null)
@@ -38,6 +39,17 @@ internal class VaultPrefs(context: Context) {
     val hasVault: Boolean get() = fileUri != null
 
     /**
+     * The switch "Unlock with fingerprint" (E1.15). Turning it on only says "set it up at the next master password unlock" (the secret cannot be stored without
+     * the password); turning it off throws the key away at once ([FingerprintStore.turnOff]).
+     */
+    var fingerprintOn: Boolean
+        get() = raw.getBoolean("fingerprint", false)
+        set(v) {
+            raw.edit().putBoolean("fingerprint", v).apply()
+            if (v) FingerprintStore(app).clearSkip() else FingerprintStore(app).turnOff()
+        }
+
+    /**
      * The entries typed last, newest first, for the keyboard's "Recent" view (E1.14). Only ids (random numbers, no titles, no secrets). Kept here and not in the
      * vault so that using an entry never rewrites the vault file. Dropped with the vault.
      */
@@ -47,7 +59,8 @@ internal class VaultPrefs(context: Context) {
 
     /** Forget which file is the vault (the file itself is not touched). */
     fun forgetVault() {
-        raw.edit().remove("file").remove("name").remove("key").remove("recent").apply()
+        raw.edit().remove("file").remove("name").remove("key").remove("recent").remove("fingerprint").apply()
+        FingerprintStore(app).turnOff() // the stored password belonged to that vault
     }
 
     companion object {

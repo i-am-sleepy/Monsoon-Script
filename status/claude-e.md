@@ -1,5 +1,5 @@
 # claude-e notes (only claude-e edits this file; others only append lines under "Warnings")
-Updated: 2026-11-26, session 5. E1.13 (vault Phase 1) is DONE and owner-tested. E1.14 (Phase 2, the password picker in the keyboard) is built and pushed; the owner reported two problems with the unlock card (below), fixed in the commit after 523c30b, WAITING for his re-test. E3 clipboard and E4 are DONE.
+Updated: 2026-11-26, session 5. E1.13 (vault Phase 1) is DONE and owner-tested. E1.14 (Phase 2, the password picker in the keyboard) is built and pushed; the owner reported two problems with the unlock card (below), fixed in the commit after 523c30b, WAITING for his re-test. E1.15 (Phase 3 step 1, fingerprint unlock) is built and pushed, waiting for CI and his phone test. E3 clipboard and E4 are DONE.
 T9 and T11 were taken over by claude-l (L4-L6); only T9.3 Bijoy Classic (+ the owner key-map check, STATUS Needs user #2) is still mine, paused.
 
 ## Warnings from other Claudes (read first; delete a line when handled)
@@ -31,11 +31,16 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
             without an attached field (`editorAttached`, also for the clipboard flow), cancel = keys only, marks used up after use. (b) cause NOT proven: card is now `launchMode=singleInstance`, ends with `finishAndRemoveTask`, handles uiMode/density/etc.
             itself; `CrashLog.note` lines (card created / ended / destroyed, memory warnings, the IME's side) show in Settings > Voice typing > Problem report. If (b) happens again ask the owner for that report + what app was behind.
             Suspects left: low memory (Argon2 needs 64 MiB in the :vault process; LMK may kill the app behind a translucent card), the card recreated after process death (`recreated=true` in the log).
-    E1.14.6 [ ] after the owner's re-test: docs/PASSWORD_MANAGER.md status, then Phase 3 (fingerprint unlock = BiometricPrompt like ClipUnlockActivity; backup/restore screens; attachments; one-time codes + Code chip). Phase 4 Autofill (D28).
+    E1.14.6 [ ] after the owner's re-test: docs/PASSWORD_MANAGER.md status (Phase 2 text).
+  E1.15 [~] Phase 3 step 1 (D51 order: fingerprint, backup/restore, attachments, one-time codes + Code chip; owner "Continue with phase 3" 2026-11-26). Rules D39 + owner answers D91 + details D92.
+    E1.15.1 [x] `FingerprintPolicy` (pure) + 10 JVM tests (kotlinc + JUnitCore recipe, all green); `FingerprintStore` (Keystore AES-GCM, availability, arm/read/disarm/skip); `FingerprintPrompt` (platform BiometricPrompt + CryptoObject).
+    E1.15.2 [x] `FingerprintUnlock` flow (begin / passwordRejected / afterTyped / stop) + `SoftKeyboard.show`; hooked into `VaultUnlockActivity` (card) and `VaultMainActivity.showUnlock/unlock`; `VaultSettingsActivity` switch row; `VaultPrefs.fingerprintOn` + `forgetVault` turns it off; strings `fp_*`. `tools/compile_check.sh` clean.
+    E1.15.3 [~] pushed, waiting for CI + the owner's phone test (only the owner's phone can prove the sensor path: prompt shows, set-up touch, restart / 3-day rules, adding a fingerprint). Test list in STATUS Needs user #23.
+    E1.15.4 [ ] after the test: fix what he finds, docs/PASSWORD_MANAGER.md status. Then E1.16 backup/restore screens, E1.17 attachments, E1.18 one-time codes + Code chip (D40). Phase 4 Autofill (D28).
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; D87 is the last one I wrote, check the file for the next free id) and update the docs.
 
 ## Next step
-E1.14.5: wait for the owner's re-test of the unlock card (checklist in STATUS Needs user). If it still goes to the home screen: read Problem report (`CrashLog.note` lines) before changing anything. Then E1.14.6.
+E1.15.3: read `ci-status` for the E1.15 commit; then wait for the owner's fingerprint test (STATUS Needs user #23) and the Phase 2 re-test (#22; if the card still goes to the home screen read Problem report `CrashLog.note` lines first). Next after that: E1.16 (backup/restore screens); it is a UI task, so ask the owner the screen questions first (CLAUDE.md), then build.
 Before every push of `:vault` code run `tools/vault_compile_check.sh` (~30 s, needs `git submodule update --init --depth 1 third_party/keepassdx`) and `tools/compile_check.sh` for app code (it also compiles VaultModel + VaultClient). Pure vault logic: compile with kotlinc + a main() like /tmp/gentest if no unit-test runner is available.
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)

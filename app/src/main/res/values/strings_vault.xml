@@ -204,4 +204,24 @@
     <string name="picker_type_it">Type it</string>
     <string name="picker_unlock_title">Unlock the vault</string>
     <string name="picker_unlock_hint">Type the master password to open the password picker.</string>
+
+    <!-- Fingerprint unlock (E1.15) -->
+    <string name="fp_prompt_title">Unlock the vault</string>
+    <string name="fp_setup_title">Set up fingerprint unlock</string>
+    <string name="fp_setup_subtitle">Touch the sensor once to finish.</string>
+    <string name="fp_use_password">Master password</string>
+    <string name="fp_not_now">Not now</string>
+    <string name="fp_note_restart">The phone restarted. Type the master password once.</string>
+    <string name="fp_note_old">It has been more than 3 days since you typed the master password. Type it once.</string>
+    <string name="fp_note_changed">The fingerprints on this phone changed. Type the master password to set fingerprint unlock up again.</string>
+    <string name="fp_note_password">The master password no longer matches. Type the new one.</string>
+    <string name="fp_note_broken">Fingerprint unlock stopped working. Type the master password to set it up again.</string>
+    <string name="fp_note_locked">Too many wrong tries with the fingerprint. Type the master password.</string>
+    <string name="fp_setting_title">Unlock with fingerprint</string>
+    <string name="fp_setting_off">Open the vault with your fingerprint instead of typing the master password.</string>
+    <string name="fp_setting_pending">Finishes the next time you unlock with the master password.</string>
+    <string name="fp_setting_on">Set up. The master password is needed again after a restart, after 3 days, or when fingerprints change.</string>
+    <string name="fp_setting_no_sensor">This phone cannot unlock the vault with a fingerprint.</string>
+    <string name="fp_setting_not_enrolled">Add a fingerprint in the phone\'s settings first.</string>
+    <string name="fp_setting_note">The master password is kept encrypted by a key that only your fingerprint can use. A fingerprint added to the phone later destroys that key.</string>
 </resources>
