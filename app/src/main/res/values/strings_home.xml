@@ -51,7 +51,7 @@
     <string name="theme_share_chooser">Share theme</string>
     <string name="theme_share_failed">There is no app to share with.</string>
     <string name="theme_share_message">My Monsoon Script keyboard theme “%1$s”.\nTo use it: open Monsoon Script, then Appearance, then Themes, tap Import a theme and paste this text.\n\n%2$s</string>
-    <!-- Key shape and text size (L10 step 4, D94) -->
+    <!-- Key shape and text size (L10 step 4, D96) -->
     <string name="theme_shape_header">Key shape</string>
     <string name="theme_shape_round">Roundness</string>
     <string name="theme_shape_border">Outline</string>

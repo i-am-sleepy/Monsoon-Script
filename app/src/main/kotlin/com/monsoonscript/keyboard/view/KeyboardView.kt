@@ -1074,7 +1074,7 @@ class KeyboardView(context: Context) : View(context) {
     private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val shape = android.graphics.RectF()
 
-    /** The key's body in [r] with the theme's shape (L10 step 4, D94): a soft shadow under it (not while pressed), the filled rounded rectangle, an outline. */
+    /** The key's body in [r] with the theme's shape (L10 step 4, D96): a soft shadow under it (not while pressed), the filled rounded rectangle, an outline. */
     private fun drawKeyShape(c: Canvas, r: android.graphics.RectF, pressed: Boolean) {
         val kr = dp(pal.keyRadiusDp)
         if (pal.keyShadow && !pressed) {
@@ -1475,7 +1475,7 @@ class KeyboardView(context: Context) : View(context) {
         val bubble: Int,
         /** The picture behind everything (L10 step 2, D87), or null: then the plain [bg] color. */
         val backdrop: Backdrop? = null,
-        /** The key shape of the theme (L10 step 4, D94): corner radius in dp (8 = the keyboard's old look), outline color (0 = none), soft shadow. */
+        /** The key shape of the theme (L10 step 4, D96): corner radius in dp (8 = the keyboard's old look), outline color (0 = none), soft shadow. */
         val keyRadiusDp: Float = 8f,
         val keyBorderColor: Int = 0,
         val keyShadow: Boolean = false,

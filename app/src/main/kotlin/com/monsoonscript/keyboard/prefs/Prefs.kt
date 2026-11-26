@@ -36,7 +36,7 @@ object Prefs {
     const val HEIGHT_PORTRAIT = "appearance_height_portrait" // percent of the standard key height
     const val HEIGHT_LANDSCAPE = "appearance_height_landscape"
     const val KEY_GAP = "appearance_key_gap" // dp between keys
-    const val KEY_TEXT_SIZE = "appearance_key_text" // percent of the standard size of the letters on the keys (L10 step 4, D94)
+    const val KEY_TEXT_SIZE = "appearance_key_text" // percent of the standard size of the letters on the keys (L10 step 4, D96)
     const val STRIP_TEXT_SIZE = "appearance_strip_text" // percent of the standard size of the text in the suggestion bar
     const val TEXT_SIZE_MIN = 80
     const val TEXT_SIZE_MAX = 130

@@ -118,7 +118,7 @@ class ThemeEditActivity : ThemedActivity() {
         }
     }
 
-    // ---- the key shape (L10 step 4, D94)
+    // ---- the key shape (L10 step 4, D96)
 
     private fun SettingsUi.addShapeSection() {
         page.content.add(header(getString(R.string.theme_shape_header)))

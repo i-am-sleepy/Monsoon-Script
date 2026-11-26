@@ -37,7 +37,7 @@ class ThemeSpec(
     /** Where the picture sits in the keyboard held upright / on its side (D90). */
     val cropPortrait: PictureCrop = PictureCrop.AUTO,
     val cropLandscape: PictureCrop = PictureCrop.AUTO,
-    /** How round the keys' corners are, 0 (square) .. 100 (pills); [DEFAULT_ROUNDNESS] is today's look (L10 step 4, D94). */
+    /** How round the keys' corners are, 0 (square) .. 100 (pills); [DEFAULT_ROUNDNESS] is today's look (L10 step 4, D96). */
     val keyRoundness: Int = DEFAULT_ROUNDNESS,
     /** A thin outline around every key. */
     val keyBorder: Boolean = false,

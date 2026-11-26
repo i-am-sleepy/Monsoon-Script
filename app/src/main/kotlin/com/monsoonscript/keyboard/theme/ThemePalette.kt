@@ -7,7 +7,7 @@ import com.monsoonscript.keyboard.view.KeyboardView
 /**
  * The colors in the form the keyboard view and the panels draw with. With a [backdrop] (a background picture) the letter and special keys become see-through by
  * [keyOpacity] % (pressed keys a bit more solid, so a press can still be seen); the accent colors (Enter, selections) and the bubble stay solid. [roundness] / [border] /
- * [shadow] are the key shape of the theme (L10 step 4, D94).
+ * [shadow] are the key shape of the theme (L10 step 4, D96).
  */
 fun ThemeColors.toPalette(backdrop: Backdrop? = null, keyOpacity: Int = 100, roundness: Int = ThemeSpec.DEFAULT_ROUNDNESS, border: Boolean = false, shadow: Boolean = false): KeyboardView.Palette {
     val pressedOpacity = keyOpacity + (100 - keyOpacity) / 2
