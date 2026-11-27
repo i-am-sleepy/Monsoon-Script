@@ -25,6 +25,9 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.LinearLayout
 import android.widget.Toast
 import com.monsoonscript.keyboard.R
+import com.monsoonscript.keyboard.calc.CalcEngine
+import com.monsoonscript.keyboard.calc.CalcOffer
+import com.monsoonscript.keyboard.calc.CalcRun
 import com.monsoonscript.keyboard.clipboard.ClipCapture
 import com.monsoonscript.keyboard.clipboard.ClipEditActivity
 import com.monsoonscript.keyboard.clipboard.ClipFormat
@@ -101,7 +104,35 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     // ---- text shortcuts in the strip (E3.7, D68): a typed `;sig` offers its saved text as a candidate; nothing is inserted until it is tapped
 
     /** The characters typed since the last space: matched against the triggers. Fed next to [tracker]. */
-    private val triggerRun = TriggerRun()
+    /** The last characters of the line, for the calculator on the strip (L13, D97); it is fed from the same places as [triggerRun] (see below). */
+    private val calcRun = CalcRun()
+    private var calcOn = true
+    private var calcRadians = false
+    private var calcOffer: CalcOffer? = null
+
+    /** The run of characters since the last space (shortcuts). It also keeps [calcRun] in step: every place that feeds, clears or rebuilds the one does the same to the other. */
+    private val triggerRun = object : TriggerRun() {
+        override fun clear() {
+            super.clear()
+            calcRun.clear()
+        }
+
+        override fun append(c: Char) {
+            super.append(c)
+            calcRun.append(c)
+        }
+
+        override fun backspace(): Boolean {
+            val known = super.backspace()
+            if (!calcRun.backspace()) return false
+            return known
+        }
+
+        override fun reset(before: CharSequence?) {
+            super.reset(before)
+            calcRun.reset(before)
+        }
+    }
 
     /** The shortcuts offered right now. Their texts are the FIRST entries of [suggestions]: never use those for auto-correction. */
     private var shortcutHits: List<ClipShortcut> = emptyList()
@@ -256,6 +287,9 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             pendingFix = null
             lastFix = null
         }
+        calcOn = Prefs.calc(this)
+        calcRadians = Prefs.calcRadians(this)
+        if (!calcOn) calcOffer = null
         autoShow = Prefs.autoShow(this)
         volumeCursor = Prefs.volumeCursor(this)
         if (!showSuggestions && composer?.isComposing != true) dropSuggestions() // switched off: clear what is shown, never an Avro word in progress
@@ -678,6 +712,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** Ask the worker for completions of the word in progress, or for the next word when none is started. */
     private fun requestPrediction() {
         refreshShortcuts()
+        refreshCalc()
         if (!predicting || !showSuggestions) {
             if (stripHeld) dropSuggestions() // nothing will answer: end the hold at once
             return
@@ -854,11 +889,16 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         setSuggestions(engineWords) // merges the new offer in front of the engines' words
     }
 
-    /** The strip list: the shortcut texts first (one line each), then what the word engines suggested. */
+    /** The strip list: the calculator's two chips, the recent copy chip, the shortcut texts (one line each), then what the word engines suggested. */
     private fun withShortcuts(words: List<String>): List<String> {
         val chip = recentChipText()
-        if (shortcutHits.isEmpty() && chip == null) return words
-        val out = ArrayList<String>(words.size + shortcutHits.size + 1)
+        val calc = calcOffer
+        if (shortcutHits.isEmpty() && chip == null && calc == null) return words
+        val out = ArrayList<String>(words.size + shortcutHits.size + 3)
+        if (calc != null) {
+            out.add(calc.appendLabel)
+            out.add(calc.replaceLabel)
+        }
         if (chip != null) out.add(chipLabel(chip))
         for (h in shortcutHits) {
             val label = ClipFormat.stripLabel(h.text)
@@ -866,6 +906,53 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
         for (w in words) if (w !in out) out.add(w)
         return out
+    }
+
+    // ---- the calculator on the strip (L13, D97)
+
+    /**
+     * Look at the end of the typed line: when it is a calculation (16+8, 20% of 150, 5 km in miles) the strip gets two chips in front, "= 24" (adds the answer
+     * after it) and "\u2192 24" (replaces what was typed by it). Called before every prediction request like [refreshShortcuts]; the engine says "nothing" after one
+     * look at the last character for almost everything that is typed, and the text comes from [calcRun], so there is no call into the app.
+     */
+    private fun refreshCalc() {
+        var offer: CalcOffer? = null
+        if (calcOn && predicting && !panelSearch && shownPanel == null) offer = CalcEngine.offer(calcRun.chars, calcRadians)
+        val old = calcOffer
+        if (offer == null && old == null) return
+        if (offer != null && old != null && offer.start == old.start && offer.typed == old.typed && offer.value == old.value) return
+        calcOffer = offer
+        setSuggestions(engineWords) // merges the new chips in front of the engines' words
+    }
+
+    /** A strip candidate was tapped: when it is one of the calculator's chips the answer is added or replaces the calculation (checked against the editor first). */
+    private fun acceptCalc(word: String): Boolean {
+        val offer = calcOffer ?: return false
+        val append = word == offer.appendLabel
+        val replace = !append && word == offer.replaceLabel
+        if (!append && !replace) return false
+        val ic = currentInputConnection ?: return true
+        val typed = offer.typed
+        val before = ic.getTextBeforeCursor(typed.length, 0)
+        if (before == null || before.toString() != typed) { // the editor is not what we thought: do not delete the wrong text
+            resyncTracker()
+            requestPrediction()
+            return true
+        }
+        ic.beginBatchEdit()
+        if (replace) {
+            ic.deleteSurroundingText(typed.length, 0)
+            ic.commitText(offer.replaceText, 1)
+        } else {
+            ic.commitText(offer.appendText, 1)
+        }
+        ic.endBatchEdit()
+        lastEditAt = SystemClock.uptimeMillis()
+        calcOffer = null
+        resyncTracker() // the editor now holds the answer
+        refreshAutoCaps()
+        requestPrediction()
+        return true
     }
 
     // ---- recent copy chip (E3.10, D77)
@@ -1004,6 +1091,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     override fun onSuggestion(word: String) {
         if (panelSearch || suggestions.isEmpty()) return // empty = the strip only still paints the old words (G4)
         lastFix = null
+        if (acceptCalc(word)) return
         if (acceptShortcut(word)) return
         if (acceptRecent(word)) return
         val ic = currentInputConnection ?: return

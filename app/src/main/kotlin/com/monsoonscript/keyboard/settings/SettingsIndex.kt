@@ -36,6 +36,8 @@ internal object SettingsIndex {
         suggestions(R.string.settings_next_word, R.string.settings_next_word_summary),
         suggestions(R.string.settings_typed_first, R.string.settings_typed_first_summary),
         suggestions(R.string.settings_autocorrect, R.string.settings_autocorrect_summary),
+        suggestions(R.string.settings_calc, R.string.settings_calc_summary),
+        suggestions(R.string.settings_calc_angle),
         suggestions(R.string.settings_learn, R.string.settings_learn_summary),
         suggestions(R.string.settings_clear, R.string.settings_clear_summary),
         Entry(R.string.themes_title, R.string.themes_row_summary, THEMES, Icons.Kind.DROP),

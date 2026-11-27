@@ -71,6 +71,8 @@ object Prefs {
     const val SHOW_SUGGESTIONS = "suggest_show"
     const val NEXT_WORD = "suggest_next_word"
     const val TYPED_FIRST = "suggest_typed_first"
+    const val CALC = "suggest_calc" // the calculator on the suggestion strip (L13, D97), on by default
+    const val CALC_ANGLE = "suggest_calc_angle" // 0 = degrees (default), 1 = radians
 
     // space bar cursor drag (L9, D72): hold the space bar, then slide
     const val SPACE_DRAG = "typing_space_drag" // Boolean, default ON
@@ -132,6 +134,10 @@ object Prefs {
     fun nextWord(context: Context): Boolean = of(context).getBoolean(NEXT_WORD, true)
 
     fun typedFirst(context: Context): Boolean = of(context).getBoolean(TYPED_FIRST, true)
+
+    fun calc(context: Context): Boolean = of(context).getBoolean(CALC, true)
+
+    fun calcRadians(context: Context): Boolean = of(context).getInt(CALC_ANGLE, 0) == 1
 
     fun autoCorrect(context: Context): Boolean = of(context).getBoolean(AUTOCORRECT, false)
 

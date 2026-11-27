@@ -5,20 +5,20 @@ package com.monsoonscript.keyboard.clipboard
  * The IME feeds it every character it commits, like the word tracker; it holds at most [ClipStore.MAX_TRIGGER] characters, because no trigger is longer
  * (a longer run can never match, so it is only remembered as "too long" until the next whitespace). Pure Kotlin.
  */
-class TriggerRun {
+open class TriggerRun {
     private val run = StringBuilder()
     private var tooLong = false
 
     /** The characters typed since the last whitespace ("" when the run is empty or too long to be a trigger). */
     val text: String get() = if (tooLong) "" else run.toString()
 
-    fun clear() {
+    open fun clear() {
         run.setLength(0)
         tooLong = false
     }
 
     /** Feed one committed character; whitespace ends the run. */
-    fun append(c: Char) {
+    open fun append(c: Char) {
         if (c.isWhitespace()) {
             clear()
             return
@@ -40,14 +40,14 @@ class TriggerRun {
      * One character was deleted. Returns false when the run cannot say what it is now (the run was empty, so the deleted character was whitespace or
      * from an earlier word, or the run was too long): the caller then rebuilds it with [reset] from the editor.
      */
-    fun backspace(): Boolean {
+    open fun backspace(): Boolean {
         if (tooLong || run.isEmpty()) return false
         run.setLength(run.length - 1)
         return true
     }
 
     /** Rebuild from the text before the cursor (field start, cursor moved, rebuilt after a selection delete): its last run without whitespace. */
-    fun reset(before: CharSequence?) {
+    open fun reset(before: CharSequence?) {
         clear()
         if (before == null) return
         var start = before.length
