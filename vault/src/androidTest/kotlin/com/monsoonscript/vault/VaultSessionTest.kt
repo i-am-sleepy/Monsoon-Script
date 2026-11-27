@@ -589,7 +589,13 @@ class VaultSessionTest {
     }
 
     private fun entryWithCode(s: VaultSession, input: String, title: String = "Bank"): String =
-        s.saveEntry(draft(title, s.info().rootId, fields = listOf(FieldItem("otp", Otp.storedValue(Otp.parseInput(input)), true)))).id!!
+        s.saveEntry(draft(title, s.info().rootId).copy(otp = input)).id!!
+
+    /** An edit that sends the entry as the screens do: everything as stored, [otp] as given (null = keep). */
+    private fun edit(s: VaultSession, id: String, otp: String?, title: String? = null): Change {
+        val e = s.entry(id)
+        return s.saveEntry(EntryDraft(id, e.summary.groupId, title ?: e.summary.title, e.summary.username, null, e.summary.url, e.notes, e.fields, otp = otp))
+    }
 
     @Test
     fun theEngineGivesTheStandardTestCodes() {
@@ -620,10 +626,12 @@ class VaultSessionTest {
         assertEquals(OtpKind.TOTP, code.kind)
         assertEquals(6, code.code.length)
         assertTrue(code.code.all { it.isDigit() })
-        // the stored field is the usual protected "otp" link; the secret is not in the entry list sent to the screens
-        val field = s.entry(id).fields.single { it.name == "otp" }
-        assertTrue(field.protect)
-        assertNull(field.value)
+        // the secret is not in the field list sent to the screens; it is stored as the usual protected "otp" link and can be revealed on request
+        val detail = s.entry(id)
+        assertEquals(OtpKind.TOTP, detail.otp)
+        assertTrue(detail.fields.none { it.name == "otp" })
+        val link = s.fieldValue(id, "otp")!!
+        assertTrue(link, link.startsWith("otpauth://totp/") && link.contains("secret=$rfcBase32"))
         s.lock()
         val b = openVault()
         assertCurrent(30, 6) { b.otpCode(id)!! }
@@ -649,15 +657,58 @@ class VaultSessionTest {
     }
 
     @Test
-    fun aCounterBasedCodeShowsItsStoredCounterAndDoesNotChange() {
+    fun aCounterBasedCodeFromAnotherAppIsKnownButGivesNoCode() {
         val s = newVault()
-        val id = entryWithCode(s, "otpauth://hotp/Site:me?secret=$rfcBase32&counter=1")
-        val code = s.otpCode(id)!!
-        assertEquals(OtpKind.HOTP, code.kind)
-        assertEquals("287082", code.code)
-        assertEquals(0, code.secondsLeft)
-        assertEquals(0, code.period)
-        assertEquals("287082", s.otpCode(id)!!.code)
+        // the KeePass 2 "HmacOtp" fields, as another app may have stored them
+        val fields = listOf(FieldItem("HmacOtp-Secret-Base32", rfcBase32, true), FieldItem("HmacOtp-Counter", "1", false))
+        val id = s.saveEntry(draft("Old", s.info().rootId, fields = fields)).id!!
+        assertEquals(OtpKind.HOTP, s.entry(id).otp)
+        assertNull(s.otpCode(id))
+        expectError(VaultError.INVALID) { s.otpCheck("otpauth://hotp/Site:me?secret=$rfcBase32&counter=1") }
+    }
+
+    @Test
+    fun theDraftKeepsReplacesAndRemovesTheCode() {
+        val s = newVault()
+        val id = entryWithCode(s, rfcBase32)
+        assertEquals(OtpKind.TOTP, s.entry(id).otp)
+        // an ordinary edit (key left alone) keeps the stored key, also in the history copy's successor
+        edit(s, id, otp = null, title = "Renamed")
+        assertEquals("Renamed", s.entry(id).summary.title)
+        assertCurrent(30, 6) { s.otpCode(id)!! }
+        // a blank key removes it
+        edit(s, id, otp = "  ")
+        assertEquals(0, s.entry(id).otp)
+        assertNull(s.otpCode(id))
+        assertNull(s.fieldValue(id, "otp"))
+        // a new key sets it again, here a Steam link
+        edit(s, id, otp = "otpauth://totp/Steam:me?secret=$rfcBase32&encoder=steam")
+        assertEquals(OtpKind.STEAM, s.entry(id).otp)
+        assertEquals(5, s.otpCode(id)!!.code.length)
+        // all of it survives a lock and a reopen
+        s.lock()
+        assertEquals(OtpKind.STEAM, openVault().entry(id).otp)
+    }
+
+    @Test
+    fun anUnusableKeyInADraftChangesNothing() {
+        val s = newVault()
+        val id = entryWithCode(s, rfcBase32)
+        val before = s.entry(id).historyCount
+        expectError(VaultError.INVALID) { edit(s, id, otp = "not a key!", title = "Should not stick") }
+        expectError(VaultError.INVALID) { s.saveEntry(draft("New", s.info().rootId).copy(otp = "otpauth://hotp/x?secret=$rfcBase32&counter=1")) }
+        assertEquals("Bank", s.entry(id).summary.title)
+        assertEquals(before, s.entry(id).historyCount)
+        assertEquals(setOf("Bank"), titles(s))
+        assertCurrent(30, 6) { s.otpCode(id)!! }
+    }
+
+    @Test
+    fun aCustomFieldCannotBeCalledOtp() {
+        val s = newVault()
+        for (name in listOf("otp", "OTP", " Otp ")) {
+            expectError(VaultError.INVALID) { s.saveEntry(draft("X", s.info().rootId, fields = listOf(FieldItem(name, "whatever", false)))) }
+        }
     }
 
     @Test

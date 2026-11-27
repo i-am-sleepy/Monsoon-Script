@@ -20,6 +20,7 @@ internal object Otp {
         if (OtpEntryFields.isOTPUri(clean)) {
             val element = OtpEntryFields.parseOTPUri(clean) ?: throw VaultException(VaultError.INVALID, "This one-time code link is not valid")
             if (element.secret == null) throw VaultException(VaultError.INVALID, "This one-time code link has no usable secret key")
+            if (element.type == OtpType.HOTP) throw VaultException(VaultError.INVALID, "Counter-based (hotp) codes are not supported, only time-based ones")
             return element
         }
         val key = clean.filter { it != ' ' && it != '-' }.toCharArray()
@@ -39,10 +40,18 @@ internal object Otp {
     /** The field value to store for [element]: the standard `otpauth://` link that KeePassDX and KeePassXC also write. */
     fun storedValue(element: OtpElement): String = OtpEntryFields.buildOtpField(element).protectedValue.toString()
 
-    /** The code valid right now, or null when [element] has no secret. */
+    /** The [OtpKind] of what [element] holds, 0 when it has no secret. */
+    fun kindOf(element: OtpElement?): Int = when {
+        element == null || element.secret == null -> 0
+        element.type == OtpType.HOTP -> OtpKind.HOTP
+        element.tokenType == OtpTokenType.STEAM -> OtpKind.STEAM
+        else -> OtpKind.TOTP
+    }
+
+    /** The code valid right now; null when [element] has no secret or is counter-based (not supported: its counter could not be advanced safely). */
     fun codeOf(element: OtpElement): OtpCode? {
-        if (element.secret == null) return null
-        if (element.type == OtpType.HOTP) return OtpCode(String(element.token), 0, 0, OtpKind.HOTP)
+        val kind = kindOf(element)
+        if (kind != OtpKind.TOTP && kind != OtpKind.STEAM) return null
         val period = element.period
         // The code and the seconds left must belong to the same step: compute again if the clock stepped over a boundary in between.
         var now = System.currentTimeMillis() / 1000
@@ -52,7 +61,6 @@ internal object Otp {
             now = after
             token = element.token
         }
-        val kind = if (element.tokenType == OtpTokenType.STEAM) OtpKind.STEAM else OtpKind.TOTP
         return OtpCode(String(token), (period - (now % period)).toInt(), period, kind)
     }
 }

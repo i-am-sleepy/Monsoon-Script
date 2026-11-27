@@ -126,6 +126,8 @@ data class EntryDetail(
     val historyCount: Int,
     /** The files attached to the entry (E1.17), by name. */
     val attachments: List<AttachmentItem> = emptyList(),
+    /** The kind of one-time code the entry holds ([OtpKind]), 0 = none (E1.18). The key itself is not in [fields]. */
+    val otp: Int = 0,
 ) : Parcelable
 
 /**
@@ -146,6 +148,11 @@ data class EntryDraft(
     val removeAttachments: List<String> = emptyList(),
     /** Files to attach (E1.17): read in the vault process from the picked Uri. A name that already exists is replaced. */
     val newAttachments: List<NewAttachment> = emptyList(),
+    /**
+     * The one-time code key (E1.18, D98): null = keep what is stored, blank = remove it, otherwise a typed or pasted secret key or otpauth:// link that the
+     * vault process checks (INVALID when unusable) and stores as the protected field "otp".
+     */
+    val otp: String? = null,
 ) : Parcelable
 
 /** One earlier version of the vault file that the app kept before replacing it (E1.16, D36, D94). [id] is the backup's file name; [time] is when it was kept. */
@@ -170,19 +177,19 @@ data class NewAttachment(
     val uri: android.net.Uri,
 ) : Parcelable
 
-/** The kinds of one-time code an entry can hold (E1.18). */
+/** The kinds of one-time code an entry can hold (E1.18, D98). */
 object OtpKind {
     /** Time-based (RFC 6238): the usual 6 digits that change every 30 seconds. */
     const val TOTP = 1
     /** Steam Guard style: 5 letters/digits, time-based. */
     const val STEAM = 2
-    /** Counter-based (RFC 4226): changes only when the counter is advanced. */
+    /** Counter-based (RFC 4226), e.g. stored by another app: NOT supported, so there is no code for it, only this kind so the screens can say so. */
     const val HOTP = 3
 }
 
 /**
- * The current one-time code of an entry (E1.18). [code] has no spaces. [secondsLeft] is how long it stays valid and [period] the length of one step; both
- * are 0 for a counter-based code ([kind] = [OtpKind.HOTP]). The secret itself never leaves the vault process: only this short-lived code does.
+ * The current one-time code of an entry (E1.18). [code] has no spaces. [secondsLeft] is how long it stays valid (1..[period]), [period] the length of one
+ * step in seconds, [kind] is [OtpKind.TOTP] or [OtpKind.STEAM]. The secret itself never leaves the vault process: only this short-lived code does.
  */
 @Parcelize
 data class OtpCode(

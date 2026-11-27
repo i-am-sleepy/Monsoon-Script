@@ -321,7 +321,7 @@ class VaultSession(
         return EntryDetail(
             summary = summary(e),
             notes = e.notes,
-            fields = e.getExtraFields().map { f ->
+            fields = e.getExtraFields().filter { it.name != OTP_FIELD }.map { f ->
                 val protect = f.protectedValue.isProtected
                 FieldItem(f.name, if (protect) null else f.protectedValue.toString(), protect)
             },
@@ -329,6 +329,7 @@ class VaultSession(
             expires = if (e.expires) e.expiryTime.toMilliseconds() else null,
             historyCount = e.getHistory().size,
             attachments = e.getAttachments(d.attachmentPool, false).map { AttachmentItem(it.name, it.binaryData.getSize()) }.sortedBy { it.name.lowercase() },
+            otp = otpKindOf(e),
         )
     }
 
@@ -394,19 +395,20 @@ class VaultSession(
         val d = requireWritable()
         checkFields(draft.fields)
         val parent = group(d, draft.groupId)
+        val otp = otpFieldFor(d, draft) // checked first: an unusable key leaves the entry untouched
         val added = readNewAttachments(d, draft.newAttachments) // read first: a file that cannot be read leaves the entry untouched
         return try {
-            saveChecked(d, draft, parent, added)
+            saveChecked(d, draft, parent, added, otp)
         } catch (e: Throwable) {
             added.forEach { d.removeBinaryIfNotUsed(it.binaryData, clearCache = true) }
             throw e
         }
     }
 
-    private fun saveChecked(d: DatabaseInfo, draft: EntryDraft, parent: Group, added: List<Attachment>): Change {
+    private fun saveChecked(d: DatabaseInfo, draft: EntryDraft, parent: Group, added: List<Attachment>, otp: Field?): Change {
         return if (draft.id == null) {
             val entry = d.createEntry() ?: throw VaultException(VaultError.INTERNAL, "The engine could not create an entry")
-            fill(entry, draft, keepFrom = null)
+            fill(entry, draft, keepFrom = null, otp)
             applyAttachments(d, entry, added, emptySet())
             entry.touch(modified = true, touchParents = true)
             parent.touch(modified = true, touchParents = true)
@@ -415,7 +417,7 @@ class VaultSession(
         } else {
             val old = entryById(d, draft.id)
             val updated = Entry(old) // a clone, like KeePassDX: the old one goes into the history
-            fill(updated, draft, keepFrom = old)
+            fill(updated, draft, keepFrom = old, otp)
             val dropped = applyAttachments(d, updated, added, draft.removeAttachments.toSet())
             updated.addParentFrom(old)
             updated.clearHistory()
@@ -757,6 +759,7 @@ class VaultSession(
             val name = f.name.trim()
             if (name.isEmpty()) throw VaultException(VaultError.INVALID, "A custom field needs a name")
             if (name.lowercase() in STANDARD_FIELDS) throw VaultException(VaultError.INVALID, "\"$name\" is a standard field")
+            if (name.lowercase() == OTP_FIELD) throw VaultException(VaultError.INVALID, "\"$name\" holds the one-time code: use the one-time code key instead")
             if (!seen.add(name.lowercase())) throw VaultException(VaultError.INVALID, "Two fields are named \"$name\"")
         }
     }
@@ -768,8 +771,37 @@ class VaultSession(
         return clean
     }
 
-    /** Writes the draft into [entry]. [keepFrom]: the stored entry, to keep a protected field's value or the password when the draft sends none. */
-    private fun fill(entry: Entry, draft: EntryDraft, keepFrom: Entry?) {
+    /**
+     * The protected field "otp" the saved entry will hold (E1.18, D98): the stored one when the draft says nothing, none when it is blank, otherwise the typed key
+     * checked and written as the standard otpauth link. INVALID when the typed key is unusable.
+     */
+    private fun otpFieldFor(d: DatabaseInfo, draft: EntryDraft): Field? {
+        val typed = draft.otp
+        if (typed == null) {
+            val stored = draft.id?.let { entryById(d, it) }?.getExtraFields()?.firstOrNull { it.name == OTP_FIELD } ?: return null
+            return Field(OTP_FIELD, ProtectedString(true, stored.protectedValue.toString()))
+        }
+        if (typed.isBlank()) return null
+        val element = Otp.parseInput(typed)
+        try {
+            return Field(OTP_FIELD, ProtectedString(true, Otp.storedValue(element)))
+        } finally {
+            element.clear()
+        }
+    }
+
+    /** The [OtpKind] of the one-time code the entry holds (any of the formats the engine reads), 0 = none. */
+    private fun otpKindOf(entry: Entry): Int {
+        val element = entry.getOtpElement()
+        try {
+            return Otp.kindOf(element)
+        } finally {
+            element?.clear()
+        }
+    }
+
+    /** Writes the draft into [entry]. [keepFrom]: the stored entry, to keep a protected field's value or the password when the draft sends none. [otp]: see [otpFieldFor]. */
+    private fun fill(entry: Entry, draft: EntryDraft, keepFrom: Entry?, otp: Field?) {
         val stored = keepFrom?.getExtraFields().orEmpty()
         val fields = draft.fields.map { f ->
             val name = f.name.trim()
@@ -779,6 +811,7 @@ class VaultSession(
         // Same order as KeePassDX's saveEntryInfo: drop the custom fields first, then set the standard ones.
         entry.removeAllFields()
         entry.addExtraFields(fields)
+        if (otp != null) entry.putExtraField(otp)
         entry.title = draft.title
         entry.username = draft.username
         entry.password = draft.password?.toCharArray() ?: keepFrom?.password ?: CharArray(0)
@@ -818,6 +851,8 @@ class VaultSession(
 
         /** The engine's own standard field names: a custom field may not use them. */
         private val STANDARD_FIELDS = setOf("title", "username", "password", "url", "notes")
+        /** The custom field that holds the one-time code as an otpauth link, as KeePassDX and KeePassXC store it (E1.18). */
+        private const val OTP_FIELD = "otp"
 
         /** Accepts every key-derivation setting. Tests and callers that did their own check use it. */
         val PERMISSIVE = Limits(isMemorySufficient = { _, _ -> true }, parallelism = 1L)
