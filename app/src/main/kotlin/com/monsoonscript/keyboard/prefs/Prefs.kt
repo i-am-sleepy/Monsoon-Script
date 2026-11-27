@@ -71,7 +71,7 @@ object Prefs {
     const val SHOW_SUGGESTIONS = "suggest_show"
     const val NEXT_WORD = "suggest_next_word"
     const val TYPED_FIRST = "suggest_typed_first"
-    const val CALC = "suggest_calc" // the calculator on the suggestion strip (L13, D97), on by default
+    const val CALC = "suggest_calc" // the calculator on the suggestion strip (L13, D99), on by default
     const val CALC_ANGLE = "suggest_calc_angle" // 0 = degrees (default), 1 = radians
 
     // space bar cursor drag (L9, D72): hold the space bar, then slide

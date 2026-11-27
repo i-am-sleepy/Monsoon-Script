@@ -6,7 +6,7 @@ import kotlin.math.max
 import kotlin.math.sqrt
 
 /**
- * What the suggestion strip offers for a calculation at the end of the typed text (L13, D97). [typed] is the exact text of the calculation (what "replace" deletes),
+ * What the suggestion strip offers for a calculation at the end of the typed text (L13, D99). [typed] is the exact text of the calculation (what "replace" deletes),
  * [value] the answer as shown (Bangla digits when the calculation was typed with Bangla digits).
  */
 class CalcOffer(
@@ -28,7 +28,7 @@ class CalcOffer(
 }
 
 /**
- * The calculator behind the strip (L13, D97). Pure Kotlin, offline, one pass over at most [WINDOW] characters per key. [offer] looks at the end of the text before the
+ * The calculator behind the strip (L13, D99). Pure Kotlin, offline, one pass over at most [WINDOW] characters per key. [offer] looks at the end of the text before the
  * cursor, finds the longest calculation that ends right there and answers it; most of the time (normal typing) it says null after one look at the last character.
  * What it understands: + - * / x × ÷ ^ **, brackets, % (also "20% of 150", "150 + 10%"), mod, ! , ² ³, √, constants (pi e tau phi), the usual functions (sqrt, trig in
  * degrees or radians, logs, exp, rounding, min / max / sum / avg, gcd / lcm, ncr / npr, ...), 0x / 0b / 0o numbers, "255 to hex", and unit conversions

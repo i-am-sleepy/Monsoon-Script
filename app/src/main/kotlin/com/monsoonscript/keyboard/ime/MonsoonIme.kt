@@ -104,7 +104,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     // ---- text shortcuts in the strip (E3.7, D68): a typed `;sig` offers its saved text as a candidate; nothing is inserted until it is tapped
 
     /** The characters typed since the last space: matched against the triggers. Fed next to [tracker]. */
-    /** The last characters of the line, for the calculator on the strip (L13, D97); it is fed from the same places as [triggerRun] (see below). */
+    /** The last characters of the line, for the calculator on the strip (L13, D99); it is fed from the same places as [triggerRun] (see below). */
     private val calcRun = CalcRun()
     private var calcOn = true
     private var calcRadians = false
@@ -908,7 +908,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         return out
     }
 
-    // ---- the calculator on the strip (L13, D97)
+    // ---- the calculator on the strip (L13, D99)
 
     /**
      * Look at the end of the typed line: when it is a calculation (16+8, 20% of 150, 5 km in miles) the strip gets two chips in front, "= 24" (adds the answer

@@ -60,7 +60,7 @@
     <string name="theme_shape_shadow_summary">A soft shadow under the keys</string>
     <string name="settings_key_text">Text size on the keys</string>
     <string name="settings_strip_text">Text size in the suggestion bar</string>
-    <!-- The calculator on the suggestion bar (L13, D97) -->
+    <!-- The calculator on the suggestion bar (L13, D99) -->
     <string name="settings_calc_header">Calculator</string>
     <string name="settings_calc">Calculator on the suggestion bar</string>
     <string name="settings_calc_summary">Type 16+8 and the answer shows up: \"= 24\" adds it after, \"\u2192 24\" replaces what you typed. Works offline.</string>
