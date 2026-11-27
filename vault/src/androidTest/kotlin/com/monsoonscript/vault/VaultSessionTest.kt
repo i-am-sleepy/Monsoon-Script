@@ -2,6 +2,8 @@ package com.monsoonscript.vault
 
 import androidx.test.platform.app.InstrumentationRegistry
 import com.kunzisoft.keepass.database.crypto.kdf.Limits
+import com.kunzisoft.keepass.otp.TokenCalculator
+import com.kunzisoft.keepass.otp.TokenCalculator.HashAlgorithm
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -561,5 +563,126 @@ class VaultSessionTest {
         expectError(VaultError.WRONG_CREDENTIALS) { b.resolve(Resolve.MERGE, "wrong".toCharArray(), null) }
         assertTrue("still waiting for an answer, nothing lost", b.status().conflict)
         assertEquals(setOf("One", "Three"), titles(b))
+    }
+
+    // ---------------------------------------------------------------- one-time codes (E1.18)
+
+    /** The secret of the RFC 4226 / 6238 test vectors ("12345678901234567890") and the same in base32. */
+    private val rfcSecret = "12345678901234567890".toByteArray()
+    private val rfcBase32 = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+
+    private fun totpAt(seconds: Long, period: Int = 30, digits: Int = 6): String =
+        String(TokenCalculator.formatTokenString(TokenCalculator.getTotpRfc6238Token(rfcSecret, period, seconds, digits, HashAlgorithm.SHA1), digits))
+
+    private fun now() = System.currentTimeMillis() / 1000
+
+    /** The code from [ask] must be the right one for the wall clock (checked before and after the call, so a step change in between is fine). */
+    private fun assertCurrent(period: Int, digits: Int, ask: () -> OtpCode): OtpCode {
+        val before = now()
+        val got = ask()
+        val after = now()
+        val ok = setOf(totpAt(before, period, digits), totpAt(after, period, digits))
+        assertTrue("${got.code} is not one of $ok", got.code in ok)
+        assertEquals(period, got.period)
+        assertTrue("seconds left ${got.secondsLeft}", got.secondsLeft in 1..period)
+        return got
+    }
+
+    private fun entryWithCode(s: VaultSession, input: String, title: String = "Bank"): String =
+        s.saveEntry(draft(title, s.info().rootId, fields = listOf(FieldItem("otp", Otp.storedValue(Otp.parseInput(input)), true)))).id!!
+
+    @Test
+    fun theEngineGivesTheStandardTestCodes() {
+        // RFC 6238 appendix B (SHA-1, 8 digits) and RFC 4226 appendix D: the same numbers every authenticator app must give.
+        val rfc6238 = mapOf(59L to 94287082, 1111111109L to 7081804, 1111111111L to 14050471, 1234567890L to 89005924, 2000000000L to 69279037, 20000000000L to 65353130)
+        for ((time, expected) in rfc6238) {
+            assertEquals("time $time", expected, TokenCalculator.getTotpRfc6238Token(rfcSecret, 30, time, 8, HashAlgorithm.SHA1))
+        }
+        val rfc4226 = listOf("755224", "287082", "359152", "969429", "338314", "254676", "287922", "162583", "399871", "520489")
+        rfc4226.forEachIndexed { counter, expected ->
+            assertEquals("counter $counter", expected, String(TokenCalculator.getHotpToken(rfcSecret, counter.toLong(), 6, HashAlgorithm.SHA1)))
+        }
+    }
+
+    @Test
+    fun anEntryWithoutACodeHasNone() {
+        val s = newVault()
+        val id = s.saveEntry(draft("Plain", s.info().rootId)).id!!
+        assertNull(s.otpCode(id))
+    }
+
+    @Test
+    fun aBareSecretKeyGivesTheNormalSixDigitCodeAndSurvivesLockAndReopen() {
+        val s = newVault()
+        // spaces, dashes and lower case are fine in a typed key
+        val id = entryWithCode(s, "gezd gnbv-gy3t qojq gezd gnbv gy3t qojq")
+        val code = assertCurrent(30, 6) { s.otpCode(id)!! }
+        assertEquals(OtpKind.TOTP, code.kind)
+        assertEquals(6, code.code.length)
+        assertTrue(code.code.all { it.isDigit() })
+        // the stored field is the usual protected "otp" link; the secret is not in the entry list sent to the screens
+        val field = s.entry(id).fields.single { it.name == "otp" }
+        assertTrue(field.protect)
+        assertNull(field.value)
+        s.lock()
+        val b = openVault()
+        assertCurrent(30, 6) { b.otpCode(id)!! }
+    }
+
+    @Test
+    fun aLinkWithItsOwnDigitsAndPeriodIsHonoured() {
+        val s = newVault()
+        val id = entryWithCode(s, "otpauth://totp/Bank:me@example.com?secret=$rfcBase32&issuer=Bank&digits=8&period=60")
+        val code = assertCurrent(60, 8) { s.otpCode(id)!! }
+        assertEquals(8, code.code.length)
+    }
+
+    @Test
+    fun aSteamCodeUsesItsOwnLettersAndFiveCharacters() {
+        val s = newVault()
+        val id = entryWithCode(s, "otpauth://totp/Steam:me?secret=$rfcBase32&encoder=steam")
+        val code = s.otpCode(id)!!
+        assertEquals(OtpKind.STEAM, code.kind)
+        assertEquals(5, code.code.length)
+        assertTrue(code.code, code.code.all { it in "23456789BCDFGHJKMNPQRTVWXY" })
+        assertEquals(30, code.period)
+    }
+
+    @Test
+    fun aCounterBasedCodeShowsItsStoredCounterAndDoesNotChange() {
+        val s = newVault()
+        val id = entryWithCode(s, "otpauth://hotp/Site:me?secret=$rfcBase32&counter=1")
+        val code = s.otpCode(id)!!
+        assertEquals(OtpKind.HOTP, code.kind)
+        assertEquals("287082", code.code)
+        assertEquals(0, code.secondsLeft)
+        assertEquals(0, code.period)
+        assertEquals("287082", s.otpCode(id)!!.code)
+    }
+
+    @Test
+    fun otpCheckReturnsTheCodeWithoutStoringAnything() {
+        val s = newVault()
+        val code = assertCurrent(30, 6) { s.otpCheck(rfcBase32) }
+        assertEquals(OtpKind.TOTP, code.kind)
+        assertTrue(s.list(null).entries.isEmpty())
+    }
+
+    @Test
+    fun otpCheckRefusesWhatIsNotAKey() {
+        val s = newVault()
+        for (bad in listOf("", "   ", "hello world!", "12", "ABCDEFG1", "otpauth://totp/x", "otpauth://totp/x?secret=", "otpauth://totp/x?secret=!!!!", "otpauth://nothing/x?secret=$rfcBase32", "https://example.com")) {
+            expectError(VaultError.INVALID) { s.otpCheck(bad) }
+        }
+    }
+
+    @Test
+    fun otpCallsNeedAnOpenVaultAndAKnownEntry() {
+        val s = newVault()
+        val id = entryWithCode(s, rfcBase32)
+        expectError(VaultError.NOT_FOUND) { s.otpCode("00000000-0000-0000-0000-000000000000") }
+        s.lock()
+        expectError(VaultError.LOCKED) { s.otpCode(id) }
+        expectError(VaultError.LOCKED) { s.otpCheck(rfcBase32) }
     }
 }

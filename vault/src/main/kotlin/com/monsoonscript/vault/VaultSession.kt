@@ -350,6 +350,35 @@ class VaultSession(
         }
     }
 
+    /**
+     * The current one-time code of the entry (E1.18), or null when the entry has none. The secret stays inside the vault process: only the short-lived code
+     * is returned. Counter-based codes are shown for their stored counter and are not advanced here.
+     */
+    @Synchronized
+    fun otpCode(id: String): OtpCode? {
+        val element = entryById(requireDb(), id).getOtpElement() ?: return null
+        try {
+            return Otp.codeOf(element)
+        } finally {
+            element.clear()
+        }
+    }
+
+    /**
+     * Checks what the owner typed or pasted as the one-time code key (an `otpauth://` link or a bare secret key) and returns the code it gives right now, so the
+     * edit screen can show that the key works before saving. Throws INVALID with a message that says what is wrong. Nothing is stored.
+     */
+    @Synchronized
+    fun otpCheck(text: String): OtpCode {
+        requireDb()
+        val element = Otp.parseInput(text)
+        try {
+            return Otp.codeOf(element) ?: throw VaultException(VaultError.INVALID, "This is not a valid secret key")
+        } finally {
+            element.clear()
+        }
+    }
+
     /** The stored password. The caller should wipe the array after use. */
     @Synchronized
     fun password(id: String): CharArray = entryById(requireDb(), id).password.copyOf()

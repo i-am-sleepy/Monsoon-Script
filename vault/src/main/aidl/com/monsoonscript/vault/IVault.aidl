@@ -7,6 +7,7 @@ import com.monsoonscript.vault.EntryDetail;
 import com.monsoonscript.vault.EntryDraft;
 import com.monsoonscript.vault.EntrySummary;
 import com.monsoonscript.vault.GroupListing;
+import com.monsoonscript.vault.OtpCode;
 import com.monsoonscript.vault.VaultInfo;
 import com.monsoonscript.vault.VaultStatus;
 
@@ -37,6 +38,10 @@ interface IVault {
     EntryDetail entry(String id);
     char[] password(String id);
     String fieldValue(String id, String name);
+    /** The current one-time code of the entry, or null when it has none (E1.18); the secret stays in the vault process. */
+    OtpCode otpCode(String id);
+    /** Checks a typed or pasted one-time code key (otpauth:// link or secret) and returns the code it gives now; INVALID when it is not usable. Stores nothing. */
+    OtpCode otpCheck(String text);
     /** Writes the decrypted attached file [name] of the entry to the picked place [dest] (E1.17); the bytes never travel through Binder. */
     void saveAttachment(String id, String name, in Uri dest);
 

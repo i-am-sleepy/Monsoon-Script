@@ -139,6 +139,8 @@ class VaultService : Service() {
         override fun entry(id: String?): EntryDetail = onEngine { session.entry(need(id)) }
         override fun password(id: String?): CharArray = onEngine { session.password(need(id)) }
         override fun fieldValue(id: String?, name: String?): String? = onEngine { session.fieldValue(need(id), need(name)) }
+        override fun otpCode(id: String?): OtpCode? = onEngine { session.otpCode(need(id)) }
+        override fun otpCheck(text: String?): OtpCode = onEngine { session.otpCheck(need(text)) }
         override fun saveAttachment(id: String?, name: String?, dest: Uri?) = onEngine { session.saveAttachment(need(id), need(name), need(dest)) }
 
         override fun backups(): List<BackupInfo> = onEngine { session.backups() }

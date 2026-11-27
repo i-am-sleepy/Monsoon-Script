@@ -169,3 +169,25 @@ data class NewAttachment(
     val name: String,
     val uri: android.net.Uri,
 ) : Parcelable
+
+/** The kinds of one-time code an entry can hold (E1.18). */
+object OtpKind {
+    /** Time-based (RFC 6238): the usual 6 digits that change every 30 seconds. */
+    const val TOTP = 1
+    /** Steam Guard style: 5 letters/digits, time-based. */
+    const val STEAM = 2
+    /** Counter-based (RFC 4226): changes only when the counter is advanced. */
+    const val HOTP = 3
+}
+
+/**
+ * The current one-time code of an entry (E1.18). [code] has no spaces. [secondsLeft] is how long it stays valid and [period] the length of one step; both
+ * are 0 for a counter-based code ([kind] = [OtpKind.HOTP]). The secret itself never leaves the vault process: only this short-lived code does.
+ */
+@Parcelize
+data class OtpCode(
+    val code: String,
+    val secondsLeft: Int,
+    val period: Int,
+    val kind: Int,
+) : Parcelable
