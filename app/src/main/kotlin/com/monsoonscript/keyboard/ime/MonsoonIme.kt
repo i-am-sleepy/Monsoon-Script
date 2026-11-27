@@ -322,6 +322,11 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         r.orientation = LinearLayout.VERTICAL
         r.addView(v, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root = r
+        // A new input view (rotation, dark mode, font size, ...) means the panels of the old one are gone: every lazily built panel must be forgotten here. The voice
+        // panel was missing from this list, so after a rebuild a tap on the mic hid the NEW keys and showed the OLD panel, which is not on screen: an empty keyboard
+        // until Back (the owner's "voice panel sometimes invisible", cured only by an update = a new process).
+        if (voicePanel?.visibility == View.VISIBLE) voice?.panelClose()
+        voicePanel = null
         emojiPanel = null
         clipPanel = null
         clipModel = null
@@ -1322,7 +1327,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     private fun ensureVoicePanel(): VoicePanelView? {
-        voicePanel?.let { return it }
+        voicePanel?.let { if (it.parent === root) return it } // a panel left over from an earlier input view is not used again
         val r = root ?: return null
         val kb = keyboard ?: return null
         val p = VoicePanelView(this, kb.palette)

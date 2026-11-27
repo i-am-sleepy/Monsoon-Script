@@ -8,6 +8,7 @@ import android.graphics.Color
 import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
+import android.util.Log
 import com.monsoonscript.keyboard.view.Backdrop
 import java.io.File
 import java.io.FileOutputStream
@@ -19,6 +20,7 @@ import java.io.IOException
  * kept in memory for the keyboard (the app and the keyboard are one process); at most [KEEP] of them.
  */
 object ThemePictures {
+    private const val TAG = "ThemePictures"
     private const val DIR = "theme_pictures"
     private const val KEEP = 3
     private val bitmaps = LinkedHashMap<String, Bitmap>()
@@ -41,11 +43,13 @@ object ThemePictures {
     fun importFrom(context: Context, uri: Uri): String? {
         return try {
             val resolver = context.contentResolver
+            // first only the size: in this mode decodeStream ALWAYS returns null (the size is written into [bounds]), so its result must not be checked
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, bounds) } ?: return null
-            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+            val first = resolver.openInputStream(uri) ?: return fail("cannot open $uri")
+            first.use { BitmapFactory.decodeStream(it, null, bounds) }
+            if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return fail("no size read from $uri (${bounds.outMimeType})")
             val opts = BitmapFactory.Options().apply { inSampleSize = PictureMath.sampleSize(bounds.outWidth, bounds.outHeight) }
-            val decoded = resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) } ?: return null
+            val decoded = resolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it, null, opts) } ?: return fail("cannot decode $uri")
             val rotation = try {
                 resolver.openInputStream(uri)?.use { orientationDegrees(ExifInterface(it)) } ?: 0
             } catch (e: IOException) {
@@ -69,12 +73,18 @@ object ThemePictures {
             FileOutputStream(target).use { out.compress(Bitmap.CompressFormat.JPEG, 88, it) }
             name
         } catch (e: IOException) {
-            null
+            fail("import failed", e)
         } catch (e: RuntimeException) {
-            null
+            fail("import failed", e)
         } catch (e: OutOfMemoryError) {
-            null
+            fail("import ran out of memory", e)
         }
+    }
+
+    /** Why an import gave nothing goes to the log (adb logcat -s ThemePictures), so a picture that "could not be read" can be traced. */
+    private fun fail(why: String, e: Throwable? = null): String? {
+        if (e != null) Log.w(TAG, why, e) else Log.w(TAG, why)
+        return null
     }
 
     private fun orientationDegrees(exif: ExifInterface): Int = when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
