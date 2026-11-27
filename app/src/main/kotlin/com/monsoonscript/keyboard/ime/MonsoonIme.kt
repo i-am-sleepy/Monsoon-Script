@@ -1566,6 +1566,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         override fun list(groupId: String?, done: (Result<com.monsoonscript.vault.GroupListing>) -> Unit) = client().async({ it.list(groupId) }, done)
         override fun search(query: String, done: (Result<List<com.monsoonscript.vault.EntrySummary>>) -> Unit) = client().async({ it.search(query) }, done)
         override fun password(id: String, done: (Result<CharArray>) -> Unit) = client().async({ it.password(id) }, done)
+        override fun otpCode(id: String, done: (Result<com.monsoonscript.vault.OtpCode?>) -> Unit) = client().async({ it.otpCode(id) }, done)
     }
 
     private val vaultHost = object : VaultPickerModel.Host {
@@ -1588,6 +1589,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             closeVault()
             refreshAutoCaps()
             dropSuggestions() // no suggestions made from what the vault just typed
+        }
+
+        override fun after(delayMs: Long, block: () -> Unit) {
+            mainHandler.postDelayed(block, delayMs) // the model drops it when the panel or entry changed meanwhile
         }
     }
 

@@ -53,8 +53,9 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
     E1.18.2 [x] owner answered, D98 (paste key/link, no camera; grouped digits + countdown; Code chip waits when <5 s left; TOTP + Steam, no HOTP).
     E1.18.3 [x] engine: `EntryDraft.otp` (null keep, blank remove, text set), `EntryDetail.otp` kind, the `otp` field hidden from `fields`, custom field named otp refused, HOTP -> no code; +4 androidTests. CI app #105 + engine #15 green at 5e9c9c2.
     E1.18.4 [x] app: entry screen live code row (`EntryActivity.CodeRow`, `OtpFormat`), Edit screen key field + Test + Remove, strings; OtpFormatTest 3/3.
-    E1.18.5 [ ] picker Code chip (`VaultPickerModel` + the panel view): shown only for entries with a code, waits when <5 s left (OtpFormat.shouldWait), closes after Code (D87).
-    E1.18.6 [ ] ARCHITECTURE.md bullet, STATUS Needs user #26 (owner test list), APK link naming my commit.
+    E1.18.5 [x] picker Code chip: `EntrySummary.hasOtp`, `VaultPickerModel` CODE chip (waits when <5 s left, `Host.after`, `codeToken`), panel chip label, IME wiring; VaultPickerModelTest 20/20 (6 new, run on the JVM).
+    E1.18.6 [x] ARCHITECTURE.md bullet, STATUS Needs user #26 (owner test list).
+    E1.18.7 [~] waiting for CI + the owner's phone test (#26); then fix findings, docs/PASSWORD_MANAGER.md status for Phases 2/3.
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; D87 is the last one I wrote, check the file for the next free id) and update the docs.
 
 ## Next step

@@ -7,6 +7,8 @@ import com.monsoonscript.keyboard.vault.VaultPickerModel.Tab
 import com.monsoonscript.vault.EntrySummary
 import com.monsoonscript.vault.GroupListing
 import com.monsoonscript.vault.GroupRef
+import com.monsoonscript.vault.OtpCode
+import com.monsoonscript.vault.OtpKind
 import com.monsoonscript.vault.VaultError
 import com.monsoonscript.vault.VaultException
 import com.monsoonscript.vault.VaultInfo
@@ -28,10 +30,15 @@ class VaultPickerModelTest {
         val a = EntrySummary("a", "root", "Alpha", "alice", "", true, 0L)
         val b = EntrySummary("b", "root", "Beta", "", "", true, 0L)
         val c = EntrySummary("c", "work", "Charlie", "carol", "", false, 0L)
+        val d = EntrySummary("d", "root", "Delta", "dave", "", true, 0L, hasOtp = true)
         val matchesFor = HashMap<String, List<EntrySummary>>()
         val passwords = HashMap<String, String>().apply { put("a", "pw-a"); put("b", "pw-b") }
         var searched = ArrayList<String>()
         var passwordCalls = 0
+
+        /** What the vault answers for a one-time code (null = none); tests change it between asks. */
+        var code: OtpCode? = OtpCode("123456", 20, 30, OtpKind.TOTP)
+        var otpCalls = 0
 
         private fun <T> answer(done: (Result<T>) -> Unit, value: () -> T) {
             val f = failWith
@@ -56,12 +63,17 @@ class VaultPickerModelTest {
 
         override fun search(query: String, done: (Result<List<EntrySummary>>) -> Unit) {
             searched.add(query)
-            answer(done) { listOf(a, b, c).filter { it.title.contains(query, ignoreCase = true) } }
+            answer(done) { listOf(a, b, c, d).filter { it.title.contains(query, ignoreCase = true) } }
         }
 
         override fun password(id: String, done: (Result<CharArray>) -> Unit) {
             passwordCalls++
             answer(done) { passwords.getValue(id).toCharArray() }
+        }
+
+        override fun otpCode(id: String, done: (Result<OtpCode?>) -> Unit) {
+            otpCalls++
+            answer(done) { code }
         }
     }
 
@@ -97,6 +109,12 @@ class VaultPickerModelTest {
 
         override fun closePicker() {
             closed++
+        }
+
+        /** What the model asked to run later, with its delay; a test runs them by hand. */
+        val later = ArrayList<Pair<Long, () -> Unit>>()
+        override fun after(delayMs: Long, block: () -> Unit) {
+            later.add(delayMs to block)
         }
     }
 
@@ -263,6 +281,95 @@ class VaultPickerModelTest {
         model.close()
         assertTrue(model.rows.isEmpty())
         assertNull(model.expandedId)
+    }
+
+    // ------------------------------------------------------------------------------------------------------------------ the Code chip (E1.18, D98)
+
+    private fun openDelta() {
+        model.open("")
+        model.setQuery("delta")
+        model.tapRow(0)
+        assertEquals("d", model.expandedId)
+    }
+
+    @Test
+    fun onlyAnEntryWithACodeOffersTheCodeChip() {
+        assertEquals(listOf(ChipKind.USERNAME, ChipKind.PASSWORD, ChipKind.CODE), model.chipsFor(backend.d))
+        assertEquals(listOf(ChipKind.USERNAME, ChipKind.PASSWORD), model.chipsFor(backend.a))
+        assertEquals(listOf(ChipKind.PASSWORD), model.chipsFor(backend.b))
+    }
+
+    @Test
+    fun theCurrentCodeIsTypedAtOnceAndThePickerCloses() {
+        openDelta()
+        model.tapChip(ChipKind.CODE)
+        assertEquals(listOf("123456"), host.typed)
+        assertEquals(1, host.closed)
+        assertEquals(listOf("d"), host.recent.take(1))
+        assertFalse(model.waitingForCode)
+        assertTrue(host.later.isEmpty())
+    }
+
+    @Test
+    fun aCodeAboutToChangeWaitsForTheNextOne() {
+        backend.code = OtpCode("111111", 3, 30, OtpKind.TOTP)
+        openDelta()
+        model.tapChip(ChipKind.CODE)
+        assertTrue(model.waitingForCode)
+        assertTrue(host.typed.isEmpty())
+        assertEquals(0, host.closed)
+        assertEquals(3_000L + VaultPickerModel.NEXT_CODE_MARGIN_MS, host.later.single().first)
+        // a second tap while waiting changes nothing
+        model.tapChip(ChipKind.CODE)
+        assertEquals(1, backend.otpCalls)
+        // the next step has begun: the new code is asked for and typed whatever it says
+        backend.code = OtpCode("222222", 2, 30, OtpKind.TOTP)
+        host.later.single().second()
+        assertEquals(listOf("222222"), host.typed)
+        assertFalse(model.waitingForCode)
+        assertEquals(1, host.closed)
+    }
+
+    @Test
+    fun closingThePanelOrMovingOnDropsTheWait() {
+        backend.code = OtpCode("111111", 2, 30, OtpKind.TOTP)
+        openDelta()
+        model.tapChip(ChipKind.CODE)
+        assertTrue(model.waitingForCode)
+        model.close()
+        assertFalse(model.waitingForCode)
+        host.later.single().second()
+        assertTrue(host.typed.isEmpty())
+        assertEquals(0, host.closed)
+
+        // leaving for another view also drops it
+        host.later.clear()
+        openDelta()
+        model.tapChip(ChipKind.CODE)
+        assertTrue(model.waitingForCode)
+        model.selectTab(Tab.RECENT)
+        assertFalse(model.waitingForCode)
+        host.later.single().second()
+        assertTrue(host.typed.isEmpty())
+    }
+
+    @Test
+    fun anEntryThatLostItsCodeTypesNothing() {
+        backend.code = null
+        openDelta()
+        model.tapChip(ChipKind.CODE)
+        assertTrue(host.typed.isEmpty())
+        assertEquals(0, host.closed)
+        assertEquals(State.READY, model.state)
+    }
+
+    @Test
+    fun aVaultThatLocksWhileAskingForACodeShowsTheLockedState() {
+        openDelta()
+        backend.failWith = VaultException(VaultError.LOCKED, "locked")
+        model.tapChip(ChipKind.CODE)
+        assertEquals(State.LOCKED, model.state)
+        assertTrue(host.typed.isEmpty())
     }
 
     @Test

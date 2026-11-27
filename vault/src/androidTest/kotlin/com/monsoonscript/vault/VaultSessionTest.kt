@@ -704,6 +704,20 @@ class VaultSessionTest {
     }
 
     @Test
+    fun theListsSayWhichEntriesHaveACode() {
+        val s = newVault()
+        val withCode = entryWithCode(s, rfcBase32, "With code")
+        val without = s.saveEntry(draft("Without", s.info().rootId)).id!!
+        // a counter-based code stored the old way is not offered (no code can be given for it)
+        val hotp = s.saveEntry(draft("Hotp", s.info().rootId, fields = listOf(FieldItem("HmacOtp-Secret-Base32", rfcBase32, true), FieldItem("HmacOtp-Counter", "1", false)))).id!!
+        val byId = s.list(null).entries.associateBy { it.id }
+        assertTrue(byId.getValue(withCode).hasOtp)
+        assertFalse(byId.getValue(without).hasOtp)
+        assertFalse(byId.getValue(hotp).hasOtp)
+        assertTrue(s.search("With").single().hasOtp)
+    }
+
+    @Test
     fun aCustomFieldCannotBeCalledOtp() {
         val s = newVault()
         for (name in listOf("otp", "OTP", " Otp ")) {

@@ -88,6 +88,8 @@ internal class VaultPanelView(
     private val sAll = context.getString(R.string.picker_all)
     private val sUsername = context.getString(R.string.picker_username)
     private val sPassword = context.getString(R.string.picker_password)
+    private val sCode = context.getString(R.string.picker_code)
+    private val sCodeWaiting = context.getString(R.string.picker_code_waiting)
     private val sHint = context.getString(R.string.picker_search_hint)
     private val sBack = context.getString(R.string.picker_back)
     private val sNoVault = context.getString(R.string.picker_no_vault)
@@ -445,12 +447,19 @@ internal class VaultPanelView(
         }
     }
 
+    /** The words on a chip; the Code chip says it is waiting while the next one-time code is awaited (D98). */
+    private fun chipLabel(kind: ChipKind): String = when (kind) {
+        ChipKind.USERNAME -> sUsername
+        ChipKind.PASSWORD -> sPassword
+        ChipKind.CODE -> if (model.waitingForCode) sCodeWaiting else sCode
+    }
+
     private fun drawChipsRow(c: Canvas, y: Float, x0: Float) {
         val cy = y + chipRowH / 2f - dp(2f)
         val ph = dp(34f)
         var x = x0
         for (k in expChips.indices) {
-            val label = if (expChips[k] == ChipKind.USERNAME) sUsername else sPassword
+            val label = chipLabel(expChips[k])
             val pw = chipPaint.measureText(label) + dp(28f)
             rect.set(x, cy - ph / 2f, x + pw, cy + ph / 2f)
             fillPaint.color = if (pressedKey == K_CHIP + k) pal.accentPressed else pal.accent
@@ -912,7 +921,7 @@ internal class VaultPanelView(
         if (cy < top || cy > top + chipRowH) return K_NONE
         var x = dp(64f)
         for (k in expChips.indices) {
-            val label = if (expChips[k] == ChipKind.USERNAME) sUsername else sPassword
+            val label = chipLabel(expChips[k])
             val pw = chipPaint.measureText(label) + dp(28f)
             if (px >= x && px <= x + pw) return K_CHIP + k
             x += pw + dp(8f)

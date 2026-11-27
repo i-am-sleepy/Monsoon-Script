@@ -100,6 +100,8 @@ data class EntrySummary(
     val url: String,
     val hasPassword: Boolean,
     val modified: Long,
+    /** The entry holds a usable one-time code (time-based or Steam; E1.18): the picker offers its Code chip. */
+    val hasOtp: Boolean = false,
 ) : Parcelable
 
 /** One folder: its sub-folders and entries, and the path from the root (the last item of [path] is the folder itself). */

@@ -750,7 +750,15 @@ class VaultSession(
             url = e.url,
             hasPassword = e.password.isNotEmpty(),
             modified = e.lastModificationTime.toMilliseconds(),
+            hasOtp = hasUsableOtp(e),
         )
+    }
+
+    /** True when the entry has the standard "otp" field and it gives a code (the key is parsed only for the few entries that have the field). */
+    private fun hasUsableOtp(e: Entry): Boolean {
+        if (e.getExtraFields().none { it.name == OTP_FIELD }) return false
+        val kind = otpKindOf(e)
+        return kind == OtpKind.TOTP || kind == OtpKind.STEAM
     }
 
     private fun checkFields(fields: List<FieldItem>) {

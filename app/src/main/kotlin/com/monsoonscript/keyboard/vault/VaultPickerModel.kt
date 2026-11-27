@@ -3,6 +3,7 @@ package com.monsoonscript.keyboard.vault
 import com.monsoonscript.vault.EntrySummary
 import com.monsoonscript.vault.GroupListing
 import com.monsoonscript.vault.GroupRef
+import com.monsoonscript.vault.OtpCode
 import com.monsoonscript.vault.VaultError
 import com.monsoonscript.vault.VaultException
 import com.monsoonscript.vault.VaultInfo
@@ -14,7 +15,7 @@ import com.monsoonscript.vault.VaultStatus
  * when its chip is tapped, handed to [Host.typePassword] and wiped right after.
  *
  * Views of the list: "This app" (entries that store the app in front, only when there are some), "Recent" (what was typed last), and "All" (the folders).
- * A search query replaces whichever view is up. Tapping an entry opens it in place (chips Username / Password, D87); tapping a chip types it.
+ * A search query replaces whichever view is up. Tapping an entry opens it in place (chips Username / Password / Code, D87, D98); tapping a chip types it.
  *
  * Every [Backend] call answers on the main thread; a [generation] number drops answers that arrive after the view moved on.
  */
@@ -28,6 +29,9 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
         fun list(groupId: String?, done: (Result<GroupListing>) -> Unit)
         fun search(query: String, done: (Result<List<EntrySummary>>) -> Unit)
         fun password(id: String, done: (Result<CharArray>) -> Unit)
+
+        /** The current one-time code of the entry, null when it has none (E1.18). Only the short-lived code comes back, never the key. */
+        fun otpCode(id: String, done: (Result<OtpCode?>) -> Unit)
     }
 
     interface Host {
@@ -56,11 +60,14 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
 
         /** Back to the keys (after a password was typed, D87). */
         fun closePicker()
+
+        /** Runs [block] on the main thread after [delayMs] (the Code chip waits for the next code, D98). The model ignores it when it is no longer wanted. */
+        fun after(delayMs: Long, block: () -> Unit)
     }
 
     enum class State { NO_VAULT, LOCKED, LOADING, READY, CONFLICT, ERROR }
     enum class Tab { APP, RECENT, FOLDERS }
-    enum class ChipKind { USERNAME, PASSWORD }
+    enum class ChipKind { USERNAME, PASSWORD, CODE }
 
     sealed class Row {
         class Folder(val ref: GroupRef) : Row()
@@ -96,9 +103,14 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
     var asking = false
         private set
 
+    /** The Code chip was tapped while the code was about to change: it is typed as soon as the next one is there (D98). The chip says so. */
+    var waitingForCode = false
+        private set
+
     val searching: Boolean get() = query.isNotBlank()
 
     private var generation = 0
+    private var codeToken = 0
     private var packageName = ""
     private var binId: String? = null
     private var matches: List<EntrySummary> = emptyList()
@@ -133,10 +145,17 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
     /** The panel was closed: nothing stays in memory and answers still on their way are dropped. */
     fun close() {
         generation++
+        cancelCode()
         clearView()
         matches = emptyList()
         recents = emptyList()
         state = State.LOADING
+    }
+
+    /** Whatever the Code chip was waiting for is dropped: another view or entry is up, or the panel closed. */
+    private fun cancelCode() {
+        codeToken++
+        waitingForCode = false
     }
 
     private fun clearView() {
@@ -199,6 +218,7 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
     /** One of the chips. Leaves a search. */
     fun selectTab(t: Tab) {
         if (state != State.READY) return
+        cancelCode()
         query = ""
         expandedId = null
         asking = false
@@ -218,6 +238,7 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
     fun openFolder(id: String?) {
         if (state != State.READY) return
         val g = ++generation
+        cancelCode()
         expandedId = null
         asking = false
         backend.list(id) { r ->
@@ -247,6 +268,7 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
         if (state != State.READY) return
         val clean = q.trim()
         if (clean == query) return
+        cancelCode()
         expandedId = null
         asking = false
         if (clean.isEmpty()) {
@@ -272,6 +294,7 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
             is Row.Folder -> openFolder(row.ref.id)
             is Row.Up -> up()
             is Row.Item -> {
+                cancelCode()
                 expandedId = if (expandedId == row.entry.id) null else row.entry.id
                 asking = false
                 host.changed()
@@ -285,11 +308,12 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
         return null
     }
 
-    /** The chips an opened entry offers: nothing for a blank user name, nothing for an entry without a password. */
+    /** The chips an opened entry offers: nothing for a blank user name, nothing for an entry without a password or without a one-time code. */
     fun chipsFor(e: EntrySummary): List<ChipKind> {
-        val out = ArrayList<ChipKind>(2)
+        val out = ArrayList<ChipKind>(3)
         if (e.username.isNotEmpty()) out.add(ChipKind.USERNAME)
         if (e.hasPassword) out.add(ChipKind.PASSWORD)
+        if (e.hasOtp) out.add(ChipKind.CODE)
         return out
     }
 
@@ -309,6 +333,7 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
                     typePassword(e)
                 }
             }
+            ChipKind.CODE -> if (!waitingForCode) typeCode(e, retried = false)
         }
     }
 
@@ -339,7 +364,42 @@ internal class VaultPickerModel(private val backend: Backend, private val host: 
         }
     }
 
+    /**
+     * The Code chip (D98): the current code is typed at once, unless fewer than [OtpFormat.MIN_SECONDS_TO_TYPE] seconds are left: then the chip says it is
+     * waiting, and the next code is typed as soon as it is valid (it is asked for once more; whatever it says then is typed, so there is no endless waiting).
+     * The picker closes afterwards like after a password (D87). A different view or entry, or closing the panel, drops the wait.
+     */
+    private fun typeCode(e: EntrySummary, retried: Boolean) {
+        val g = generation
+        val token = ++codeToken
+        backend.otpCode(e.id) { r ->
+            if (g != generation || token != codeToken) return@otpCode
+            r.onFailure {
+                waitingForCode = false
+                fail(it)
+            }.onSuccess { code ->
+                if (code == null) { // the entry lost its code meanwhile
+                    waitingForCode = false
+                    host.changed()
+                } else if (!retried && OtpFormat.shouldWait(code.secondsLeft, code.period)) {
+                    waitingForCode = true
+                    host.changed()
+                    host.after(code.secondsLeft * 1000L + NEXT_CODE_MARGIN_MS) {
+                        if (g == generation && token == codeToken) typeCode(e, retried = true)
+                    }
+                } else {
+                    waitingForCode = false
+                    host.typeText(code.code)
+                    host.noteUsed(e.id)
+                    host.closePicker()
+                }
+            }
+        }
+    }
+
     companion object {
+        /** Extra time after the step ends before the next code is asked for, so the vault's clock is surely in the new step. */
+        const val NEXT_CODE_MARGIN_MS = 400L
         const val RECENT_MAX = 8
 
         /** [id] first, any earlier copy of it dropped, at most [max] kept. Pure so the keyboard's storage can be tested. */

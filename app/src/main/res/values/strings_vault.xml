@@ -185,6 +185,8 @@
     <string name="picker_all">All</string>
     <string name="picker_username">Username</string>
     <string name="picker_password">Password</string>
+    <string name="picker_code">Code</string>
+    <string name="picker_code_waiting">Waiting for the next code…</string>
     <string name="picker_search_hint">Search passwords</string>
     <string name="picker_back">Back</string>
     <string name="picker_no_vault">No password vault yet</string>
