@@ -1,0 +1,51 @@
+result: success
+engine unit tests: success
+emulator tests: success
+run: #18 https://github.com/i-am-sleepy/Monsoon-Script/actions/runs/46002564626
+commit: 9945c1936e7fdceea57b2fcf93300214a591e52a
+engine pin: unknown
+time: 2026-11-27T12:59:52Z
+
+--- emulator errors ---
+
+--- emulator tail ---
+Unable to strip the following libraries, packaging them as they are: libaes.so, libargon2.so. Run with --info option to learn more.
+
+> Task :vault:compileDebugKotlin
+> Task :vault:compileDebugJavaWithJavac
+> Task :vault:bundleLibCompileToJarDebug
+> Task :vault:bundleLibRuntimeToJarDebug
+> Task :vault:processDebugJavaRes
+> Task :vault:bundleLibRuntimeToDirDebug
+> Task :vault:compileDebugAndroidTestKotlin
+> Task :vault:compileDebugAndroidTestJavaWithJavac NO-SOURCE
+> Task :vault:mergeLibDexDebugAndroidTest
+> Task :vault:dexBuilderDebugAndroidTest
+> Task :vault:mergeDebugAndroidTestGlobalSynthetics FROM-CACHE
+> Task :vault:processDebugAndroidTestJavaRes
+> Task :vault:mergeProjectDexDebugAndroidTest
+> Task :vault:mergeDebugAndroidTestJavaResource
+> Task :vault:packageDebugAndroidTest
+> Task :vault:createDebugAndroidTestApkListingFileRedirect
+[EmulatorConsole]: Failed to start Emulator console for 5554
+
+> Task :vault:connectedDebugAndroidTest
+Starting 73 tests on emulator-5554 - 14
+
+emulator-5554 - 14 Tests 0/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 2/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 10/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 12/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 13/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 14/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 16/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 22/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 30/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 43/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 55/73 completed. (0 skipped) (0 failed)
+emulator-5554 - 14 Tests 64/73 completed. (0 skipped) (0 failed)
+Finished 73 tests on emulator-5554 - 14
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/emu-1795784187945.json
+
+BUILD SUCCESSFUL in 3m 24s
+103 actionable tasks: 47 executed, 21 from cache, 35 up-to-date
