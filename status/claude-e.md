@@ -55,11 +55,11 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
     E1.18.4 [x] app: entry screen live code row (`EntryActivity.CodeRow`, `OtpFormat`), Edit screen key field + Test + Remove, strings; OtpFormatTest 3/3.
     E1.18.5 [x] picker Code chip: `EntrySummary.hasOtp`, `VaultPickerModel` CODE chip (waits when <5 s left, `Host.after`, `codeToken`), panel chip label, IME wiring; VaultPickerModelTest 20/20 (6 new, run on the JVM).
     E1.18.6 [x] ARCHITECTURE.md bullet, STATUS Needs user #26 (owner test list).
-    E1.18.7 [~] waiting for CI + the owner's phone test (#26); then fix findings, docs/PASSWORD_MANAGER.md status for Phases 2/3.
+    E1.18.7 [~] CI green at 38337b5 (app #108, engine #17 incl. emulator tests). Waiting for the owner's phone test (#26); then fix findings, docs/PASSWORD_MANAGER.md status for Phases 2/3.
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; D87 is the last one I wrote, check the file for the next free id) and update the docs.
 
 ## Next step
-E1.18.2 next: ask the owner the one-time-code UI questions (see the step). Meanwhile the owner's tests (STATUS Needs user #23 fingerprint, #24 backups, #25 attachments) are pending; read `ci-status` first if anything was pushed meanwhile and the Phase 2 re-test (#22; if the card still goes to the home screen read Problem report `CrashLog.note` lines first). Next after that: E1.18 one-time codes + Code chip (UI task: ask the owner the screen questions first, CLAUDE.md).
+Waiting for the owner's phone tests: STATUS Needs user #22 (picker re-test; if the unlock card still goes to the home screen read Problem report `CrashLog.note` lines first), #23 fingerprint, #24 backups, #25 attachments, #26 one-time codes. Read `ci-status` and `ci-status-engine` first if anything was pushed meanwhile. After the findings: E1.15.4/E1.16.4/E1.17.4/E1.18.7 fixes + docs/PASSWORD_MANAGER.md status, then Phase 4 Autofill (D28; UI questions to the owner first). The owner's second 'extra thing' (he said 2 more, only A arrived) is still unknown.
 Before every push of `:vault` code run `tools/vault_compile_check.sh` (~30 s, needs `git submodule update --init --depth 1 third_party/keepassdx`) and `tools/compile_check.sh` for app code (it also compiles VaultModel + VaultClient). Pure vault logic: compile with kotlinc + a main() like /tmp/gentest if no unit-test runner is available.
 
 ## Shared code facts (condensed from other Claudes' warnings; re-pull and read before editing KeyboardView, Keys.kt, Layouts.kt, EmojiPanelView, MonsoonIme)
