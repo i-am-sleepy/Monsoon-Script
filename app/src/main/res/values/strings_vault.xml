@@ -261,4 +261,18 @@
     <string name="vault_attach_save_failed">The file could not be saved</string>
     <string name="vault_attach_too_big">%1$s is bigger than 10 MB, the limit for one attached file.</string>
     <string name="vault_err_too_big">A file is bigger than 10 MB, the limit for one attached file.</string>
+
+    <!-- one-time codes (E1.18, D98) -->
+    <string name="vault_otp_label">One-time code</string>
+    <string name="vault_otp_changes_in">Changes in %1$d s</string>
+    <string name="vault_otp_copied">One-time code copied</string>
+    <string name="vault_otp_unsupported">This entry has a counter-based (HOTP) code. Those are not supported here, so no code is shown.</string>
+    <string name="vault_otp_key">One-time code key</string>
+    <string name="vault_otp_key_hint">Paste the secret key or the otpauth:// link</string>
+    <string name="vault_otp_key_set_hint">Stored. Leave empty to keep it, or paste a new key.</string>
+    <string name="vault_otp_remove">Remove the one-time code</string>
+    <string name="vault_otp_will_remove">The one-time code will be removed when you save.</string>
+    <string name="vault_otp_test">Test code now: %1$s (changes in %2$d s)</string>
+    <string name="vault_otp_test_button">Test the key</string>
+    <string name="vault_otp_edit_hint">The key is kept inside the vault, encrypted. You get it from the website when you set up an authenticator app: a text key, or the link behind the QR code.</string>
 </resources>

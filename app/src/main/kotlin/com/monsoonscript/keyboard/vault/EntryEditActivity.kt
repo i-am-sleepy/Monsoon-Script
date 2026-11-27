@@ -24,6 +24,7 @@ import com.monsoonscript.vault.EntryDetail
 import com.monsoonscript.vault.EntryDraft
 import com.monsoonscript.vault.FieldItem
 import com.monsoonscript.vault.NewAttachment
+import com.monsoonscript.vault.OtpKind
 
 /**
  * Adding and editing an entry (E1.13): title, user name, password (with the generator), address, notes and any number of custom fields (each can be protected).
@@ -51,6 +52,11 @@ internal class EntryEditActivity : VaultBaseActivity() {
     private class Picked(val name: String, val size: Long, val uri: Uri)
     private var passwordTouched = false
     private var startSnapshot = ""
+
+    // one-time code (E1.18, D98): a typed key replaces the stored one, empty keeps it, "remove" deletes it
+    private lateinit var otpBox: EditText
+    private lateinit var otpResult: TextView
+    private var otpRemove = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,6 +101,11 @@ internal class EntryEditActivity : VaultBaseActivity() {
         })
         url = ui.textBox(getString(R.string.vault_url), inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
         notes = ui.textBox(getString(R.string.vault_notes), multiLine = true)
+        val hasCode = d != null && (d.otp == OtpKind.TOTP || d.otp == OtpKind.STEAM)
+        otpBox = ui.textBox(getString(if (hasCode) R.string.vault_otp_key_set_hint else R.string.vault_otp_key_hint),
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+        otpResult = ui.note("") as TextView
+        otpResult.visibility = View.GONE
         fieldsBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         if (d != null) {
             titleBox.setText(d.summary.title)
@@ -112,6 +123,12 @@ internal class EntryEditActivity : VaultBaseActivity() {
             c.add(padded(password, 16, 6))
             c.add(padded(url, 16, 6))
             c.add(padded(notes, 16, 6))
+            c.add(header(getString(R.string.vault_otp_label)))
+            c.add(padded(otpBox, 16, 6))
+            c.add(padded(outlineButton(getString(R.string.vault_otp_test_button)) { testKey() }))
+            c.add(otpResult)
+            if (hasCode) c.add(padded(outlineButton(getString(R.string.vault_otp_remove)) { toggleRemoveCode() }))
+            c.add(note(getString(R.string.vault_otp_edit_hint)))
             c.add(header(getString(R.string.vault_custom_fields)))
             c.add(fieldsBox)
             c.add(padded(outlineButton(getString(R.string.vault_add_field)) { addEditor(FieldEditor(null)) }))
@@ -127,6 +144,34 @@ internal class EntryEditActivity : VaultBaseActivity() {
         passwordTouched = false // the text watcher fires for the initial empty text only in some versions
         startSnapshot = snapshot()
         if (d == null) titleBox.requestFocus()
+    }
+
+    /** Shows the code the typed key gives right now, so a wrong paste is noticed before saving. */
+    private fun testKey() {
+        val typed = otpBox.text.toString().trim()
+        if (typed.isEmpty()) {
+            Toast.makeText(this, R.string.vault_otp_key_hint, Toast.LENGTH_SHORT).show()
+            return
+        }
+        call({ it.otpCheck(typed) }, fail = { e ->
+            if (VaultHub.isLocked(e)) report(e) else showOtpResult(VaultHub.message(this, e), VAULT_RED)
+        }) { c ->
+            showOtpResult(getString(R.string.vault_otp_test, OtpFormat.grouped(c.code), c.secondsLeft), ui.colors.accent)
+        }
+    }
+
+    private fun showOtpResult(text: String, color: Int) {
+        otpResult.text = text
+        otpResult.setTextColor(color)
+        otpResult.visibility = View.VISIBLE
+    }
+
+    private fun toggleRemoveCode() {
+        otpRemove = !otpRemove
+        otpBox.isEnabled = !otpRemove
+        if (otpRemove) otpBox.setText("")
+        showOtpResult(if (otpRemove) getString(R.string.vault_otp_will_remove) else "", VAULT_RED)
+        otpResult.visibility = if (otpRemove) View.VISIBLE else View.GONE
     }
 
     private fun addEditor(e: FieldEditor) {
@@ -194,7 +239,7 @@ internal class EntryEditActivity : VaultBaseActivity() {
     }
 
     private fun snapshot(): String =
-        listOf(titleBox.text, username.text, url.text, notes.text, passwordTouched, editors.joinToString("\u0002") { it.text() },
+        listOf(titleBox.text, username.text, url.text, notes.text, passwordTouched, otpBox.text, otpRemove, editors.joinToString("\u0002") { it.text() },
             removed.joinToString("\u0002"), picked.joinToString("\u0002") { it.name + "\u0001" + it.uri }).joinToString("\u0003")
 
     // ------------------------------------------------------------------------------------------------------------------------ attachments
@@ -273,6 +318,7 @@ internal class EntryEditActivity : VaultBaseActivity() {
             fields = editors.mapNotNull { it.toItem() },
             removeAttachments = removed.toList(),
             newAttachments = picked.map { NewAttachment(it.name, it.uri) },
+            otp = if (otpRemove) "" else otpBox.text.toString().trim().ifEmpty { null },
         )
         change(R.string.vault_saving, { it.saveEntry(draft) }) {
             setResult(RESULT_OK)

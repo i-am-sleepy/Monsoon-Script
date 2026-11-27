@@ -3,19 +3,26 @@ package com.monsoonscript.keyboard.vault
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
+import android.graphics.Typeface
 import android.text.format.Formatter
 import android.view.View
 import android.widget.ImageView
+import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.vault.AttachmentItem
 import com.monsoonscript.vault.EntryDetail
 import com.monsoonscript.vault.IVault
+import com.monsoonscript.vault.OtpCode
+import com.monsoonscript.vault.OtpKind
 import java.text.DateFormat
 import java.util.Date
 
@@ -28,6 +35,7 @@ internal class EntryActivity : VaultBaseActivity() {
     private lateinit var groupId: String
     private var detail: EntryDetail? = null
     private val secrets = ArrayList<SecretRow>()
+    private var codeRow: CodeRow? = null
     private val main = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,6 +52,7 @@ internal class EntryActivity : VaultBaseActivity() {
 
     override fun onPause() {
         secrets.forEach { it.hide() } // nothing revealed is left on screen when the owner comes back
+        codeRow?.stop()
         super.onPause()
     }
 
@@ -65,6 +74,8 @@ internal class EntryActivity : VaultBaseActivity() {
 
     private fun build(d: EntryDetail) {
         secrets.clear()
+        codeRow?.stop()
+        codeRow = null
         val title = d.summary.title.ifEmpty { getString(R.string.vault_untitled) }
         val page = ui.page(title, onBack = { finish() })
         ui.addToBar(page.bar,
@@ -75,6 +86,14 @@ internal class EntryActivity : VaultBaseActivity() {
             if (d.summary.username.isNotEmpty()) c.add(valueRow(getString(R.string.vault_username), d.summary.username, getString(R.string.vault_username_copied)))
             if (d.summary.hasPassword) {
                 c.add(secretRow(getString(R.string.vault_password), getString(R.string.vault_password_copied)) { v -> passwordOf(v) })
+            }
+            if (d.otp == OtpKind.TOTP || d.otp == OtpKind.STEAM) { // E1.18: the live one-time code
+                val r = CodeRow()
+                codeRow = r
+                c.add(r.row)
+                r.start()
+            } else if (d.otp == OtpKind.HOTP) {
+                c.add(note(getString(R.string.vault_otp_unsupported)))
             }
             if (d.summary.url.isNotEmpty()) c.add(valueRow(getString(R.string.vault_url), d.summary.url, getString(R.string.vault_url_copied), open = true))
             for (f in d.fields) {
@@ -182,6 +201,92 @@ internal class EntryActivity : VaultBaseActivity() {
                 if (text.isEmpty()) Toast.makeText(this@EntryActivity, R.string.vault_no_password, Toast.LENGTH_SHORT).show()
                 else VaultClip.copy(this@EntryActivity, text, copiedText)
             }
+        }
+    }
+
+    /**
+     * The one-time code (E1.18, D98): big grouped digits, the seconds left with a bar, tap to copy. The vault is asked for the code only when it is
+     * shown and again when it has run out (the countdown between is counted here); the secret key never reaches this screen.
+     */
+    private inner class CodeRow {
+        val row = ui.row()
+        private val digits = TextView(this@EntryActivity).apply {
+            textSize = 30f
+            typeface = Typeface.MONOSPACE
+            letterSpacing = 0.04f
+            setTextColor(ui.colors.accent)
+            text = "••• •••"
+        }
+        private val left = TextView(this@EntryActivity).apply {
+            textSize = 13f
+            setTextColor(ui.colors.muted)
+        }
+        private val bar = ProgressBar(this@EntryActivity, null, android.R.attr.progressBarStyleHorizontal).apply {
+            progressTintList = ColorStateList.valueOf(ui.colors.accent)
+            progressBackgroundTintList = ColorStateList.valueOf(ui.colors.muted)
+            alpha = 0.8f
+        }
+        private var code: OtpCode? = null
+        private var endsAt = 0L
+        private var running = false
+        private val tick = Runnable { onTick() }
+
+        init {
+            val texts = ui.texts(getString(R.string.vault_otp_label), null)
+            texts.getChildAt(0).let { (it as TextView).textSize = 13f; it.setTextColor(ui.colors.muted) }
+            texts.addView(digits)
+            texts.addView(bar, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, ui.dp(4)).apply { topMargin = ui.dp(4); bottomMargin = ui.dp(2) })
+            texts.addView(left)
+            row.addView(texts, ui.weighted())
+            row.addView(ui.iconButton(VaultIcons.Kind.COPY, getString(R.string.vault_copy), ui.colors.muted) { copy() })
+            row.setOnClickListener { copy() }
+        }
+
+        fun start() {
+            running = true
+            fetch()
+        }
+
+        fun stop() {
+            running = false
+            main.removeCallbacks(tick)
+        }
+
+        private fun fetch() {
+            call({ it.otpCode(entryId) }, fail = { stop(); report(it) }) { c ->
+                if (!running) return@call
+                if (c == null) {
+                    stop()
+                    digits.text = "—"
+                    left.text = ""
+                    return@call
+                }
+                code = c
+                endsAt = SystemClock.elapsedRealtime() + c.secondsLeft * 1000L
+                digits.text = OtpFormat.grouped(c.code)
+                bar.max = c.period
+                onTick()
+            }
+        }
+
+        private fun onTick() {
+            main.removeCallbacks(tick)
+            val c = code ?: return
+            val ms = endsAt - SystemClock.elapsedRealtime()
+            val shown = OtpFormat.secondsShown(ms)
+            if (shown <= 0) { // ran out: the next code comes from the vault
+                fetch()
+                return
+            }
+            left.text = getString(R.string.vault_otp_changes_in, shown)
+            left.setTextColor(if (shown <= OtpFormat.MIN_SECONDS_TO_TYPE) VAULT_RED else ui.colors.muted)
+            bar.progress = shown
+            if (running) main.postDelayed(tick, OtpFormat.nextTickDelay(ms))
+        }
+
+        private fun copy() {
+            val c = code ?: return
+            VaultClip.copy(this@EntryActivity, c.code, getString(R.string.vault_otp_copied))
         }
     }
 

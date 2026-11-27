@@ -50,9 +50,11 @@ E1 Password manager [~] CHECKPOINT 2026-11-21 (owner: pause, clipboard first). D
     E1.17.4 [ ] after the test: fix findings; docs/PASSWORD_MANAGER.md status. Then E1.18 one-time codes + Code chip in the picker (D40), Phase 4 Autofill (D28).
   E1.18 [~] Phase 3 step 4 one-time codes (TOTP/Steam/HOTP) + Code chip in the picker (D40, D87: picker closes after Code). The code is stored in the standard protected field `otp` (otpauth link, same as KeePassDX/KeePassXC).
     E1.18.1 [x] engine: `Otp.kt` (parse typed key or link, build stored value, current code), `OtpCode` + `OtpKind`, `VaultSession.otpCode(id)` / `otpCheck(text)`, AIDL + service, 9 new androidTest cases (RFC 4226/6238 vectors, steam, hotp, digits/period, bad input); both compile checks clean. The secret never crosses Binder.
-    E1.18.2 [ ] ASK the owner (UI): how the code looks on the entry screen, how to add it (paste key/link in Edit screen, camera QR scan or not), what the Code chip types and when the entry has no code, which kinds (HOTP needs a write on every use). Record the answers as the next D-id.
-    E1.18.3 [ ] engine: let the draft set / remove the code (`EntryDraft.otp`: null keep, "" remove, text = normalized by `Otp.parseInput`); decide with the owner whether the raw `otp` field stays visible in the custom fields list.
-    E1.18.4 [ ] app: entry screen code row (live countdown, copy), Edit screen field, picker Code chip in `VaultPanelView`/`VaultPickerModel`, strings, ARCHITECTURE.md, owner test list (Needs user #26) + APK link naming my commit.
+    E1.18.2 [x] owner answered, D98 (paste key/link, no camera; grouped digits + countdown; Code chip waits when <5 s left; TOTP + Steam, no HOTP).
+    E1.18.3 [x] engine: `EntryDraft.otp` (null keep, blank remove, text set), `EntryDetail.otp` kind, the `otp` field hidden from `fields`, custom field named otp refused, HOTP -> no code; +4 androidTests. CI app #105 + engine #15 green at 5e9c9c2.
+    E1.18.4 [x] app: entry screen live code row (`EntryActivity.CodeRow`, `OtpFormat`), Edit screen key field + Test + Remove, strings; OtpFormatTest 3/3.
+    E1.18.5 [ ] picker Code chip (`VaultPickerModel` + the panel view): shown only for entries with a code, waits when <5 s left (OtpFormat.shouldWait), closes after Code (D87).
+    E1.18.6 [ ] ARCHITECTURE.md bullet, STATUS Needs user #26 (owner test list), APK link naming my commit.
 After every owner answer: add a D-line to DECISIONS.md (re-read it first; D87 is the last one I wrote, check the file for the next free id) and update the docs.
 
 ## Next step
