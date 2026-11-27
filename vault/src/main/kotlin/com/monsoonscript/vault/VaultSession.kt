@@ -281,6 +281,32 @@ class VaultSession(
     }
 
     /**
+     * The entries to offer for a login field (Autofill, E1.19, D100): when Android names the web address ([webDomain]) the entries whose address is that site
+     * or a parent domain of it ([SiteMatch]), exact matches first; otherwise (a native app) the entries that store [packageName] as an app link, either as
+     * "AndroidApp" fields (KeePassDX) or as an `androidapp://` address (Keepass2Android). The recycle bin is not searched; at most [MAX_MATCHES] come back.
+     */
+    @Synchronized
+    fun matches(webDomain: String, packageName: String): List<EntrySummary> {
+        val d = requireDb()
+        val site = SiteMatch.hostOf(webDomain)
+        if (site == null && packageName.isBlank()) return emptyList()
+        val root = d.rootGroup ?: return emptyList()
+        val found = ArrayList<Pair<Int, EntrySummary>>()
+        walk(root, binId(d)) { e ->
+            val rank = when {
+                site != null -> SiteMatch.level(e.url, site)
+                isAppLinkTo(e, packageName) -> SiteMatch.EXACT
+                else -> SiteMatch.NONE
+            }
+            if (rank != SiteMatch.NONE) found.add(rank to summary(e))
+        }
+        return found.sortedWith(compareByDescending<Pair<Int, EntrySummary>> { it.first }.thenBy { it.second.title.lowercase() }).take(MAX_MATCHES).map { it.second }
+    }
+
+    private fun isAppLinkTo(e: Entry, packageName: String): Boolean =
+        e.url.trim() == "$APP_URL_PREFIX$packageName" || e.getExtraFields().any { isAppField(it.name) && it.protectedValue.toString() == packageName }
+
+    /**
      * Entries that store [packageName] as an app link (E1.14, D32): the custom field "AndroidApp", "AndroidApp1", ... that KeePassDX writes.
      * The recycle bin is not searched. A blank package name finds nothing.
      */
@@ -853,6 +879,9 @@ class VaultSession(
 
         /** The custom field KeePassDX uses for an Android app link (AppOriginEntryField.APPLICATION_ID_FIELD_NAME); more apps: "AndroidApp1", "AndroidApp2" ... */
         const val APP_FIELD = "AndroidApp"
+        private const val APP_URL_PREFIX = "androidapp://"
+        /** The most entries one login field is offered (Autofill, E1.19). */
+        const val MAX_MATCHES = 10
 
         /** The biggest file that may be attached to an entry (D97). */
         const val MAX_ATTACHMENT_BYTES = 10L * 1024 * 1024

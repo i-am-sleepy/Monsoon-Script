@@ -528,6 +528,51 @@ class VaultSessionTest {
         assertEquals(setOf("One", "Two"), titles(b))
     }
 
+    // ---------------------------------------------------------------- Autofill matching (E1.19, D100)
+
+    private fun site(s: VaultSession, title: String, url: String, username: String = "user", fields: List<FieldItem> = emptyList()) =
+        s.saveEntry(draft(title, s.info().rootId, fields = fields).copy(url = url, username = username)).id!!
+
+    @Test
+    fun matchesFindsEntriesBySiteExactFirstAndSkipsLookAlikesAndTheBin() {
+        val s = newVault()
+        site(s, "Main", "https://example.com/login")
+        site(s, "Www", "https://www.example.com")
+        site(s, "Accounts", "https://accounts.example.com")
+        site(s, "Other", "https://example.org")
+        site(s, "Lookalike", "https://evilexample.com")
+        site(s, "No address", "")
+        val gone = site(s, "Deleted", "https://example.com")
+        s.deleteEntry(gone)
+        // on accounts.example.com: the exact entry first, then the parent-domain ones (sorted by title)
+        assertEquals(listOf("Accounts", "Main", "Www"), s.matches("accounts.example.com", "com.android.chrome").map { it.title })
+        assertEquals(listOf("Main", "Www"), s.matches("www.example.com", "").map { it.title })
+        assertTrue(s.matches("nothing.test", "com.android.chrome").isEmpty())
+    }
+
+    @Test
+    fun matchesUsesTheAppPackageOnlyWhenThereIsNoWebAddress() {
+        val s = newVault()
+        site(s, "Field", "https://bank.example", fields = listOf(FieldItem("AndroidApp", "com.example.bank", false)))
+        site(s, "Link", "androidapp://com.example.bank")
+        site(s, "Pro", "androidapp://com.example.bank.pro")
+        site(s, "Site", "https://example.com")
+        assertEquals(listOf("Field", "Link"), s.matches("", "com.example.bank").map { it.title })
+        // a browser names the site: the browser's own package says nothing
+        assertEquals(listOf("Site"), s.matches("example.com", "com.example.bank").map { it.title })
+        assertTrue(s.matches("", "").isEmpty())
+        assertTrue(s.matches("  ", "  ").isEmpty())
+    }
+
+    @Test
+    fun matchesGivesAtMostTenEntriesAndNeedsAnOpenVault() {
+        val s = newVault()
+        for (i in 1..12) site(s, "Site %02d".format(i), "https://example.com/$i")
+        assertEquals(VaultSession.MAX_MATCHES, s.matches("example.com", "").size)
+        s.lock()
+        expectError(VaultError.LOCKED) { s.matches("example.com", "") }
+    }
+
     @Test
     fun forAppFindsEntriesByTheirAppLinkAndSkipsTheRecycleBin() {
         val s = newVault()

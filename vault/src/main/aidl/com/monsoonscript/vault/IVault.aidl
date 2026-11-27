@@ -33,6 +33,8 @@ interface IVault {
     List<EntrySummary> search(String query);
     /** Entries that store this Android package as an app link (E1.14, D32). */
     List<EntrySummary> forApp(String packageName);
+    /** The entries to offer for a login field in another app or website (Autofill): by web address when given, else by the app's package name. */
+    List<EntrySummary> matches(String webDomain, String packageName);
     /** Summaries for these ids, same order; missing ones are left out (the picker's recent list). */
     List<EntrySummary> summaries(in List<String> ids);
     EntryDetail entry(String id);

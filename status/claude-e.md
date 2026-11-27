@@ -60,7 +60,7 @@ After every owner answer: add a D-line to DECISIONS.md (re-read it first; D87 is
 
 ## Next step
   E1.19 [~] Phase 4 step 1 Autofill service: detect login fields in other apps/websites, suggest matching entries, fill after unlock (D100, D28). New permission BIND_AUTOFILL_SERVICE.
-    E1.19.1 [ ] engine: `VaultSession.matches(webDomain, packageName)` + AIDL `matches`, tests (same site incl. subdomains, androidapp:// URLs, no false match on look-alike domains).
+    E1.19.1 [x] engine: `SiteMatch` (pure rules, 6 JVM tests green) + `VaultSession.matches(webDomain, packageName)` (exact site first, parent-domain entries after, AndroidApp fields or androidapp:// address for apps, max 10) + AIDL `matches`; 3 more emulator tests. Pushed, CI pending.
     E1.19.2 [ ] app: pure field classifier (hints, inputType, id/html attrs -> username/password/other; JVM tests) + `MonsoonAutofillService` + manifest + `autofill_service.xml`; response = authenticated datasets + "Search vault..." item.
     E1.19.3 [ ] `AutofillFillActivity` (translucent: unlock card if locked, then returns the Dataset) + `AutofillSearchActivity` ("Search vault..."); Settings row "Autofill" (status + button to Android's screen) + the one-time "Turn on autofill?" card after vault creation.
   E1.20 [ ] Phase 4 step 2 save prompt: `SaveInfo` + `onSaveRequest` -> `AutofillSaveActivity`: small save screen (default) or save at once (setting "When saving a login"); same site + user name already stored = offer Update instead.
