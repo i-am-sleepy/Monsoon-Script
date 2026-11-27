@@ -714,7 +714,8 @@ class VaultSessionTest {
         assertTrue(byId.getValue(withCode).hasOtp)
         assertFalse(byId.getValue(without).hasOtp)
         assertFalse(byId.getValue(hotp).hasOtp)
-        assertTrue(s.search("With").single().hasOtp)
+        assertTrue(s.search("With code").single().hasOtp)
+        assertFalse(s.search("Without").single().hasOtp)
     }
 
     @Test
