@@ -37,6 +37,8 @@ interface IVault {
     EntryDetail entry(String id);
     char[] password(String id);
     String fieldValue(String id, String name);
+    /** Writes the decrypted attached file [name] of the entry to the picked place [dest] (E1.17); the bytes never travel through Binder. */
+    void saveAttachment(String id, String name, in Uri dest);
 
     Change saveEntry(in EntryDraft draft);
     Change deleteEntry(String id);

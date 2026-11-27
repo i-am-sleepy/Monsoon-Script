@@ -46,7 +46,7 @@ class VaultService : Service() {
         super.onCreate()
         val work = File(cacheDir, WORK_DIR)
         work.deleteRecursively() // whatever a killed vault process left behind (attachment cache, temp saves)
-        session = VaultSession(work, deviceLimits(this)) { deviceKdfLimits(this) }
+        session = VaultSession(work, deviceLimits(this), { deviceKdfLimits(this) }, ContentUriStreams(this))
         registerReceiver(screenOff, IntentFilter(Intent.ACTION_SCREEN_OFF))
     }
 
@@ -139,6 +139,7 @@ class VaultService : Service() {
         override fun entry(id: String?): EntryDetail = onEngine { session.entry(need(id)) }
         override fun password(id: String?): CharArray = onEngine { session.password(need(id)) }
         override fun fieldValue(id: String?, name: String?): String? = onEngine { session.fieldValue(need(id), need(name)) }
+        override fun saveAttachment(id: String?, name: String?, dest: Uri?) = onEngine { session.saveAttachment(need(id), need(name), need(dest)) }
 
         override fun backups(): List<BackupInfo> = onEngine { session.backups() }
         override fun restoreBackup(id: String?) = onEngine { session.restoreBackup(need(id)) }

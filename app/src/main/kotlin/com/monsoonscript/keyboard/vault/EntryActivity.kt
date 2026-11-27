@@ -7,11 +7,13 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.text.format.Formatter
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import com.monsoonscript.keyboard.R
+import com.monsoonscript.vault.AttachmentItem
 import com.monsoonscript.vault.EntryDetail
 import com.monsoonscript.vault.IVault
 import java.text.DateFormat
@@ -81,7 +83,12 @@ internal class EntryActivity : VaultBaseActivity() {
                 else if (value.isNotEmpty()) c.add(valueRow(f.name, value, getString(R.string.vault_field_copied, f.name)))
             }
             if (d.notes.isNotEmpty()) c.add(valueRow(getString(R.string.vault_notes), d.notes, getString(R.string.vault_notes_copied)))
-            if (c.childCount == 0) c.add(note(getString(R.string.vault_entry_empty)))
+            if (c.childCount == 0 && d.attachments.isEmpty()) c.add(note(getString(R.string.vault_entry_empty)))
+            if (d.attachments.isNotEmpty()) { // E1.17: a tap saves a decrypted copy to a place the owner picks
+                c.add(header(getString(R.string.vault_attachments)))
+                d.attachments.forEach { c.add(attachmentRow(it)) }
+                c.add(note(getString(R.string.vault_attach_hint)))
+            }
             c.add(header(getString(R.string.vault_details)))
             val fmt = DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
             c.add(infoRow(getString(R.string.vault_modified), fmt.format(Date(d.summary.modified))))
@@ -190,6 +197,29 @@ internal class EntryActivity : VaultBaseActivity() {
 
     // ------------------------------------------------------------------------------------------------------------------------ edit and delete
 
+    private fun attachmentRow(a: AttachmentItem): View = ui.row().apply {
+        addView(ui.texts(a.name, Formatter.formatShortFileSize(this@EntryActivity, a.size)), ui.weighted())
+        addView(ui.iconButton(VaultIcons.Kind.SAVE_FILE, getString(R.string.vault_attachments), ui.colors.accent) { pickPlaceFor(a) })
+        setOnClickListener { pickPlaceFor(a) }
+    }
+
+    private var savingAttachment: String? = null
+
+    private fun pickPlaceFor(a: AttachmentItem) {
+        savingAttachment = a.name
+        @Suppress("DEPRECATION")
+        startActivityForResult(VaultHub.createIntent(a.name), REQ_SAVE_FILE)
+    }
+
+    /** The decrypted file goes straight from the vault process to the place that was picked. */
+    private fun saveAttachment(name: String, dest: Uri) {
+        busy.show(getString(R.string.vault_attach_saving))
+        call({ v -> v.saveAttachment(entryId, name, dest) }, fail = { report(it) }) {
+            busy.hide()
+            Toast.makeText(this, R.string.vault_attach_saved, Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun edit() {
         @Suppress("DEPRECATION")
         startActivityForResult(EntryEditActivity.intent(this, entryId, groupId), REQ_EDIT)
@@ -210,6 +240,9 @@ internal class EntryActivity : VaultBaseActivity() {
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
         // the list and this page reload in onStart
+        val uri = data?.data
+        val name = savingAttachment
+        if (requestCode == REQ_SAVE_FILE && resultCode == RESULT_OK && uri != null && name != null) saveAttachment(name, uri)
     }
 
     companion object {
@@ -219,6 +252,7 @@ internal class EntryActivity : VaultBaseActivity() {
         const val EXTRA_DELETED_FROM = "deleted_from"
         const val EXTRA_DELETED_TITLE = "deleted_title"
         private const val REQ_EDIT = 1
+        private const val REQ_SAVE_FILE = 2
         private const val REVEAL_MS = 30_000L
         private const val MASK = "••••••••"
 

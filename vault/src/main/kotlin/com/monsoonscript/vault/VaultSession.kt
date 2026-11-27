@@ -4,6 +4,7 @@ import com.kunzisoft.keepass.database.crypto.EncryptionAlgorithm
 import com.kunzisoft.keepass.database.crypto.kdf.KdfFactory
 import com.kunzisoft.keepass.database.crypto.kdf.KdfLimits
 import com.kunzisoft.keepass.database.crypto.kdf.Limits
+import com.kunzisoft.keepass.database.element.Attachment
 import com.kunzisoft.keepass.database.element.Entry
 import com.kunzisoft.keepass.database.element.Field
 import com.kunzisoft.keepass.database.element.Group
@@ -33,6 +34,7 @@ import com.kunzisoft.keepass.database.exception.XMLMalformedDatabaseException
 import com.kunzisoft.keepass.database.file.DatabaseHeaderKDBX
 import com.kunzisoft.keepass.hardware.HardwareKey
 import com.kunzisoft.keepass.model.DatabaseInfo
+import android.net.Uri
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -58,6 +60,7 @@ class VaultSession(
     private val workDir: File,
     private val limits: Limits = PERMISSIVE,
     private val kdfLimits: () -> KdfLimits = { DEFAULT_KDF_LIMITS },
+    private val streams: UriStreams = UriStreams.NONE,
 ) {
     private var db: DatabaseInfo? = null
     private var store: VaultStore? = null
@@ -325,7 +328,26 @@ class VaultSession(
             created = e.creationTime.toMilliseconds(),
             expires = if (e.expires) e.expiryTime.toMilliseconds() else null,
             historyCount = e.getHistory().size,
+            attachments = e.getAttachments(d.attachmentPool, false).map { AttachmentItem(it.name, it.binaryData.getSize()) }.sortedBy { it.name.lowercase() },
         )
+    }
+
+    /**
+     * Writes the decrypted attached file [name] of the entry to [dest] (the place the owner picked, E1.17). The only moment an attachment leaves the vault in
+     * the clear; it goes straight from the vault process to that place.
+     */
+    @Synchronized
+    fun saveAttachment(entryId: String, name: String, dest: Uri) {
+        val d = requireDb()
+        val attachment = entryById(d, entryId).getAttachments(d.attachmentPool, false).firstOrNull { it.name == name }
+            ?: throw VaultException(VaultError.NOT_FOUND, "That attached file is gone")
+        try {
+            attachment.binaryData.getUnGzipInputDataStream(d.binaryCache).use { input ->
+                streams.output(dest).use { out -> input.copyTo(out) }
+            }
+        } catch (e: Throwable) {
+            throw map(e)
+        }
     }
 
     /** The stored password. The caller should wipe the array after use. */
@@ -343,9 +365,20 @@ class VaultSession(
         val d = requireWritable()
         checkFields(draft.fields)
         val parent = group(d, draft.groupId)
+        val added = readNewAttachments(d, draft.newAttachments) // read first: a file that cannot be read leaves the entry untouched
+        return try {
+            saveChecked(d, draft, parent, added)
+        } catch (e: Throwable) {
+            added.forEach { d.removeBinaryIfNotUsed(it.binaryData, clearCache = true) }
+            throw e
+        }
+    }
+
+    private fun saveChecked(d: DatabaseInfo, draft: EntryDraft, parent: Group, added: List<Attachment>): Change {
         return if (draft.id == null) {
             val entry = d.createEntry() ?: throw VaultException(VaultError.INTERNAL, "The engine could not create an entry")
             fill(entry, draft, keepFrom = null)
+            applyAttachments(d, entry, added, emptySet())
             entry.touch(modified = true, touchParents = true)
             parent.touch(modified = true, touchParents = true)
             d.addEntryTo(entry, parent)
@@ -354,6 +387,7 @@ class VaultSession(
             val old = entryById(d, draft.id)
             val updated = Entry(old) // a clone, like KeePassDX: the old one goes into the history
             fill(updated, draft, keepFrom = old)
+            val dropped = applyAttachments(d, updated, added, draft.removeAttachments.toSet())
             updated.addParentFrom(old)
             updated.clearHistory()
             old.getHistory().forEach { updated.addEntryToHistory(it) }
@@ -364,8 +398,63 @@ class VaultSession(
             if (idOf(parent.nodeId) != idOf(old.parent?.nodeId ?: parent.nodeId)) {
                 d.moveEntryTo(entryById(d, draft.id), parent) // the form also lets the owner pick another folder
             }
+            dropped.forEach { d.removeBinaryIfNotUsed(it, clearCache = false) } // still used by the entry's history? then it stays there (like KeePassDX)
             changed(draft.id)
         }
+    }
+
+    /**
+     * Reads the picked files into the engine's attachment store (E1.17, D97: at most [MAX_ATTACHMENT_BYTES] each, not empty, named). On any problem the files
+     * read so far are thrown away again and nothing else was touched.
+     */
+    private fun readNewAttachments(d: DatabaseInfo, files: List<NewAttachment>): List<Attachment> {
+        if (files.isEmpty()) return emptyList()
+        if (!d.allowMultipleAttachments) throw VaultException(VaultError.UNSUPPORTED, "This vault format cannot hold several attached files")
+        val made = ArrayList<Attachment>()
+        val names = HashSet<String>()
+        try {
+            for (f in files) {
+                val name = f.name.trim()
+                if (name.isEmpty()) throw VaultException(VaultError.INVALID, "An attached file needs a name")
+                if (!names.add(name)) throw VaultException(VaultError.INVALID, "Two attached files have the same name: $name")
+                val binary = d.buildNewBinaryAttachment() ?: throw VaultException(VaultError.INTERNAL, "The engine could not store a file")
+                made.add(Attachment(name, binary)) // listed first, so the clean-up below also covers a half-read one
+                var total = 0L
+                streams.input(f.uri).use { input ->
+                    binary.getGzipOutputDataStream(d.binaryCache).use { out ->
+                        val buffer = ByteArray(64 * 1024)
+                        while (true) {
+                            val n = input.read(buffer)
+                            if (n < 0) break
+                            total += n
+                            if (total > MAX_ATTACHMENT_BYTES) throw VaultException(VaultError.TOO_BIG, "$name is bigger than the limit of ${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB")
+                            out.write(buffer, 0, n)
+                        }
+                    }
+                }
+                if (total == 0L) throw VaultException(VaultError.INVALID, "$name is empty")
+            }
+            return made
+        } catch (e: Throwable) {
+            made.forEach { d.removeBinaryIfNotUsed(it.binaryData, clearCache = true) }
+            throw map(e)
+        }
+    }
+
+    /**
+     * The entry's attachments after an edit: what it had, minus [remove], minus any with the same name as a new one, plus [added]. Returns the stored files that
+     * are no longer attached to this entry (their data is dropped once nothing else, such as the entry's history, uses them).
+     */
+    private fun applyAttachments(d: DatabaseInfo, entry: Entry, added: List<Attachment>, remove: Set<String>): List<com.kunzisoft.keepass.database.element.binary.BinaryData> {
+        if (added.isEmpty() && remove.isEmpty()) return emptyList()
+        val replaced = added.map { it.name }.toSet()
+        val before = entry.getAttachments(d.attachmentPool, false)
+        val keep = before.filter { it.name !in remove && it.name !in replaced }
+        val dropped = before.filter { it.name in remove || it.name in replaced }.map { it.binaryData }
+        entry.removeAllAttachments()
+        keep.forEach { entry.putAttachment(it, d.attachmentPool) }
+        added.forEach { entry.putAttachment(it, d.attachmentPool) }
+        return dropped
     }
 
     /** Recycle bin when the vault has one and the entry is not in it yet, otherwise gone for good. */
@@ -694,6 +783,9 @@ class VaultSession(
 
         /** The custom field KeePassDX uses for an Android app link (AppOriginEntryField.APPLICATION_ID_FIELD_NAME); more apps: "AndroidApp1", "AndroidApp2" ... */
         const val APP_FIELD = "AndroidApp"
+
+        /** The biggest file that may be attached to an entry (D97). */
+        const val MAX_ATTACHMENT_BYTES = 10L * 1024 * 1024
 
         /** The engine's own standard field names: a custom field may not use them. */
         private val STANDARD_FIELDS = setOf("title", "username", "password", "url", "notes")

@@ -36,7 +36,13 @@ class VaultSessionTest {
     }
 
     private fun store() = FileVaultStore(file, File(dir, "backups"))
-    private fun session(limits: Limits = VaultSession.PERMISSIVE) = VaultSession(File(dir, "work"), limits)
+    /** Picked files are plain files in these tests (the service uses the content resolver). */
+    private val fileStreams = object : UriStreams {
+        override fun input(uri: android.net.Uri): java.io.InputStream = File(uri.path!!).inputStream()
+        override fun output(uri: android.net.Uri): java.io.OutputStream = File(uri.path!!).outputStream()
+    }
+
+    private fun session(limits: Limits = VaultSession.PERMISSIVE) = VaultSession(File(dir, "work"), limits, streams = fileStreams)
     private fun newVault(): VaultSession = session().also { it.create(store(), "Test", pw, null, tune = false) }
     private fun openVault(): VaultSession = session().also { it.open(store(), pw, null) }
 
@@ -286,6 +292,106 @@ class VaultSessionTest {
         val backups = VaultBackups.list(File(dir, "backups"))
         assertTrue(backups.isNotEmpty())
         assertTrue("the newest backup is the file as it was when opened", backups.last().readBytes().contentEquals(before))
+    }
+
+    // ------------------------------------------------------------------ E1.17: attachments
+
+    private fun picked(name: String, content: ByteArray): NewAttachment {
+        val f = File(dir, "picked-$name").also { it.writeBytes(content) }
+        return NewAttachment(name, android.net.Uri.fromFile(f))
+    }
+
+    private fun bytes(n: Int, seed: Int = 1) = ByteArray(n) { ((it * 31 + seed) % 251).toByte() }
+
+    private fun saved(s: VaultSession, id: String, name: String): ByteArray {
+        val out = File(dir, "out-${System.nanoTime()}")
+        s.saveAttachment(id, name, android.net.Uri.fromFile(out))
+        return out.readBytes()
+    }
+
+    @Test
+    fun anAttachedFileSurvivesSavingAndReopeningAndComesBackByteForByte() {
+        val s = newVault()
+        val data = bytes(50_000)
+        val id = s.saveEntry(draft("Docs", s.info().rootId).copy(newAttachments = listOf(picked("codes.pdf", data), picked("note.txt", "hello".toByteArray())))).id!!
+        val listed = s.entry(id).attachments
+        assertEquals(listOf("codes.pdf", "note.txt"), listed.map { it.name })
+        assertTrue(listed.all { it.size > 0 })
+        assertTrue(saved(s, id, "codes.pdf").contentEquals(data))
+        s.lock()
+        val again = openVault()
+        assertEquals(listOf("codes.pdf", "note.txt"), again.entry(id).attachments.map { it.name })
+        assertTrue(saved(again, id, "codes.pdf").contentEquals(data))
+        assertEquals("hello", String(saved(again, id, "note.txt")))
+    }
+
+    @Test
+    fun editingAnEntryWithoutTouchingAttachmentsKeepsThem() {
+        val s = newVault()
+        val id = s.saveEntry(draft("Docs", s.info().rootId).copy(newAttachments = listOf(picked("a.bin", bytes(2_000))))).id!!
+        s.saveEntry(draft("Docs renamed", s.info().rootId, id = id))
+        assertEquals(listOf("a.bin"), s.entry(id).attachments.map { it.name })
+        assertTrue(saved(s, id, "a.bin").contentEquals(bytes(2_000)))
+    }
+
+    @Test
+    fun removingAnAttachmentTakesItAwayAndLeavesTheOthers() {
+        val s = newVault()
+        val id = s.saveEntry(draft("Docs", s.info().rootId).copy(newAttachments = listOf(picked("a.bin", bytes(1_000)), picked("b.bin", bytes(1_500, 7))))).id!!
+        s.saveEntry(draft("Docs", s.info().rootId, id = id).copy(removeAttachments = listOf("a.bin")))
+        assertEquals(listOf("b.bin"), s.entry(id).attachments.map { it.name })
+        expectError(VaultError.NOT_FOUND) { saved(s, id, "a.bin") }
+        s.lock()
+        val again = openVault()
+        assertEquals(listOf("b.bin"), again.entry(id).attachments.map { it.name })
+        assertTrue(saved(again, id, "b.bin").contentEquals(bytes(1_500, 7)))
+    }
+
+    @Test
+    fun aNewFileWithTheNameOfAnExistingOneReplacesIt() {
+        val s = newVault()
+        val id = s.saveEntry(draft("Docs", s.info().rootId).copy(newAttachments = listOf(picked("a.bin", bytes(1_000))))).id!!
+        s.saveEntry(draft("Docs", s.info().rootId, id = id).copy(newAttachments = listOf(picked("a.bin", bytes(3_000, 9)))))
+        assertEquals(1, s.entry(id).attachments.size)
+        assertTrue(saved(s, id, "a.bin").contentEquals(bytes(3_000, 9)))
+    }
+
+    @Test
+    fun aFileOverTheLimitIsRefusedAndNothingChanges() {
+        val s = newVault()
+        val id = s.saveEntry(draft("Docs", s.info().rootId)).id!!
+        val before = file.readBytes()
+        val big = picked("big.bin", ByteArray((VaultSession.MAX_ATTACHMENT_BYTES + 1).toInt()))
+        expectError(VaultError.TOO_BIG) { s.saveEntry(draft("Docs changed", s.info().rootId, id = id).copy(newAttachments = listOf(big))) }
+        assertEquals(setOf("Docs"), titles(s))
+        assertTrue(s.entry(id).attachments.isEmpty())
+        assertTrue(file.readBytes().contentEquals(before))
+        // exactly the limit is fine
+        val exact = picked("exact.bin", ByteArray(VaultSession.MAX_ATTACHMENT_BYTES.toInt()) { 7 })
+        s.saveEntry(draft("Docs", s.info().rootId, id = id).copy(newAttachments = listOf(exact)))
+        assertEquals(listOf("exact.bin"), s.entry(id).attachments.map { it.name })
+    }
+
+    @Test
+    fun badAttachmentsAreRefusedBeforeAnythingIsTouched() {
+        val s = newVault()
+        val root = s.info().rootId
+        val before = file.readBytes()
+        expectError(VaultError.INVALID) { s.saveEntry(draft("X", root).copy(newAttachments = listOf(picked(" ", bytes(10))))) }
+        expectError(VaultError.INVALID) { s.saveEntry(draft("X", root).copy(newAttachments = listOf(picked("e.bin", ByteArray(0))))) }
+        expectError(VaultError.INVALID) { s.saveEntry(draft("X", root).copy(newAttachments = listOf(picked("d.bin", bytes(10)), picked("d.bin", bytes(11))))) }
+        expectError(VaultError.FILE_NOT_FOUND) { s.saveEntry(draft("X", root).copy(newAttachments = listOf(NewAttachment("gone.bin", android.net.Uri.fromFile(File(dir, "does-not-exist")))))) }
+        assertTrue("no entry was created", titles(s).isEmpty())
+        assertTrue(file.readBytes().contentEquals(before))
+    }
+
+    @Test
+    fun savingAnAttachmentNeedsAnExistingOneAndAnOpenVault() {
+        val s = newVault()
+        val id = s.saveEntry(draft("Docs", s.info().rootId).copy(newAttachments = listOf(picked("a.bin", bytes(100))))).id!!
+        expectError(VaultError.NOT_FOUND) { saved(s, id, "nope.bin") }
+        s.lock()
+        expectError(VaultError.LOCKED) { saved(s, id, "a.bin") }
     }
 
     // ------------------------------------------------------------------ E1.16: the backups screen's engine side

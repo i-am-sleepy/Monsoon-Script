@@ -29,6 +29,8 @@ object VaultError {
     const val READ_ONLY = 10
     /** A bad argument (a folder name that is not allowed, a custom field named like a standard one, ...). */
     const val INVALID = 11
+    /** An attached file is bigger than the limit (E1.17, D97). */
+    const val TOO_BIG = 12
     const val INTERNAL = 99
 }
 
@@ -122,6 +124,8 @@ data class EntryDetail(
     /** Null when the entry never expires. */
     val expires: Long?,
     val historyCount: Int,
+    /** The files attached to the entry (E1.17), by name. */
+    val attachments: List<AttachmentItem> = emptyList(),
 ) : Parcelable
 
 /**
@@ -138,6 +142,10 @@ data class EntryDraft(
     val url: String,
     val notes: String,
     val fields: List<FieldItem>,
+    /** Names of attached files to remove (E1.17); none = attachments stay as they are. */
+    val removeAttachments: List<String> = emptyList(),
+    /** Files to attach (E1.17): read in the vault process from the picked Uri. A name that already exists is replaced. */
+    val newAttachments: List<NewAttachment> = emptyList(),
 ) : Parcelable
 
 /** One earlier version of the vault file that the app kept before replacing it (E1.16, D36, D94). [id] is the backup's file name; [time] is when it was kept. */
@@ -146,4 +154,18 @@ data class BackupInfo(
     val id: String,
     val time: Long,
     val size: Long,
+) : Parcelable
+
+/** A file attached to an entry (E1.17). [size] is the size as stored in the vault. */
+@Parcelize
+data class AttachmentItem(
+    val name: String,
+    val size: Long,
+) : Parcelable
+
+/** A file the owner picked to attach: [name] is what it is called inside the entry, [uri] is read by the vault process. */
+@Parcelize
+data class NewAttachment(
+    val name: String,
+    val uri: android.net.Uri,
 ) : Parcelable

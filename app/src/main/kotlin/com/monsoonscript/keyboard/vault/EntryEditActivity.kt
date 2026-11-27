@@ -4,10 +4,12 @@ import android.app.AlertDialog
 import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
+import android.text.format.Formatter
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -15,10 +17,13 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Switch
 import android.widget.TextView
+import android.widget.Toast
 import com.monsoonscript.keyboard.R
+import com.monsoonscript.vault.AttachmentItem
 import com.monsoonscript.vault.EntryDetail
 import com.monsoonscript.vault.EntryDraft
 import com.monsoonscript.vault.FieldItem
+import com.monsoonscript.vault.NewAttachment
 
 /**
  * Adding and editing an entry (E1.13): title, user name, password (with the generator), address, notes and any number of custom fields (each can be protected).
@@ -36,6 +41,14 @@ internal class EntryEditActivity : VaultBaseActivity() {
     private lateinit var notes: EditText
     private lateinit var fieldsBox: LinearLayout
     private val editors = ArrayList<FieldEditor>()
+
+    // attachments (E1.17, D97): what the entry has, what the owner removed, and the files picked to add (read by the vault process when saving)
+    private lateinit var attachBox: LinearLayout
+    private var stored: List<AttachmentItem> = emptyList()
+    private val removed = LinkedHashSet<String>()
+    private val picked = ArrayList<Picked>()
+
+    private class Picked(val name: String, val size: Long, val uri: Uri)
     private var passwordTouched = false
     private var startSnapshot = ""
 
@@ -89,7 +102,9 @@ internal class EntryEditActivity : VaultBaseActivity() {
             url.setText(d.summary.url)
             notes.setText(d.notes)
             d.fields.forEach { addEditor(FieldEditor(it)) }
+            stored = d.attachments
         }
+        attachBox = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         with(ui) {
             val c = page.content
             c.add(padded(titleBox, 16, 6))
@@ -100,10 +115,15 @@ internal class EntryEditActivity : VaultBaseActivity() {
             c.add(header(getString(R.string.vault_custom_fields)))
             c.add(fieldsBox)
             c.add(padded(outlineButton(getString(R.string.vault_add_field)) { addEditor(FieldEditor(null)) }))
+            c.add(header(getString(R.string.vault_attachments)))
+            c.add(attachBox)
+            c.add(padded(outlineButton(getString(R.string.vault_attach_add)) { pickFile() }))
+            c.add(note(getString(R.string.vault_attach_edit_hint)))
             c.add(gap(8))
             c.add(padded(filledButton(getString(R.string.vault_save)) { save() }))
         }
         setContentView(page.root)
+        renderAttachments()
         passwordTouched = false // the text watcher fires for the initial empty text only in some versions
         startSnapshot = snapshot()
         if (d == null) titleBox.requestFocus()
@@ -174,7 +194,52 @@ internal class EntryEditActivity : VaultBaseActivity() {
     }
 
     private fun snapshot(): String =
-        listOf(titleBox.text, username.text, url.text, notes.text, passwordTouched, editors.joinToString("\u0002") { it.text() }).joinToString("\u0003")
+        listOf(titleBox.text, username.text, url.text, notes.text, passwordTouched, editors.joinToString("\u0002") { it.text() },
+            removed.joinToString("\u0002"), picked.joinToString("\u0002") { it.name + "\u0001" + it.uri }).joinToString("\u0003")
+
+    // ------------------------------------------------------------------------------------------------------------------------ attachments
+
+    /** The rows: the entry's files that are still attached (not removed, not replaced by a picked one of the same name), then the picked ones. */
+    private fun renderAttachments() {
+        attachBox.removeAllViews()
+        val pickedNames = picked.map { it.name }.toSet()
+        stored.filter { it.name !in removed && it.name !in pickedNames }.forEach { a ->
+            attachBox.addView(attachmentRow(a.name, Formatter.formatShortFileSize(this, a.size)) { removed += a.name })
+        }
+        picked.forEach { p ->
+            attachBox.addView(attachmentRow(p.name, if (p.size >= 0) Formatter.formatShortFileSize(this, p.size) else "") { picked.remove(p) })
+        }
+    }
+
+    private fun attachmentRow(name: String, size: String, remove: () -> Unit): View = ui.row().apply {
+        addView(ui.texts(name, size.ifEmpty { null }), ui.weighted())
+        addView(ui.iconButton(VaultIcons.Kind.TRASH, getString(R.string.vault_attach_remove), VAULT_RED) {
+            remove()
+            renderAttachments()
+        })
+    }
+
+    private fun pickFile() {
+        @Suppress("DEPRECATION")
+        startActivityForResult(VaultHub.readFileIntent(), REQ_ATTACH)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        @Suppress("DEPRECATION")
+        super.onActivityResult(requestCode, resultCode, data)
+        val uri = data?.data
+        if (requestCode != REQ_ATTACH || resultCode != RESULT_OK || uri == null) return
+        val name = VaultHub.displayName(this, uri).trim().ifEmpty { getString(R.string.vault_attach_default_name) }
+        val size = VaultHub.sizeOf(this, uri)
+        if (size > MAX_ATTACHMENT_BYTES) { // the vault checks again while reading; this just says it at once
+            Toast.makeText(this, getString(R.string.vault_attach_too_big, name), Toast.LENGTH_LONG).show()
+            return
+        }
+        picked.removeAll { it.name == name } // the same name picked twice: the newer file wins
+        picked += Picked(name, size, uri)
+        renderAttachments()
+    }
 
     private fun leave() {
         if (snapshot() == startSnapshot) {
@@ -206,6 +271,8 @@ internal class EntryEditActivity : VaultBaseActivity() {
             url = url.text.toString().trim(),
             notes = notes.text.toString(),
             fields = editors.mapNotNull { it.toItem() },
+            removeAttachments = removed.toList(),
+            newAttachments = picked.map { NewAttachment(it.name, it.uri) },
         )
         change(R.string.vault_saving, { it.saveEntry(draft) }) {
             setResult(RESULT_OK)
@@ -216,6 +283,8 @@ internal class EntryEditActivity : VaultBaseActivity() {
     companion object {
         const val EXTRA_ID = "id"
         const val EXTRA_GROUP = "group"
+        private const val REQ_ATTACH = 31
+        private const val MAX_ATTACHMENT_BYTES = 10L * 1024 * 1024 // D97; the vault process enforces it too
 
         fun intent(context: Context, id: String?, groupId: String): Intent =
             Intent(context, EntryEditActivity::class.java).putExtra(EXTRA_ID, id).putExtra(EXTRA_GROUP, groupId)

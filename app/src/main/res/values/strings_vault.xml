@@ -248,4 +248,17 @@
     <string name="vault_backups_saved">Copy saved</string>
     <string name="vault_backups_save_failed">The copy could not be saved</string>
     <string name="vault_backups_restored">Restored. Unlock the vault again.</string>
+
+    <!-- Attachments (E1.17) -->
+    <string name="vault_attachments">Attachments</string>
+    <string name="vault_attach_add">Add file</string>
+    <string name="vault_attach_remove">Remove file</string>
+    <string name="vault_attach_default_name">attachment</string>
+    <string name="vault_attach_hint">Tap a file to save a copy of it.</string>
+    <string name="vault_attach_edit_hint">Files are kept inside the vault, encrypted. One file can be up to 10 MB.</string>
+    <string name="vault_attach_saving">Saving the file…</string>
+    <string name="vault_attach_saved">File saved</string>
+    <string name="vault_attach_save_failed">The file could not be saved</string>
+    <string name="vault_attach_too_big">%1$s is bigger than 10 MB, the limit for one attached file.</string>
+    <string name="vault_err_too_big">A file is bigger than 10 MB, the limit for one attached file.</string>
 </resources>

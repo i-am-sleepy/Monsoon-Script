@@ -39,6 +39,7 @@ internal object VaultHub {
             VaultError.NOT_FOUND -> context.getString(R.string.vault_err_not_found)
             VaultError.CHANGED_ELSEWHERE -> context.getString(R.string.vault_err_changed)
             VaultError.READ_ONLY -> context.getString(R.string.vault_err_read_only)
+            VaultError.TOO_BIG -> context.getString(R.string.vault_err_too_big)
             VaultError.INVALID -> ve.message ?: context.getString(R.string.vault_err_generic, "")
             else -> context.getString(R.string.vault_err_generic, ve.message ?: "")
         }
@@ -101,6 +102,17 @@ internal object VaultHub {
         } catch (_: RuntimeException) {
         }
         return uri.lastPathSegment?.substringAfterLast('/') ?: ""
+    }
+
+    /** The size in bytes of a picked document, or -1 when the provider does not say. */
+    fun sizeOf(context: Context, uri: Uri): Long {
+        try {
+            context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { c ->
+                if (c.moveToFirst() && !c.isNull(0)) return c.getLong(0)
+            }
+        } catch (_: RuntimeException) {
+        }
+        return -1L
     }
 
     /** Reads a key file (they are tiny; anything over 1 MB is refused). Call off the main thread. */
