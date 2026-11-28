@@ -796,4 +796,98 @@ class VaultSessionTest {
         expectError(VaultError.LOCKED) { s.otpCode(id) }
         expectError(VaultError.LOCKED) { s.otpCheck(rfcBase32) }
     }
+
+    // ---------------------------------------------------------------- importing logins from a CSV file (E1.23, D104)
+
+    private fun csv(text: String): android.net.Uri = android.net.Uri.fromFile(File(dir, "import-${System.nanoTime()}.csv").also { it.writeText(text) })
+
+    private val googleCsv = "name,url,username,password,note\n" +
+        "GitHub,https://github.com/login,me@example.com,pw-1,\n" +
+        "Shop,https://shop.example/,me,pw-2,my note\n"
+
+    private fun folderId(s: VaultSession, name: String) = s.list(null).groups.single { it.name == name }.id
+
+    @Test
+    fun anImportAddsTheLoginsToANewFolderAndSurvivesReopening() {
+        val s = newVault()
+        val r = s.importLogins(csv(googleCsv), "Imported 1")
+        assertEquals(2, r.added)
+        assertEquals(0, r.skipped)
+        assertTrue(r.saved)
+        assertEquals("Google / Chrome", r.format)
+        assertEquals(r.groupId, folderId(s, "Imported 1"))
+        s.lock()
+        val again = openVault()
+        val entries = again.list(folderId(again, "Imported 1")).entries
+        assertEquals(setOf("GitHub", "Shop"), entries.map { it.title }.toSet())
+        val shop = entries.single { it.title == "Shop" }
+        assertEquals("pw-2", String(again.password(shop.id)))
+        assertEquals("my note", again.entry(shop.id).notes)
+        assertEquals("https://shop.example/", shop.url)
+    }
+
+    @Test
+    fun theSameFileImportedAgainOnlySkipsAndMakesNoFolder() {
+        val s = newVault()
+        s.importLogins(csv(googleCsv), "A")
+        val r = s.importLogins(csv(googleCsv), "B")
+        assertEquals(0, r.added + r.keptBoth)
+        assertEquals(2, r.skipped)
+        assertNull(r.groupId)
+        assertTrue(s.list(null).groups.none { it.name == "B" })
+    }
+
+    @Test
+    fun aDifferentPasswordForTheSameLoginIsKeptAsASecondEntryWithANote() {
+        val s = newVault()
+        s.importLogins(csv(googleCsv), "Account 1")
+        val r = s.importLogins(csv("name,url,username,password\nGitHub,https://www.github.com/,ME@example.com,older-pw\nNew,https://new.example,u,p\n"), "Account 2")
+        assertEquals(1, r.added)
+        assertEquals(1, r.keptBoth)
+        val second = s.list(folderId(s, "Account 2")).entries.single { it.title == "GitHub" }
+        assertEquals("older-pw", String(s.password(second.id)))
+        assertTrue(s.entry(second.id).notes.startsWith(VaultSession.IMPORT_NOTE))
+        val first = s.list(folderId(s, "Account 1")).entries.single { it.title == "GitHub" }
+        assertEquals("pw-1", String(s.password(first.id)))
+        assertEquals("", s.entry(first.id).notes)
+    }
+
+    @Test
+    fun importingIntoAnExistingFolderAddsToItAndTheRecycleBinDoesNotCount() {
+        val s = newVault()
+        s.importLogins(csv(googleCsv), "Mixed")
+        val gone = s.list(folderId(s, "Mixed")).entries.single { it.title == "GitHub" }
+        s.deleteEntry(gone.id)
+        val r = s.importLogins(csv(googleCsv + "Extra,https://extra.example,u,p,\n"), "mixed")
+        assertEquals(2, r.added) // GitHub again (the old one is in the bin) and Extra
+        assertEquals(1, r.skipped) // Shop
+        assertEquals(1, s.list(null).groups.count { it.name.equals("Mixed", ignoreCase = true) })
+        assertEquals(setOf("Shop", "GitHub", "Extra"), titles(s, folderId(s, "Mixed")))
+    }
+
+    @Test
+    fun aCodeInTheFileIsKeptAndAnUnusableOneIsDroppedNotTheLogin() {
+        val s = newVault()
+        val r = s.importLogins(csv("name,url,username,password,totp\nGood,https://g.example,u,p,$rfcBase32\nBad,https://b.example,u,p,not a key!\n"), "Codes")
+        assertEquals(2, r.added)
+        assertEquals(1, r.codesDropped)
+        val byTitle = s.list(folderId(s, "Codes")).entries.associateBy { it.title }
+        assertTrue(byTitle.getValue("Good").hasOtp)
+        assertFalse(byTitle.getValue("Bad").hasOtp)
+    }
+
+    @Test
+    fun anUnusableFileOrFolderNameChangesNothingAndNeedsAnOpenWritableVault() {
+        val s = newVault()
+        expectError(VaultError.INVALID) { s.importLogins(csv("a,b\n1,2\n"), "X") }
+        expectError(VaultError.INVALID) { s.importLogins(csv(googleCsv), "  ") }
+        expectError(VaultError.FILE_NOT_FOUND) { s.importLogins(android.net.Uri.fromFile(File(dir, "missing.csv")), "X") }
+        assertTrue(s.list(null).groups.none { it.name == "X" })
+        assertEquals(0, s.info().entryCount)
+        s.lock()
+        expectError(VaultError.LOCKED) { s.importLogins(csv(googleCsv), "X") }
+        val ro = session()
+        ro.open(store(), pw, null, readOnly = true)
+        expectError(VaultError.READ_ONLY) { ro.importLogins(csv(googleCsv), "X") }
+    }
 }

@@ -179,6 +179,27 @@ data class NewAttachment(
     val uri: android.net.Uri,
 ) : Parcelable
 
+/**
+ * What importing a CSV file did (E1.23, D104). [added]: new logins. [keptBoth]: new entries whose login (same site and user name) was already stored with a
+ * DIFFERENT password; they carry a note, nothing was replaced. [skipped]: the same login with the same password was already there. [notLogins]: notes, cards
+ * and the like. [noPassword]: logins with no password in the file. [failed]: rows the engine could not store. [codesDropped]: logins stored without their
+ * one-time code because the key in the file was not usable. [groupId]: the folder the entries went to (null when nothing was added). [saved]: false when the
+ * vault file changed elsewhere and the import waits in memory (D50).
+ */
+@Parcelize
+data class ImportResult(
+    val format: String,
+    val added: Int,
+    val keptBoth: Int,
+    val skipped: Int,
+    val notLogins: Int,
+    val noPassword: Int,
+    val failed: Int,
+    val codesDropped: Int,
+    val groupId: String?,
+    val saved: Boolean,
+) : Parcelable
+
 /** The kinds of one-time code an entry can hold (E1.18, D98). */
 object OtpKind {
     /** Time-based (RFC 6238): the usual 6 digits that change every 30 seconds. */

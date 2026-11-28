@@ -155,6 +155,7 @@ class VaultService : Service() {
         override fun renameGroup(id: String?, name: String?): Change = onEngine { session.renameGroup(need(id), need(name)) }
         override fun deleteGroup(id: String?): Change = onEngine { session.deleteGroup(need(id)) }
         override fun emptyRecycleBin(): Change = onEngine { session.emptyRecycleBin() }
+        override fun importLogins(file: Uri?, folderName: String?): ImportResult = onEngine { session.importLogins(need(file), need(folderName)) }
 
         override fun retrySave(): Change = onEngine { session.retrySave() }
         override fun resolve(choice: Int, password: CharArray?, keyFile: ByteArray?): Change =

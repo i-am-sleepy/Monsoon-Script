@@ -69,6 +69,11 @@ internal class VaultSettingsActivity : VaultBaseActivity() {
             c.add(buttonRow(getString(R.string.vault_backups_title), getString(R.string.vault_backups_row_summary)) {
                 startActivity(Intent(this@VaultSettingsActivity, VaultBackupsActivity::class.java))
             })
+            if (prefs.writable) {
+                c.add(buttonRow(getString(R.string.import_title), getString(R.string.import_row_summary)) {
+                    startActivity(Intent(this@VaultSettingsActivity, VaultImportActivity::class.java))
+                })
+            }
             c.add(buttonRow(getString(R.string.vault_lock_now), null) { lockNow() })
             c.add(buttonRow(getString(R.string.vault_other_vault), null) { confirmForget() })
         }

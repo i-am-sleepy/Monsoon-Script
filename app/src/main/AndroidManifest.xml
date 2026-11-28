@@ -182,6 +182,10 @@
             android:name=".vault.VaultBackupsActivity"
             android:exported="false"
             android:label="@string/vault_backups_title" />
+        <activity
+            android:name=".vault.VaultImportActivity"
+            android:exported="false"
+            android:label="@string/import_title" />
 
         <!-- Autofill's own screens (E1.19): the invisible one behind a tap in the dropdown, and "Search vault…". They sit in the task of the app being filled. -->
         <activity

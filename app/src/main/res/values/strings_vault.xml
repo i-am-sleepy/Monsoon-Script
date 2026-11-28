@@ -277,4 +277,41 @@
     <string name="vault_otp_test">Test code now: %1$s (changes in %2$d s)</string>
     <string name="vault_otp_test_button">Test the key</string>
     <string name="vault_otp_edit_hint">The key is kept inside the vault, encrypted. You get it from the website when you set up an authenticator app: a text key, or the link behind the QR code.</string>
+
+    <!-- Import logins from a CSV file (E1.23, D104) -->
+    <string name="import_title">Import logins</string>
+    <string name="import_row_summary">From Google Password Manager, Chrome or another manager (CSV file)</string>
+    <string name="import_how_header">How it works</string>
+    <string name="import_how">1. In the other password manager, export your passwords as a CSV file. For Google: open Google Password Manager (passwords.google.com, or Chrome > Settings > Passwords), tap the gear, then Export passwords. Do this once for each Google account.
+2. Choose that file here and name a folder for it.
+3. Repeat for the next account: logins that are already in your vault with the same password are skipped.</string>
+    <string name="import_plain_warning">A CSV file is NOT encrypted: anyone who finds it can read every password in it. The vault reads it once, copies nothing, and offers to delete it afterwards.</string>
+    <string name="import_choose">Choose a CSV file</string>
+    <string name="import_file">File</string>
+    <string name="import_folder_header">Folder</string>
+    <string name="import_folder_hint">Folder name</string>
+    <string name="import_folder_note">The logins go into this folder (it is made when it does not exist). A login that is already in your vault with the same password is skipped. With a different password it is kept as a second entry, marked in its notes.</string>
+    <string name="import_folder_default">Imported logins</string>
+    <string name="import_folder_suggestion">Imported from %1$s</string>
+    <string name="import_folder_needed">Type a folder name first.</string>
+    <string name="import_button">Import</string>
+    <string name="import_other_file">Choose another file</string>
+    <string name="import_working">Importing…</string>
+    <string name="import_too_big">That file is bigger than 20 MB, the limit for an import.</string>
+    <string name="import_done_header">Imported (%1$s file)</string>
+    <string name="import_added">New logins</string>
+    <string name="import_kept_both">Kept next to another password</string>
+    <string name="import_skipped">Already in the vault (skipped)</string>
+    <string name="import_not_logins">Not logins (notes, cards)</string>
+    <string name="import_no_password">Without a password</string>
+    <string name="import_codes_dropped">One-time code not usable</string>
+    <string name="import_failed">Could not be stored</string>
+    <string name="import_kept_both_note">These logins were already in your vault with another password. Both are kept; the new one says so at the top of its notes, so you can pick the right one later.</string>
+    <string name="import_nothing_new">Nothing new was added.</string>
+    <string name="import_delete_note">The CSV file still holds all your passwords in plain text. Delete it now?</string>
+    <string name="import_delete">Delete the CSV file</string>
+    <string name="import_deleted">The CSV file was deleted.</string>
+    <string name="import_not_deleted">The file could not be deleted from here. Please delete it yourself (Files > Downloads): it holds your passwords in plain text.</string>
+    <string name="import_another">Import another file</string>
+    <string name="import_close">Done</string>
 </resources>

@@ -599,6 +599,97 @@ class VaultSession(
         return changed(null)
     }
 
+    // ---------------------------------------------------------------- importing logins from a CSV file (E1.23)
+
+    /**
+     * E1.23 (D104): imports the logins of the CSV file [source] (see [CsvImport]) into the folder [folderName] under the root (an existing folder of that name is
+     * used, else it is created when the first login needs it) and writes the vault ONCE at the end. A login is skipped when the vault already holds the same login
+     * (same site and user name, [CsvImport.loginKey]) with the same password; with a different password it is stored as a new entry whose notes start with a
+     * line saying so, so nothing is lost and nothing is replaced. The recycle bin does not count. An unusable file changes nothing (INVALID with a sentence).
+     */
+    @Synchronized
+    fun importLogins(source: Uri, folderName: String): ImportResult {
+        val d = requireWritable()
+        val clean = checkGroupName(d, folderName)
+        val parsed = CsvImport.parse(readImportText(source))
+        parsed.problem?.let { throw VaultException(VaultError.INVALID, it) }
+        val root = d.rootGroup ?: throw VaultException(VaultError.INTERNAL, "The vault has no root folder")
+        val bin = binId(d)
+        // What the vault holds now, by login: the passwords it has for it (only kept in memory for this call).
+        val known = HashMap<String, MutableSet<String>>()
+        walk(root, bin) { e -> known.getOrPut(CsvImport.loginKey(e.title, e.url, e.username)) { HashSet() }.add(String(e.password)) }
+        var target: Group? = root.getChildGroups().firstOrNull { it.title.equals(clean, ignoreCase = true) && idOf(it.nodeId) != bin }
+        var added = 0
+        var keptBoth = 0
+        var skipped = 0
+        var failed = 0
+        var codesDropped = 0
+        for (login in parsed.logins) {
+            val key = CsvImport.loginKey(login.title, login.url, login.username)
+            val stored = known[key]
+            if (stored != null && (login.password.isEmpty() || login.password in stored)) {
+                skipped++
+                continue
+            }
+            try {
+                val group = target ?: d.createGroup()?.also {
+                    it.title = clean
+                    it.touch(modified = true, touchParents = true)
+                    root.touch(modified = true, touchParents = true)
+                    d.addGroupTo(it, root)
+                    target = it
+                } ?: throw VaultException(VaultError.INTERNAL, "The engine could not create a folder")
+                val notes = if (stored == null) login.notes else IMPORT_NOTE + (if (login.notes.isEmpty()) "" else "\n\n" + login.notes)
+                val draft = EntryDraft(null, idOf(group.nodeId), login.title, login.username, login.password, login.url, notes, emptyList(), otp = login.otp)
+                val otp = try {
+                    otpFieldFor(d, draft)
+                } catch (e: VaultException) {
+                    if (e.code != VaultError.INVALID) throw e
+                    codesDropped++
+                    null
+                }
+                val entry = d.createEntry() ?: throw VaultException(VaultError.INTERNAL, "The engine could not create an entry")
+                fill(entry, draft, keepFrom = null, otp)
+                entry.touch(modified = true, touchParents = true)
+                group.touch(modified = true, touchParents = true)
+                d.addEntryTo(entry, group)
+                known.getOrPut(key) { HashSet() }.add(login.password)
+                if (stored == null) added++ else keptBoth++
+            } catch (e: VaultException) {
+                if (e.code == VaultError.LOCKED || e.code == VaultError.READ_ONLY) throw e
+                failed++
+            } catch (e: Exception) {
+                failed++
+            }
+        }
+        val saved = if (added + keptBoth > 0) changed(target?.let { idOf(it.nodeId) }).saved else true
+        return ImportResult(
+            format = parsed.format, added = added, keptBoth = keptBoth, skipped = skipped, notLogins = parsed.notLogins, noPassword = parsed.noPassword,
+            failed = failed, codesDropped = codesDropped, groupId = if (added + keptBoth > 0) target?.let { idOf(it.nodeId) } else null, saved = saved,
+        )
+    }
+
+    /** The text of the picked CSV file, at most [MAX_IMPORT_BYTES] (TOO_BIG above that). */
+    private fun readImportText(source: Uri): String {
+        try {
+            streams.input(source).use { input ->
+                val out = java.io.ByteArrayOutputStream()
+                val buffer = ByteArray(64 * 1024)
+                var total = 0L
+                while (true) {
+                    val n = input.read(buffer)
+                    if (n < 0) break
+                    total += n
+                    if (total > MAX_IMPORT_BYTES) throw VaultException(VaultError.TOO_BIG, "The file is bigger than the limit of ${MAX_IMPORT_BYTES / (1024 * 1024)} MB")
+                    out.write(buffer, 0, n)
+                }
+                return String(out.toByteArray(), Charsets.UTF_8)
+            }
+        } catch (e: Throwable) {
+            throw map(e)
+        }
+    }
+
     // ---------------------------------------------------------------- saving and the "file changed elsewhere" question (D50)
 
     /** Tries again to write pending changes, for instance after a write error. A pending conflict stays a conflict. */
@@ -885,6 +976,12 @@ class VaultSession(
 
         /** The biggest file that may be attached to an entry (D97). */
         const val MAX_ATTACHMENT_BYTES = 10L * 1024 * 1024
+
+        /** The biggest CSV file the import reads (E1.23): about 100,000 logins. */
+        const val MAX_IMPORT_BYTES = 20L * 1024 * 1024
+
+        /** The first line of the notes of an imported login whose site and user name were already stored with another password (E1.23, D104). */
+        const val IMPORT_NOTE = "From import: this site and user name were already stored with a different password."
 
         /** The engine's own standard field names: a custom field may not use them. */
         private val STANDARD_FIELDS = setOf("title", "username", "password", "url", "notes")

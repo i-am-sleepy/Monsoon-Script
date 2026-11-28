@@ -7,6 +7,7 @@ import com.monsoonscript.vault.EntryDetail;
 import com.monsoonscript.vault.EntryDraft;
 import com.monsoonscript.vault.EntrySummary;
 import com.monsoonscript.vault.GroupListing;
+import com.monsoonscript.vault.ImportResult;
 import com.monsoonscript.vault.OtpCode;
 import com.monsoonscript.vault.VaultInfo;
 import com.monsoonscript.vault.VaultStatus;
@@ -54,6 +55,13 @@ interface IVault {
     Change renameGroup(String id, String name);
     Change deleteGroup(String id);
     Change emptyRecycleBin();
+
+    /**
+     * Imports the logins of a CSV file the owner picked (Google Password Manager, Chrome, Bitwarden, ...) into the folder [folderName] (created when it is
+     * missing) and saves once (E1.23, D104). The file is read in the vault process, so no password crosses Binder. INVALID with a sentence for the owner when
+     * the file cannot be used; nothing is changed then.
+     */
+    ImportResult importLogins(in Uri file, String folderName);
 
     /** The kept earlier versions of the open vault, newest first (E1.16). */
     List<BackupInfo> backups();
