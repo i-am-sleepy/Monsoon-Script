@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Declares the vault as an Autofill service (E1.19). The settings row that opens Android's Autofill screen comes with E1.19.3. -->
+<autofill-service xmlns:android="http://schemas.android.com/apk/res/android" />

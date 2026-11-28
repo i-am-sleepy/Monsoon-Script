@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Autofill for the password vault (E1.19, claude-e). Plain words, no engine jargon (D33). -->
+<resources>
+    <string name="autofill_label">Monsoon Script vault</string>
+    <string name="autofill_unlock">Unlock vault</string>
+    <string name="autofill_search">Search vault…</string>
+    <string name="autofill_untitled">(no title)</string>
+    <string name="autofill_search_title">Search vault</string>
+    <string name="autofill_search_hint">Name or website</string>
+    <string name="autofill_search_empty">Type a name or a website to find a login.</string>
+    <string name="autofill_search_none">Nothing found.</string>
+    <string name="autofill_nothing">This entry has nothing to fill here.</string>
+    <string name="autofill_filling">Filling…</string>
+</resources>

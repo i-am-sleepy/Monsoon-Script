@@ -6,6 +6,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import com.monsoonscript.keyboard.R
@@ -39,6 +40,8 @@ internal abstract class VaultBaseActivity : ThemedActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE) // D43: no screenshots, no preview in the recent apps
+        // Another Autofill service (Google's, say) must not offer to save or fill the vault's own password boxes (E1.19).
+        window.decorView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
         prefs = VaultPrefs(this)
         ui = SettingsUi(this, prefs.raw)
         busy = BusyDialog(this, ui)

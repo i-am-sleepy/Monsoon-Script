@@ -37,6 +37,20 @@
                 android:resource="@xml/method" />
         </service>
 
+        <!-- The vault as an Android Autofill service (E1.19, D100): offers logins in apps and browsers; the owner turns it on in Android's settings. -->
+        <service
+            android:name=".autofill.MonsoonAutofillService"
+            android:exported="true"
+            android:label="@string/autofill_label"
+            android:permission="android.permission.BIND_AUTOFILL_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.autofill.AutofillService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.autofill"
+                android:resource="@xml/autofill_service" />
+        </service>
+
         <activity
             android:name=".settings.SetupActivity"
             android:exported="true"
@@ -168,6 +182,19 @@
             android:name=".vault.VaultBackupsActivity"
             android:exported="false"
             android:label="@string/vault_backups_title" />
+
+        <!-- Autofill's own screens (E1.19): the invisible one behind a tap in the dropdown, and "Search vault…". They sit in the task of the app being filled. -->
+        <activity
+            android:name=".autofill.AutofillFillActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode|keyboard|navigation|density|fontScale|locale|layoutDirection"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <activity
+            android:name=".autofill.AutofillSearchActivity"
+            android:exported="false"
+            android:label="@string/autofill_search_title"
+            android:windowSoftInputMode="adjustResize|stateVisible" />
 
     </application>
 </manifest>

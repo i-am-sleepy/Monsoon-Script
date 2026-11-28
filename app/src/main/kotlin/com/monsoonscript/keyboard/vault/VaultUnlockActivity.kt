@@ -41,6 +41,8 @@ internal class VaultUnlockActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        notified = intent.getBooleanExtra(EXTRA_QUIET, false) // Autofill asks quietly: the keyboard has nothing to bring back
+        window.decorView.importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS // no other Autofill service may offer to save the master password
         CrashLog.note(this, "vault unlock card: onCreate (recreated=${savedInstanceState != null})")
         window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
         prefs = VaultPrefs(this)
@@ -219,6 +221,7 @@ internal class VaultUnlockActivity : Activity() {
     override fun onNewIntent(intent: android.content.Intent) {
         super.onNewIntent(intent)
         if (!done && ::error.isInitialized) error.visibility = View.GONE // asked again while it is still up (singleInstance): nothing else to do
+        if (!intent.getBooleanExtra(EXTRA_QUIET, false)) notified = false // the keyboard asked too: it wants to hear the end
     }
 
     override fun onDestroy() {
@@ -235,5 +238,10 @@ internal class VaultUnlockActivity : Activity() {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         CrashLog.note(this, "vault unlock card: memory warning (trim level $level)")
+    }
+
+    companion object {
+        /** Set by Autofill: the card does not report its end to the keyboard ([VaultHub.onUnlockFinished]). */
+        const val EXTRA_QUIET = "quiet"
     }
 }
