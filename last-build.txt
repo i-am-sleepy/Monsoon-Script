@@ -1,0 +1,50 @@
+result: success
+tests: success
+run: #120 https://github.com/i-am-sleepy/Monsoon-Script/actions/runs/46121532538
+commit: af63fc65264c9dd07761c019d6038aff2e052130
+signed: release key
+time: 2026-11-28T07:34:59Z
+
+--- errors ---
+
+--- tail ---
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
+
+> Task :app:compileReleaseKotlin
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/autofill/AutofillResponses.kt:43:64 'fun setAuthentication(p0: (Array<AutofillId!>..Array<out AutofillId!>), p1: IntentSender?, p2: RemoteViews?, p3: InlinePresentation?): FillResponse.Builder' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/autofill/AutofillResponses.kt:43:137 'fun setAuthentication(p0: (Array<AutofillId!>..Array<out AutofillId!>), p1: IntentSender?, p2: RemoteViews?): FillResponse.Builder' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/autofill/AutofillResponses.kt:106:25 'fun setValue(p0: AutofillId, p1: AutofillValue?): Dataset.Builder' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/autofill/AutofillResponses.kt:113:25 'fun setValue(p0: AutofillId, p1: AutofillValue?): Dataset.Builder' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/autofill/AutofillResponses.kt:121:33 'fun setValue(p0: AutofillId, p1: AutofillValue?): Dataset.Builder' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/autofill/AutofillSaveActivity.kt:55:60 'static field SOFT_INPUT_ADJUST_RESIZE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/settings/AppStyle.kt:38:11 'var statusBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/settings/AppStyle.kt:39:11 'var navigationBarColor: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/settings/AppStyle.kt:46:15 'var isStatusBarContrastEnforced: Boolean' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/vault/EntryEditActivity.kt:63:73 'static field SOFT_INPUT_ADJUST_RESIZE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/vault/FingerprintStore.kt:7:8 'class FingerprintManager : Any' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/vault/VaultCreateActivity.kt:39:73 'static field SOFT_INPUT_ADJUST_RESIZE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/vault/VaultCreateActivity.kt:212:55 Condition is always 'false'.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/vault/VaultMainActivity.kt:80:73 'static field SOFT_INPUT_ADJUST_RESIZE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/vault/VaultMainActivity.kt:96:73 'static field SOFT_INPUT_ADJUST_RESIZE: Int' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/vault/VaultMainActivity.kt:115:52 'fun onBackPressed(): Unit' is deprecated. Deprecated in Java.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/vault/VaultMainActivity.kt:719:71 Condition is always 'true'.
+w: file:///home/runner/work/Monsoon-Script/Monsoon-Script/app/src/main/kotlin/com/monsoonscript/keyboard/vault/VaultMainActivity.kt:728:74 Condition is always 'true'.
+
+> Task :app:compileReleaseJavaWithJavac NO-SOURCE
+> Task :app:expandReleaseArtProfileWildcards
+> Task :app:mergeReleaseGeneratedProguardFiles
+> Task :app:processReleaseJavaRes
+> Task :app:mergeReleaseJavaResource
+> Task :app:minifyReleaseWithR8
+> Task :app:compileReleaseArtProfile
+> Task :app:convertShrunkResourcesToBinaryRelease
+> Task :app:optimizeReleaseResources
+> Task :app:packageRelease
+> Task :app:createReleaseApkListingFileRedirect
+> Task :app:assembleRelease
+gradle/actions: Writing build results to /home/runner/work/_temp/.gradle-actions/build-results/build-1795851156484.json
+
+BUILD SUCCESSFUL in 2m 18s
+121 actionable tasks: 79 executed, 42 from cache
