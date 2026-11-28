@@ -43,6 +43,12 @@ class ThemeSpec(
     val keyBorder: Boolean = false,
     /** A soft shadow under the keys. */
     val keyShadow: Boolean = false,
+    /** How much the picture is blurred behind the keys / behind the small windows (voice, emoji, clipboard), 0..[MAX_BLUR] (L10 step 2c, D100). */
+    val blurMain: Int = 0,
+    val blurPanels: Int = DEFAULT_PANEL_BLUR,
+    /** Where the picture sits in the small windows (they can show another part than the keys), portrait / landscape. */
+    val panelCropPortrait: PictureCrop = PictureCrop.AUTO,
+    val panelCropLandscape: PictureCrop = PictureCrop.AUTO,
 ) {
     val builtIn: Boolean get() = id.startsWith(BUILTIN_PREFIX)
 
@@ -103,10 +109,13 @@ class ThemeSpec(
         picture: String? = this.picture, pictureFade: Int = this.pictureFade, keyOpacity: Int = this.keyOpacity,
         cropPortrait: PictureCrop = this.cropPortrait, cropLandscape: PictureCrop = this.cropLandscape,
         keyRoundness: Int = this.keyRoundness, keyBorder: Boolean = this.keyBorder, keyShadow: Boolean = this.keyShadow,
+        blurMain: Int = this.blurMain, blurPanels: Int = this.blurPanels,
+        panelCropPortrait: PictureCrop = this.panelCropPortrait, panelCropLandscape: PictureCrop = this.panelCropLandscape,
     ): ThemeSpec = ThemeSpec(
         id, name, bg, key, special, accent, text, overrides, picture,
         pictureFade.coerceIn(0, MAX_FADE), keyOpacity.coerceIn(MIN_KEY_OPACITY, 100), cropPortrait, cropLandscape,
         keyRoundness.coerceIn(0, 100), keyBorder, keyShadow,
+        blurMain.coerceIn(0, MAX_BLUR), blurPanels.coerceIn(0, MAX_BLUR), panelCropPortrait, panelCropLandscape,
     )
 
     /** Colors that are hard to read together (D75: shown as a note, never blocked). */
@@ -131,6 +140,11 @@ class ThemeSpec(
 
         /** The corner radius in dp for a roundness of 0..100 (a radius bigger than half a key just makes a pill). */
         fun cornerDp(roundness: Int): Float = roundness.coerceIn(0, 100) * 8f / 30f
+
+        const val MAX_BLUR = 100
+
+        /** The small windows blur the picture by default (the owner's wish): it keeps the text on them readable. */
+        const val DEFAULT_PANEL_BLUR = 60
 
         const val DEFAULT_FADE = 35
         const val MAX_FADE = 90

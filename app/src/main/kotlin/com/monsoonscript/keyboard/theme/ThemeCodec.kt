@@ -38,6 +38,10 @@ object ThemeCodec {
             m["keys"] = t.keyOpacity
             if (!t.cropPortrait.isAuto) m["cp"] = t.cropPortrait.toMap()
             if (!t.cropLandscape.isAuto) m["cl"] = t.cropLandscape.toMap()
+            if (t.blurMain != 0) m["bm"] = t.blurMain
+            if (t.blurPanels != ThemeSpec.DEFAULT_PANEL_BLUR) m["bp"] = t.blurPanels
+            if (!t.panelCropPortrait.isAuto) m["pp"] = t.panelCropPortrait.toMap()
+            if (!t.panelCropLandscape.isAuto) m["pl"] = t.panelCropLandscape.toMap()
         }
         return m
     }
@@ -64,6 +68,9 @@ object ThemeCodec {
             id, name, bg, key, special, accent, text, overrides, picture, fade.coerceIn(0, ThemeSpec.MAX_FADE), keys.coerceIn(ThemeSpec.MIN_KEY_OPACITY, 100),
             PictureCrop.fromMap(m["cp"] as? Map<*, *>), PictureCrop.fromMap(m["cl"] as? Map<*, *>),
             ((m["kr"] as? Number)?.toInt() ?: ThemeSpec.DEFAULT_ROUNDNESS).coerceIn(0, 100), m["kb"] == true, m["ks"] == true,
+            ((m["bm"] as? Number)?.toInt() ?: 0).coerceIn(0, ThemeSpec.MAX_BLUR),
+            ((m["bp"] as? Number)?.toInt() ?: ThemeSpec.DEFAULT_PANEL_BLUR).coerceIn(0, ThemeSpec.MAX_BLUR),
+            PictureCrop.fromMap(m["pp"] as? Map<*, *>), PictureCrop.fromMap(m["pl"] as? Map<*, *>),
         )
     }
 

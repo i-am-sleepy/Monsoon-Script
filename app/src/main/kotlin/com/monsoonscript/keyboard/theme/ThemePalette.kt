@@ -6,19 +6,26 @@ import com.monsoonscript.keyboard.view.KeyboardView
 
 /**
  * The colors in the form the keyboard view and the panels draw with. With a [backdrop] (a background picture) the letter and special keys become see-through by
- * [keyOpacity] % (pressed keys a bit more solid, so a press can still be seen); the accent colors (Enter, selections) and the bubble stay solid. [roundness] / [border] /
- * [shadow] are the key shape of the theme (L10 step 4, D96).
+ * [keyOpacity] % (pressed keys a bit more solid, so a press can still be seen); the accent colors (Enter, selections) and the bubble stay solid. [panelBackdrop] is the
+ * same picture as the small windows show it (their own blur and placement). [roundness] / [border] / [shadow] are the key shape of the theme (L10 step 4, D96).
  */
-fun ThemeColors.toPalette(backdrop: Backdrop? = null, keyOpacity: Int = 100, roundness: Int = ThemeSpec.DEFAULT_ROUNDNESS, border: Boolean = false, shadow: Boolean = false): KeyboardView.Palette {
+fun ThemeColors.toPalette(
+    backdrop: Backdrop? = null,
+    keyOpacity: Int = 100,
+    roundness: Int = ThemeSpec.DEFAULT_ROUNDNESS,
+    border: Boolean = false,
+    shadow: Boolean = false,
+    panelBackdrop: Backdrop? = null,
+): KeyboardView.Palette {
     val pressedOpacity = keyOpacity + (100 - keyOpacity) / 2
     fun see(c: Int, percent: Int) = if (backdrop == null || percent >= 100) c else ColorMath.withAlpha(c, percent)
     return KeyboardView.Palette(
         bg, see(key, keyOpacity), see(keyPressed, pressedOpacity), see(special, keyOpacity), see(specialPressed, pressedOpacity),
-        accent, accentPressed, text, textMuted, onAccent, bubble, backdrop,
+        accent, accentPressed, text, textMuted, onAccent, bubble, backdrop, panelBackdrop,
         ThemeSpec.cornerDp(roundness), if (border) (text and 0x00FFFFFF) or 0x66000000 else 0, shadow,
     )
 }
 
-/** The palette of this theme, with its background picture if it has one (L10 step 2, D87). */
+/** The palette of this theme, with its background picture if it has one (L10 step 2, D87; blur and small windows step 2c, D100). */
 fun ThemeSpec.palette(context: Context): KeyboardView.Palette =
-    colors().toPalette(ThemePictures.backdrop(context, this), keyOpacity, keyRoundness, keyBorder, keyShadow)
+    colors().toPalette(ThemePictures.backdrop(context, this, false), keyOpacity, keyRoundness, keyBorder, keyShadow, ThemePictures.backdrop(context, this, true))

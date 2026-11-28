@@ -9,6 +9,8 @@ import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
 import android.widget.EditText
+import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.settings.BubbleHost
@@ -61,8 +63,13 @@ class ThemeEditActivity : ThemedActivity() {
         super.onResume()
         // the crop screen saves its own changes: take them over, so the next change here does not undo them
         val fresh = ThemeStore.find(this, spec.id)
-        if (fresh != null && (fresh.cropPortrait != spec.cropPortrait || fresh.cropLandscape != spec.cropLandscape)) {
-            spec = spec.copy(cropPortrait = fresh.cropPortrait, cropLandscape = fresh.cropLandscape)
+        if (fresh != null && (fresh.cropPortrait != spec.cropPortrait || fresh.cropLandscape != spec.cropLandscape ||
+                fresh.panelCropPortrait != spec.panelCropPortrait || fresh.panelCropLandscape != spec.panelCropLandscape)
+        ) {
+            spec = spec.copy(
+                cropPortrait = fresh.cropPortrait, cropLandscape = fresh.cropLandscape,
+                panelCropPortrait = fresh.panelCropPortrait, panelCropLandscape = fresh.panelCropLandscape,
+            )
             showPreview()
         }
     }
@@ -131,6 +138,7 @@ class ThemeEditActivity : ThemedActivity() {
 
     private fun SettingsUi.addPictureSection() {
         page.content.add(header(getString(R.string.theme_pic_header)))
+        if (spec.hasPicture) addThumbnail()
         page.content.add(buttonRow(getString(if (spec.hasPicture) R.string.theme_pic_change else R.string.theme_pic_choose), null) { choosePicture() })
         if (spec.hasPicture) {
             val percent = { v: Int -> "$v %" }
@@ -139,12 +147,29 @@ class ThemeEditActivity : ThemedActivity() {
             })
             page.content.add(valueSliderRow(getString(R.string.theme_pic_fade), 0, ThemeSpec.MAX_FADE, spec.pictureFade, percent) { v -> tweak(spec.copy(pictureFade = v)) })
             page.content.add(valueSliderRow(getString(R.string.theme_pic_keys), ThemeSpec.MIN_KEY_OPACITY, 100, spec.keyOpacity, percent) { v -> tweak(spec.copy(keyOpacity = v)) })
+            page.content.add(valueSliderRow(getString(R.string.theme_pic_blur_keys), 0, ThemeSpec.MAX_BLUR, spec.blurMain, percent) { v -> tweak(spec.copy(blurMain = v)) })
+            page.content.add(valueSliderRow(getString(R.string.theme_pic_blur_panels), 0, ThemeSpec.MAX_BLUR, spec.blurPanels, percent) { v -> tweak(spec.copy(blurPanels = v)) })
             page.content.add(buttonRow(getString(R.string.theme_pic_remove), null) {
                 ThemePictures.delete(this@ThemeEditActivity, spec.picture)
                 change(spec.copy(picture = null))
             })
+            page.content.add(note(getString(R.string.theme_pic_note2)))
         }
         page.content.add(note(getString(R.string.theme_pic_note)))
+    }
+
+    /** The chosen picture, as it is (not blurred, not faded), in a rounded card above the sliders. */
+    private fun SettingsUi.addThumbnail() {
+        val bitmap = ThemePictures.bitmap(this@ThemeEditActivity, spec) ?: return
+        val box = FrameLayout(this@ThemeEditActivity).apply {
+            minimumHeight = dp(160)
+            addView(ImageView(this@ThemeEditActivity).apply {
+                setImageBitmap(bitmap)
+                scaleType = ImageView.ScaleType.CENTER_CROP
+                contentDescription = getString(R.string.theme_pic_header)
+            }, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        }
+        (page.content as SettingsUi.GroupedColumn).addCard(box, colors.card, 8)
     }
 
     /** A change while a slider is being dragged: saved and shown, but the page is NOT rebuilt (that would drop the slider from under the finger). */

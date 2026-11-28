@@ -93,6 +93,7 @@ object ThemeStore {
         ThemeSpec(
             newId(context), uniqueName(context, baseName), source.bg, source.key, source.special, source.accent, source.text, source.overrides,
             ThemePictures.copy(context, source.picture), source.pictureFade, source.keyOpacity, source.cropPortrait, source.cropLandscape, source.keyRoundness, source.keyBorder, source.keyShadow,
+            source.blurMain, source.blurPanels, source.panelCropPortrait, source.panelCropLandscape,
         )
 
     /** Add a theme that came from shared text: a new id, a name that is not taken, no picture. Null when there is no room for another theme. */

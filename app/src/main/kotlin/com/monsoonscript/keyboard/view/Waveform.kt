@@ -12,7 +12,7 @@ import kotlin.math.sin
  * it looks fluid at 10-20 level updates per second. While the text is being worked out the bars become a calm travelling wave. Cheap: one rounded rectangle
  * per bar (about 40), no allocation per frame. The owner of the view keeps it redrawing while it is visible.
  */
-class Waveform(private val capacity: Int = 56) {
+class Waveform(private val capacity: Int = 220) {
     private val target = FloatArray(capacity)
     private val shown = FloatArray(capacity)
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)

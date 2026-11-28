@@ -62,6 +62,7 @@ internal class BubbleHost(private val activity: ThemedActivity, private val ui: 
 
     private fun openTry() {
         if (tryWindow != null) return
+        setDock(false) // only one of the two windows is open at a time
         val field = EditText(activity).apply {
             hint = activity.getString(R.string.settings_try_hint)
             textSize = 17f
@@ -130,6 +131,7 @@ internal class BubbleHost(private val activity: ThemedActivity, private val ui: 
 
     fun setDock(open: Boolean) {
         val d = dock ?: return
+        if (open) closeTry() // only one of the two windows is open at a time
         d.visibility = if (open) View.VISIBLE else View.GONE
         previewBubble?.setImageDrawable(ui.icon(if (open) Icons.Kind.CLOSE else previewIcon, colors.onAccent, 26))
     }

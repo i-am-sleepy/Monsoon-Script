@@ -30,6 +30,7 @@ internal class CropFrameView(
         }
     var onChanged: ((PictureCrop) -> Unit)? = null
 
+    private var shown: Bitmap = bitmap
     private var zoom = 1f
     private var posX = 50f
     private var posY = 50f
@@ -49,6 +50,12 @@ internal class CropFrameView(
     }
     private val frame = RectF()
     private val dst = RectF()
+
+    /** The picture as it will be drawn inside the frame (a blurred copy of [bitmap] for a blurred target); the dimmed part outside stays the original. */
+    fun setShown(b: Bitmap) {
+        shown = b
+        invalidate()
+    }
 
     fun setCrop(crop: PictureCrop) {
         zoom = crop.zoom / 100f
@@ -78,7 +85,7 @@ internal class CropFrameView(
         canvas.drawBitmap(bitmap, null, dst, dimPaint) // the whole picture, dimmed: what is outside the frame
         canvas.save()
         canvas.clipRect(frame)
-        canvas.drawBitmap(bitmap, null, dst, bitmapPaint) // what the keyboard shows, as the keyboard will show it
+        canvas.drawBitmap(shown, null, dst, bitmapPaint) // what the keyboard shows, as the keyboard will show it
         canvas.drawColor(veil)
         canvas.restore()
         // faint key rows, to see where keys and letters will sit

@@ -1478,28 +1478,50 @@ class KeyboardView(context: Context) : View(context) {
         val bubble: Int,
         /** The picture behind everything (L10 step 2, D87), or null: then the plain [bg] color. */
         val backdrop: Backdrop? = null,
+        /** The picture as the small windows (voice, emoji, clipboard) show it: its own blur and placement. */
+        val panelBackdrop: Backdrop? = null,
         /** The key shape of the theme (L10 step 4, D96): corner radius in dp (8 = the keyboard's old look), outline color (0 = none), soft shadow. */
         val keyRadiusDp: Float = 8f,
         val keyBorderColor: Int = 0,
         val keyShadow: Boolean = false,
     ) {
         /** Paint the whole background of [view] (the picture, faded and placed for the way the phone is held, or the plain color). */
-        fun paintBackground(view: View, c: Canvas) {
-            val b = backdrop
-            if (b != null) b.draw(c, view.width, view.height, landscape(view)) else c.drawColor(bg)
-        }
+        fun paintBackground(view: View, c: Canvas) = paint(backdrop, view, c)
+
+        /** The same for a small window (voice, emoji, clipboard): its own blur and placement of the picture. */
+        fun paintPanelBackground(view: View, c: Canvas) = paint(panelBackdrop, view, c)
 
         /** Paint the rectangle as background again: it hides what is under it and still shows the picture. [paint] is only used for the plain color. */
-        fun erase(view: View, c: Canvas, l: Float, t: Float, r: Float, b: Float, paint: Paint) {
-            val bd = backdrop
+        fun erase(view: View, c: Canvas, l: Float, t: Float, r: Float, b: Float, paint: Paint) = eraseWith(backdrop, view, c, l, t, r, b, paint)
+
+        fun erasePanel(view: View, c: Canvas, l: Float, t: Float, r: Float, b: Float, paint: Paint) = eraseWith(panelBackdrop, view, c, l, t, r, b, paint)
+
+        private fun paint(b: Backdrop?, view: View, c: Canvas) {
+            if (b != null) drawBackdrop(b, view, c) else c.drawColor(bg)
+        }
+
+        private fun eraseWith(bd: Backdrop?, view: View, c: Canvas, l: Float, t: Float, r: Float, b: Float, paint: Paint) {
             if (bd == null) {
                 paint.color = bg
                 c.drawRect(l, t, r, b, paint)
             } else {
                 c.save()
                 c.clipRect(l, t, r, b)
-                bd.draw(c, view.width, view.height, landscape(view))
+                drawBackdrop(bd, view, c)
                 c.restore()
+            }
+        }
+
+        /** Draw [b] for [view]; when the keyboard column has side padding (the notch option) the picture is laid over the WHOLE column so it lines up with the padded edges. */
+        private fun drawBackdrop(b: Backdrop, view: View, c: Canvas) {
+            val host = view.parent as? CutoutRoot
+            if (host != null && host.hasSidePadding()) {
+                c.save()
+                c.translate(-view.left.toFloat(), 0f)
+                b.draw(c, host.width, view.height, landscape(view))
+                c.restore()
+            } else {
+                b.draw(c, view.width, view.height, landscape(view))
             }
         }
 

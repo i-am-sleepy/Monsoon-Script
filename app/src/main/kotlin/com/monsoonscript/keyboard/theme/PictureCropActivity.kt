@@ -24,7 +24,12 @@ class PictureCropActivity : ThemedActivity() {
     private lateinit var stage: CropFrameView
     private lateinit var portraitButton: TextView
     private lateinit var landscapeButton: TextView
+    private lateinit var keysButton: TextView
+    private lateinit var panelsButton: TextView
     private var landscape = false
+
+    /** True while the placement of the SMALL WINDOWS (voice, emoji, clipboard) is being set, false for the keys. */
+    private var panels = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,13 +44,22 @@ class PictureCropActivity : ThemedActivity() {
         // starts with the way the phone is held now
         landscape = savedInstanceState?.getBoolean(STATE_LANDSCAPE)
             ?: (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
+        panels = savedInstanceState?.getBoolean(STATE_PANELS) ?: false
         val page = ui.page(getString(R.string.theme_crop_title)) { finish() }
         stage = CropFrameView(this, bitmap, ThemePictures.veil(spec), colors.accent, colors.muted)
         stage.onChanged = { crop -> save(crop) }
         portraitButton = switchButton(getString(R.string.theme_crop_portrait)) { select(false) }
         landscapeButton = switchButton(getString(R.string.theme_crop_landscape)) { select(true) }
+        keysButton = switchButton(getString(R.string.theme_crop_target_keys)) { target(false) }
+        panelsButton = switchButton(getString(R.string.theme_crop_target_panels)) { target(true) }
         with(ui) {
             page.content.add(note(getString(R.string.theme_crop_note)))
+            page.content.add(LinearLayout(this@PictureCropActivity).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(dp(16), dp(4), dp(16), dp(4))
+                addView(keysButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { rightMargin = dp(8) })
+                addView(panelsButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            })
             page.content.add(LinearLayout(this@PictureCropActivity).apply {
                 orientation = LinearLayout.HORIZONTAL
                 setPadding(dp(16), dp(4), dp(16), dp(10))
@@ -65,6 +79,7 @@ class PictureCropActivity : ThemedActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(STATE_LANDSCAPE, landscape)
+        outState.putBoolean(STATE_PANELS, panels)
     }
 
     private fun switchButton(label: String, onClick: () -> Unit): TextView = TextView(this).apply {
@@ -90,18 +105,40 @@ class PictureCropActivity : ThemedActivity() {
         val longDp = maxOf(d.widthPixels, d.heightPixels) / d.density
         val percent = if (landscape) Prefs.heightLandscape(this) else Prefs.heightPortrait(this)
         stage.aspect = PictureMath.keyboardAspect(landscape, if (landscape) longDp else shortDp, percent, if (Prefs.numberRow(this)) 5 else 4)
-        stage.setCrop(if (landscape) spec.cropLandscape else spec.cropPortrait)
+        stage.setCrop(currentCrop())
+        stage.setShown(ThemePictures.shown(this, spec, panels) ?: return)
         paintSwitch(portraitButton, !landscape)
         paintSwitch(landscapeButton, landscape)
+        paintSwitch(keysButton, !panels)
+        paintSwitch(panelsButton, panels)
+    }
+
+    private fun currentCrop(): PictureCrop = when {
+        panels && landscape -> spec.panelCropLandscape
+        panels -> spec.panelCropPortrait
+        landscape -> spec.cropLandscape
+        else -> spec.cropPortrait
+    }
+
+    /** Switch between setting the keys' picture and the small windows' picture. */
+    private fun target(toPanels: Boolean) {
+        panels = toPanels
+        select(landscape)
     }
 
     private fun save(crop: PictureCrop) {
-        spec = if (landscape) spec.copy(cropLandscape = crop) else spec.copy(cropPortrait = crop)
+        spec = when {
+            panels && landscape -> spec.copy(panelCropLandscape = crop)
+            panels -> spec.copy(panelCropPortrait = crop)
+            landscape -> spec.copy(cropLandscape = crop)
+            else -> spec.copy(cropPortrait = crop)
+        }
         ThemeStore.save(this, spec)
     }
 
     companion object {
         const val EXTRA_ID = "theme_id"
         private const val STATE_LANDSCAPE = "landscape"
+        private const val STATE_PANELS = "panels"
     }
 }

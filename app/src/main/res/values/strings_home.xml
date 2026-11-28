@@ -29,7 +29,7 @@
     <string name="theme_crop_row">Position and zoom</string>
     <string name="theme_crop_row_summary">Choose which part of the picture shows, for portrait and landscape</string>
     <string name="theme_crop_title">Position the picture</string>
-    <string name="theme_crop_note">Drag the picture to move it, pinch to zoom. The bright frame is your keyboard, the dimmed part is cut off. Portrait and landscape are set separately.</string>
+    <string name="theme_crop_note">Drag the picture to move it, pinch to zoom. The bright frame is your keyboard, the dimmed part is cut off. Portrait and landscape are set separately, and so are the main keyboard and the small windows (voice, emoji, clipboard): they can show different parts of the picture.</string>
     <string name="theme_crop_portrait">Portrait</string>
     <string name="theme_crop_landscape">Landscape</string>
     <string name="theme_crop_reset">Reset this to automatic</string>
@@ -68,4 +68,12 @@
     <string name="settings_calc_degrees">Degrees (sin 30 = 0.5)</string>
     <string name="settings_calc_radians">Radians (sin 1 = 0.84)</string>
     <string name="settings_calc_note">It understands + - * / x \u00D7 \u00F7 ^, brackets, 20% of 150, 150+10%, 10 mod 3, 5!, \u221A, pi, sin cos tan, ln log, round floor ceil, min max avg, gcd lcm, ncr npr, 0xFF, 255 to hex, 5 km in miles and 98.6 f to c. Things that look like a date, a range or a phone number (12/5, 5-10) are left alone: add = (5-10=) or spaces (5 - 10) to calculate them.</string>
+    <!-- Blur, small windows, notch (L10 step 2c, D100) -->
+    <string name="settings_cutout">Use the notch area in landscape</string>
+    <string name="settings_cutout_summary">The keyboard background (and your picture) also fills the strip next to the camera hole when the phone is on its side. The keys stay clear of it. Whether this works depends on your phone.</string>
+    <string name="theme_pic_blur_keys">Blur behind the keys</string>
+    <string name="theme_pic_blur_panels">Blur in small windows</string>
+    <string name="theme_pic_note2">Small windows are voice typing, emoji and clipboard. They show the picture too, with their own blur and their own position (see Position and zoom).</string>
+    <string name="theme_crop_target_keys">Main keyboard</string>
+    <string name="theme_crop_target_panels">Small windows</string>
 </resources>

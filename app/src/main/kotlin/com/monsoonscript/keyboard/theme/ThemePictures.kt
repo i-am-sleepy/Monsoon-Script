@@ -24,6 +24,7 @@ object ThemePictures {
     private const val DIR = "theme_pictures"
     private const val KEEP = 3
     private val bitmaps = LinkedHashMap<String, Bitmap>()
+    private val blurs = LinkedHashMap<String, Bitmap>() // the blurred small copies, by picture version and blur radius
 
     private fun dir(context: Context): File = File(context.filesDir, DIR).also { it.mkdirs() }
 
@@ -98,6 +99,7 @@ object ThemePictures {
     fun delete(context: Context, name: String?) {
         file(context, name)?.delete()
         synchronized(bitmaps) { bitmaps.keys.removeAll { it.startsWith("$name:") } }
+        synchronized(blurs) { blurs.keys.removeAll { it.startsWith("$name:") } }
     }
 
     /** A copy of the picture file [name] under a new name (for a copy of a theme), or null when there is nothing to copy. */
@@ -126,8 +128,34 @@ object ThemePictures {
         return key to bitmap
     }
 
-    /** The picture of [spec] itself (for the crop screen), or null. */
+    /** The picture of [spec] itself (the original, unblurred), or null. */
     fun bitmap(context: Context, spec: ThemeSpec): Bitmap? = load(context, spec)?.second
+
+    /** [bitmap] as the keys ([panel] false) or the small windows ([panel] true) of [spec] show it: blurred by the theme's blur, or the original when there is none. */
+    fun shown(context: Context, spec: ThemeSpec, panel: Boolean): Bitmap? {
+        val (key, bitmap) = load(context, spec) ?: return null
+        return blurred(key, bitmap, if (panel) spec.blurPanels else spec.blurMain)
+    }
+
+    /** The blurred small copy of [bitmap] (made once per picture and blur, kept in a small cache), or [bitmap] itself for no blur. */
+    private fun blurred(key: String, bitmap: Bitmap, intensity: Int): Bitmap {
+        val radius = PictureBlur.radius(intensity)
+        if (radius == 0) return bitmap
+        val cacheKey = "$key|$radius"
+        synchronized(blurs) { blurs[cacheKey]?.let { return it } }
+        val (w, h) = PictureMath.scaledSize(bitmap.width, bitmap.height, PictureBlur.EDGE)
+        val small = Bitmap.createScaledBitmap(bitmap, w, h, true)
+        val px = IntArray(w * h)
+        small.getPixels(px, 0, w, 0, 0, w, h)
+        PictureBlur.blurInPlace(px, w, h, radius)
+        val out = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        out.setPixels(px, 0, w, 0, 0, w, h)
+        synchronized(blurs) {
+            blurs[cacheKey] = out
+            while (blurs.size > 6) blurs.remove(blurs.keys.first())
+        }
+        return out
+    }
 
     /** The veil color of [spec]: its fade as a see-through color of the theme's own side (dark themes fade towards black, light ones towards white). */
     fun veil(spec: ThemeSpec): Int {
@@ -135,9 +163,17 @@ object ThemePictures {
         return (PictureMath.veilAlpha(spec.pictureFade) shl 24) or (veilColor and 0x00FFFFFF)
     }
 
-    /** The backdrop to draw for [spec], or null when it has no picture (or the file is gone or damaged: then the plain background color is used). */
-    fun backdrop(context: Context, spec: ThemeSpec): Backdrop? {
+    /**
+     * The backdrop to draw for [spec]: for the keys ([panel] false) or for the small windows (voice, emoji, clipboard), each with its own blur and placement; null when
+     * the theme has no picture (or the file is gone or damaged: then the plain background color is used).
+     */
+    fun backdrop(context: Context, spec: ThemeSpec, panel: Boolean = false): Backdrop? {
         val (key, bitmap) = load(context, spec) ?: return null
-        return Backdrop(key, bitmap, veil(spec), spec.cropPortrait, spec.cropLandscape)
+        val intensity = if (panel) spec.blurPanels else spec.blurMain
+        val radius = PictureBlur.radius(intensity)
+        return Backdrop(
+            "$key|$radius", blurred(key, bitmap, intensity), veil(spec),
+            if (panel) spec.panelCropPortrait else spec.cropPortrait, if (panel) spec.panelCropLandscape else spec.cropLandscape,
+        )
     }
 }

@@ -59,6 +59,7 @@ import com.monsoonscript.keyboard.predict.WordTracker
 import com.monsoonscript.keyboard.prefs.Prefs
 import com.monsoonscript.keyboard.view.ClipboardPanelView
 import com.monsoonscript.keyboard.view.EmojiPanelView
+import com.monsoonscript.keyboard.view.CutoutRoot
 import com.monsoonscript.keyboard.view.KeyboardView
 import com.monsoonscript.keyboard.view.SearchablePanel
 import com.monsoonscript.keyboard.view.VaultPanelView
@@ -118,6 +119,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     private var calcOn = true
     private var calcRadians = false
     private var calcOffer: CalcOffer? = null
+    private var cutoutOn = false
 
     /** The run of characters since the last space (shortcuts). It also keeps [calcRun] in step: every place that feeds, clears or rebuilds the one does the same to the other. */
     private val triggerRun = object : TriggerRun() {
@@ -298,6 +300,8 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
         calcOn = Prefs.calc(this)
         calcRadians = Prefs.calcRadians(this)
+        cutoutOn = Prefs.cutout(this)
+        applyCutoutMode()
         if (!calcOn) calcOffer = null
         autoShow = Prefs.autoShow(this)
         volumeCursor = Prefs.volumeCursor(this)
@@ -327,8 +331,14 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         v.setLanguage(language)
         keyboard = v
         // The keys and (once the emoji key is used) the emoji panel share this column; only one of them is visible at a time, except while searching.
-        val r = LinearLayout(this)
+        val r = CutoutRoot(this) { keyboard?.palette }
         r.orientation = LinearLayout.VERTICAL
+        // the notch option: when the window reaches under the camera cutout the keys keep clear of it and the background is painted into the gap (see CutoutRoot)
+        r.setOnApplyWindowInsetsListener { view, insets ->
+            val cut = if (cutoutOn && android.os.Build.VERSION.SDK_INT >= 28) insets.displayCutout else null
+            (view as CutoutRoot).setCutoutPadding(cut?.safeInsetLeft ?: 0, cut?.safeInsetRight ?: 0)
+            view.onApplyWindowInsets(insets)
+        }
         r.addView(v, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root = r
         // E1.21: Android 11+ Autofill chips sit in a bar over the strip, so the input view is a frame that holds the keyboard column and that bar.
@@ -969,6 +979,26 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
         for (w in words) if (w !in out) out.add(w)
         return out
+    }
+
+    /**
+     * The notch option (L10 step 2c, D100): with it on, the keyboard window is allowed to reach under the camera cutout (landscape), otherwise it keeps the system's
+     * default (the window stays clear of the cutout and that strip stays black). Whether a phone lets an input method window do this is up to the phone.
+     */
+    private fun applyCutoutMode() {
+        if (android.os.Build.VERSION.SDK_INT < 28) return
+        val w = window?.window ?: return
+        val want = when {
+            !cutoutOn -> android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+            android.os.Build.VERSION.SDK_INT >= 30 -> android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+            else -> android.view.WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+        }
+        val lp = w.attributes
+        if (lp.layoutInDisplayCutoutMode != want) {
+            lp.layoutInDisplayCutoutMode = want
+            w.attributes = lp
+        }
+        root?.requestApplyInsets()
     }
 
     // ---- the calculator on the strip (L13, D99)
