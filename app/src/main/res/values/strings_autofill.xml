@@ -11,4 +11,17 @@
     <string name="autofill_search_none">Nothing found.</string>
     <string name="autofill_nothing">This entry has nothing to fill here.</string>
     <string name="autofill_filling">Filling…</string>
+
+    <!-- Settings row and the one-time card -->
+    <string name="autofill_setting_header">Autofill</string>
+    <string name="autofill_setting_title">Autofill in other apps</string>
+    <string name="autofill_setting_on">On: your logins appear when you tap a login box</string>
+    <string name="autofill_setting_off">Off: tap to turn it on in Android</string>
+    <string name="autofill_setting_unsupported">This phone has no autofill service support.</string>
+    <string name="autofill_setting_note">Android asks you to confirm. The vault stays locked until you unlock it, then a login box offers the entries that belong to that app or website.</string>
+    <string name="autofill_open_failed">Open Android Settings, search for \"Autofill service\" and choose \"Monsoon Script vault\".</string>
+    <string name="autofill_card_title">Fill logins in other apps?</string>
+    <string name="autofill_card_text">Turn on the vault as your autofill service and your logins appear when you tap a login box in an app or a browser. You can change this later in the vault settings.</string>
+    <string name="autofill_card_yes">Turn on</string>
+    <string name="autofill_card_later">Not now</string>
 </resources>

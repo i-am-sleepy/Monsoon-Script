@@ -1,5 +1,6 @@
 package com.monsoonscript.keyboard.vault
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -11,6 +12,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.monsoonscript.keyboard.R
+import com.monsoonscript.keyboard.autofill.AutofillSetup
 import com.monsoonscript.keyboard.settings.Icons
 
 /**
@@ -175,15 +177,37 @@ internal class VaultCreateActivity : VaultBaseActivity() {
             prefs.keyFileUri = key?.toString()
             password.clear()
             confirm.clear()
-            startActivity(Intent(this, VaultMainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
-            finish()
+            offerAutofill()
         }
+    }
+
+    /** The vault is there: once, ask whether to turn on autofill (D100), then go to the vault. Not asked again, nor on phones where it is on or unsupported. */
+    private fun offerAutofill() {
+        if (prefs.autofillAsked || !AutofillSetup.supported(this) || AutofillSetup.isOn(this)) return openVault()
+        prefs.autofillAsked = true
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(R.string.autofill_card_title)
+            .setMessage(R.string.autofill_card_text)
+            .setPositiveButton(R.string.autofill_card_yes) { _, _ -> if (!AutofillSetup.request(this, REQ_AUTOFILL)) openVault() }
+            .setNegativeButton(R.string.autofill_card_later) { _, _ -> openVault() }
+            .setCancelable(false)
+            .show()
+        ui.styleDialog(dialog)
+    }
+
+    private fun openVault() {
+        startActivity(Intent(this, VaultMainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP))
+        finish()
     }
 
     @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         @Suppress("DEPRECATION")
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQ_AUTOFILL) { // Android's question "make this your autofill service?" is answered (yes or no): on to the vault
+            openVault()
+            return
+        }
         val uri = data?.data
         if (resultCode != RESULT_OK || uri == null || data == null) return
         when (requestCode) {
@@ -205,5 +229,6 @@ internal class VaultCreateActivity : VaultBaseActivity() {
     private companion object {
         const val REQ_LOCATION = 1
         const val REQ_KEYFILE = 2
+        const val REQ_AUTOFILL = 3
     }
 }

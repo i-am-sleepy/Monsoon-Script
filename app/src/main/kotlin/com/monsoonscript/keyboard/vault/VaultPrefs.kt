@@ -57,6 +57,11 @@ internal class VaultPrefs(context: Context) {
         get() = (raw.getString("recent", "") ?: "").split(',').filter { it.isNotEmpty() }
         set(v) = raw.edit().putString("recent", v.joinToString(",")).apply()
 
+    /** The one-time "Fill logins in other apps?" card after the first vault was created has been shown (E1.19.3). About the phone, so it outlives the vault. */
+    var autofillAsked: Boolean
+        get() = raw.getBoolean("autofill_asked", false)
+        set(v) = raw.edit().putBoolean("autofill_asked", v).apply()
+
     /** Forget which file is the vault (the file itself is not touched). */
     fun forgetVault() {
         raw.edit().remove("file").remove("name").remove("key").remove("recent").remove("fingerprint").apply()

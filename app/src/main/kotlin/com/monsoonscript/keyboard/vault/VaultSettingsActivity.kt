@@ -9,6 +9,7 @@ import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
 import com.monsoonscript.keyboard.R
+import com.monsoonscript.keyboard.autofill.AutofillSetup
 import com.monsoonscript.vault.VaultInfo
 
 /**
@@ -46,6 +47,13 @@ internal class VaultSettingsActivity : VaultBaseActivity() {
             } else {
                 c.add(fingerprintRow(store))
                 c.add(note(getString(R.string.fp_setting_note)))
+            }
+            c.add(header(getString(R.string.autofill_setting_header)))
+            if (AutofillSetup.supported(this@VaultSettingsActivity)) {
+                c.add(autofillRow())
+                c.add(note(getString(R.string.autofill_setting_note)))
+            } else {
+                c.add(note(getString(R.string.autofill_setting_unsupported)))
             }
             c.add(header(getString(R.string.vault_this_vault)))
             c.add(infoRow(getString(R.string.vault_file), prefs.fileName.ifEmpty { "-" }))
@@ -103,6 +111,30 @@ internal class VaultSettingsActivity : VaultBaseActivity() {
             addView(sw)
             setOnClickListener { sw.toggle() }
         }
+    }
+
+    private var autofillSummary: TextView? = null
+
+    private fun autofillText(): String = getString(if (AutofillSetup.isOn(this)) R.string.autofill_setting_on else R.string.autofill_setting_off)
+
+    /** "Autofill in other apps" (E1.19.3): shows whether Android uses the vault as its autofill service; a tap opens Android's own question to turn it on. */
+    private fun autofillRow(): View {
+        val labels = ui.texts(getString(R.string.autofill_setting_title), autofillText())
+        autofillSummary = labels.getChildAt(1) as TextView
+        return ui.row().apply {
+            addView(labels, ui.weighted())
+            addView(ui.chevron())
+            setOnClickListener { AutofillSetup.request(this@VaultSettingsActivity, REQ_AUTOFILL) }
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        autofillSummary?.text = autofillText() // the owner may just have come back from Android's question
+    }
+
+    private companion object {
+        const val REQ_AUTOFILL = 1
     }
 
     override fun onLocked() {
