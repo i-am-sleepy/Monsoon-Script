@@ -24,4 +24,26 @@
     <string name="autofill_card_text">Turn on the vault as your autofill service and your logins appear when you tap a login box in an app or a browser. You can change this later in the vault settings.</string>
     <string name="autofill_card_yes">Turn on</string>
     <string name="autofill_card_later">Not now</string>
+
+    <!-- Save prompt (E1.20) -->
+    <string name="autofill_save_title">Save this login?</string>
+    <string name="autofill_save_for">For %1$s</string>
+    <string name="autofill_save_main_folder">Main folder</string>
+    <string name="autofill_save_folder">Folder</string>
+    <string name="autofill_save_button">Save</string>
+    <string name="autofill_not_now">Not now</string>
+    <string name="autofill_save_need_password">Enter a password to save.</string>
+    <string name="autofill_save_conflict">Saved in the open vault, but the vault file was changed elsewhere. Open the vault app to finish.</string>
+    <string name="autofill_saved">Saved to your vault</string>
+    <string name="autofill_done">Done</string>
+    <string name="autofill_open">Open</string>
+    <string name="autofill_update_title">Update the saved password?</string>
+    <string name="autofill_update_text">\"%1$s\" (%2$s) is already in your vault with another password. The old password is kept in the entry\'s history.</string>
+    <string name="autofill_update_yes">Update</string>
+    <string name="autofill_update_new">Save as new</string>
+    <string name="autofill_updated">Password updated</string>
+    <string name="autofill_save_setting">When saving a login</string>
+    <string name="autofill_save_screen">Open the save screen first</string>
+    <string name="autofill_save_at_once">Save at once</string>
+    <string name="autofill_save_note">After you log in, Android asks \"Save password?\". With the save screen you can change the title, folder and details first; saving at once puts it in the main folder.</string>
 </resources>

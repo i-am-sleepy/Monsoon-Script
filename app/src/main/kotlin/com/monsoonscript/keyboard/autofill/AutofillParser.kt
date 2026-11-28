@@ -42,13 +42,16 @@ internal class ParsedForm(
 internal object AutofillParser {
     private class Field(val id: AutofillId, val role: FieldRole, val focused: Boolean, val text: String?)
 
-    /** Null when the screen is our own app (the vault's own password boxes are never filled) or has no field a login could use. */
-    fun parse(structure: AssistStructure, ownPackage: String): ParsedForm? {
+    /**
+     * Null when the screen is our own app (the vault's own password boxes are never filled) or has no field a login could use. [forSave]: the screen is
+     * the one the login was typed on, which Android may already describe as hidden (the page moved on): fields that hold text count then even if not visible.
+     */
+    fun parse(structure: AssistStructure, ownPackage: String, forSave: Boolean = false): ParsedForm? {
         val pkg = structure.activityComponent?.packageName ?: return null
         if (pkg == ownPackage) return null
         val fields = ArrayList<Field>()
         val web = arrayOfNulls<String>(1)
-        for (i in 0 until structure.windowNodeCount) walk(structure.getWindowNodeAt(i).rootViewNode, fields, web)
+        for (i in 0 until structure.windowNodeCount) walk(structure.getWindowNodeAt(i).rootViewNode, fields, web, forSave)
         val pick = pickForm(fields.map { it.role }, fields.indexOfFirst { it.focused })
         if (!pick.interesting) return null
         fun id(i: Int?) = i?.let { fields[it].id }
@@ -65,14 +68,16 @@ internal object AutofillParser {
         )
     }
 
-    private fun walk(node: AssistStructure.ViewNode, out: MutableList<Field>, web: Array<String?>) {
+    private fun walk(node: AssistStructure.ViewNode, out: MutableList<Field>, web: Array<String?>, forSave: Boolean) {
         if (web[0] == null) web[0] = node.webDomain?.takeIf { it.isNotBlank() }
         val id = node.autofillId
-        if (id != null && node.autofillType == View.AUTOFILL_TYPE_TEXT && node.visibility == View.VISIBLE) {
+        if (id != null && node.autofillType == View.AUTOFILL_TYPE_TEXT) {
             val value = node.autofillValue?.takeIf { it.isText }?.textValue?.toString()
-            out += Field(id, FieldClassifier.classify(infoOf(node)), node.isFocused, value)
+            if (node.visibility == View.VISIBLE || (forSave && !value.isNullOrEmpty())) {
+                out += Field(id, FieldClassifier.classify(infoOf(node)), node.isFocused, value)
+            }
         }
-        for (i in 0 until node.childCount) walk(node.getChildAt(i), out, web)
+        for (i in 0 until node.childCount) walk(node.getChildAt(i), out, web, forSave)
     }
 
     private fun infoOf(node: AssistStructure.ViewNode): FieldInfo {
@@ -116,6 +121,7 @@ internal const val X_NEW = "af.new"
 internal const val X_OTP = "af.otp"
 internal const val X_MODE = "af.mode"
 internal const val X_ENTRY = "af.entry"
+internal const val X_TOKEN = "af.token"
 
 internal fun Intent.putForm(form: ParsedForm): Intent = apply {
     putExtra(X_PACKAGE, form.packageName)

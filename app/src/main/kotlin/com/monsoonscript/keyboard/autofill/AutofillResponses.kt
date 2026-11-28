@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.service.autofill.Dataset
 import android.service.autofill.FillResponse
+import android.service.autofill.SaveInfo
 import android.view.autofill.AutofillId
 import android.view.autofill.AutofillValue
 import android.widget.RemoteViews
@@ -25,35 +26,68 @@ internal object AutofillResponses {
 
     private val codes = AtomicInteger(1)
 
-    /** The dropdown of a locked vault: one item that opens the unlock card and then shows the real list. Null when this screen has nothing to fill. */
+    /**
+     * The dropdown of a locked vault: one item that opens the unlock card and then shows the real list. A screen with nothing to fill (a sign-up page) still
+     * gets the save prompt's description, so a login typed there can be saved; null when there is nothing at all.
+     */
     fun unlockResponse(context: Context, form: ParsedForm): FillResponse? {
+        val save = saveInfo(form)
         val ids = form.fillIds
-        if (ids.isEmpty()) return null
+        if (ids.isEmpty()) return save?.let { FillResponse.Builder().setSaveInfo(it).build() }
         val sender = sender(context, Intent(context, AutofillFillActivity::class.java).putForm(form).putExtra(X_MODE, MODE_UNLOCK))
-        return FillResponse.Builder()
-            .setAuthentication(ids.toTypedArray(), sender, item(context, context.getString(R.string.autofill_unlock), null))
-            .build()
+        val presentation = item(context, context.getString(R.string.autofill_unlock), null)
+        fun build(withSave: Boolean) = FillResponse.Builder().apply {
+            setAuthentication(ids.toTypedArray(), sender, presentation)
+            if (withSave && save != null) setSaveInfo(save)
+        }.build()
+        // The save prompt is wanted when the owner types the login by hand instead of unlocking; if this Android refuses the two together, the unlock item alone stays.
+        return try {
+            build(withSave = true)
+        } catch (_: IllegalStateException) {
+            build(withSave = false)
+        }
     }
 
     /**
      * The dropdown of an open vault: one item per matching entry; when nothing matched and a password is asked for, one "Search vault…" item; otherwise
-     * nothing at all (no response, so a username-only form with no match shows no menu).
+     * no items (a username-only form with no match shows no menu). Every response carries the save prompt's description when the screen has a password to save.
      */
     fun matchResponse(context: Context, form: ParsedForm, matches: List<EntrySummary>): FillResponse? {
         val ids = form.fillIds
-        if (ids.isEmpty()) return null
         val shown = if (form.codeOnly) matches.filter { it.hasOtp } else matches
         val builder = FillResponse.Builder()
-        if (shown.isEmpty()) {
-            if (!form.hasPassword) return null
-            builder.addDataset(dataset(context, ids, item(context, context.getString(R.string.autofill_search), null), Intent(context, AutofillSearchActivity::class.java).putForm(form)))
-        } else {
-            for (e in shown) {
-                val intent = Intent(context, AutofillFillActivity::class.java).putForm(form).putExtra(X_MODE, MODE_FILL).putExtra(X_ENTRY, e.id)
-                val title = e.title.ifBlank { e.url }.ifBlank { context.getString(R.string.autofill_untitled) }
-                builder.addDataset(dataset(context, ids, item(context, title, e.username), intent))
+        var any = false
+        if (ids.isNotEmpty()) {
+            if (shown.isEmpty()) {
+                if (form.hasPassword) {
+                    builder.addDataset(dataset(context, ids, item(context, context.getString(R.string.autofill_search), null), Intent(context, AutofillSearchActivity::class.java).putForm(form)))
+                    any = true
+                }
+            } else {
+                for (e in shown) {
+                    val intent = Intent(context, AutofillFillActivity::class.java).putForm(form).putExtra(X_MODE, MODE_FILL).putExtra(X_ENTRY, e.id)
+                    val title = e.title.ifBlank { e.url }.ifBlank { context.getString(R.string.autofill_untitled) }
+                    builder.addDataset(dataset(context, ids, item(context, title, e.username), intent))
+                }
+                any = true
             }
         }
+        saveInfo(form)?.let {
+            builder.setSaveInfo(it)
+            any = true
+        }
+        return if (any) builder.build() else null // a response needs an item or a save description
+    }
+
+    /**
+     * What Android needs to ask "Save password?" after a login was typed (E1.20): the password box (the new one on a sign-up or change-password page) must be
+     * filled; the user name box is optional. Nothing for a screen without a password box.
+     */
+    private fun saveInfo(form: ParsedForm): SaveInfo? {
+        val required = form.newPasswordId ?: form.passwordId ?: return null
+        val builder = SaveInfo.Builder(SaveInfo.SAVE_DATA_TYPE_USERNAME or SaveInfo.SAVE_DATA_TYPE_PASSWORD, arrayOf(required))
+        form.usernameId?.let { builder.setOptionalIds(arrayOf(it)) }
+        builder.setFlags(SaveInfo.FLAG_SAVE_ON_ALL_VIEWS_INVISIBLE) // one-page web apps never finish an activity after the login
         return builder.build()
     }
 

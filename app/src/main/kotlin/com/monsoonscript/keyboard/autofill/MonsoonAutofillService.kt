@@ -1,5 +1,8 @@
 package com.monsoonscript.keyboard.autofill
 
+import android.app.PendingIntent
+import android.content.Intent
+import android.os.Build
 import android.os.CancellationSignal
 import android.service.autofill.AutofillService
 import android.service.autofill.FillCallback
@@ -35,7 +38,26 @@ internal class MonsoonAutofillService : AutofillService() {
         }
     }
 
+    /**
+     * Android asked "Save password?" and the owner said yes (E1.20, D100). What was typed goes to the save screen through [SaveHandoff] (no password in an Intent);
+     * the screen opens the unlock card first when the vault is locked. A login that is already stored asks nothing there.
+     */
     override fun onSaveRequest(request: SaveRequest, callback: SaveCallback) {
-        callback.onSuccess() // the save prompt comes with E1.20
+        val structure = request.fillContexts.lastOrNull()?.structure // the last context holds what the fields contain now
+        val form = if (structure != null) AutofillParser.parse(structure, packageName, forSave = true) else null
+        val password = form?.passwordText
+        if (form == null || password.isNullOrEmpty() || !VaultPrefs(this).hasVault) {
+            callback.onSuccess()
+            return
+        }
+        val token = SaveHandoff.put(PendingSave(form.packageName, form.webDomain, form.usernameText.orEmpty(), password))
+        val intent = Intent(this, AutofillSaveActivity::class.java).putExtra(X_TOKEN, token).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        if (Build.VERSION.SDK_INT >= 28) {
+            // Android opens the screen itself after we answer: a background service may not start an activity from Android 10 on
+            callback.onSuccess(PendingIntent.getActivity(this, 0, intent, PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE).intentSender)
+        } else {
+            startActivity(intent)
+            callback.onSuccess()
+        }
     }
 }

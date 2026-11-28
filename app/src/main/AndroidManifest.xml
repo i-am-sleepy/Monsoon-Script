@@ -190,6 +190,15 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <!-- The small save screen after a login was typed in another app (E1.20): its own see-through task over that app, like the unlock card. -->
+        <activity
+            android:name=".autofill.AutofillSaveActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode|keyboard|navigation|density|fontScale|locale|layoutDirection"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:windowSoftInputMode="adjustResize|stateHidden" />
         <activity
             android:name=".autofill.AutofillSearchActivity"
             android:exported="false"

@@ -62,6 +62,9 @@ internal class VaultPrefs(context: Context) {
         get() = raw.getBoolean("autofill_asked", false)
         set(v) = raw.edit().putBoolean("autofill_asked", v).apply()
 
+    /** The setting "When saving a login" (E1.20): false = open the small save screen first (the default), true = save at once into the main folder. */
+    val saveAtOnce: Boolean get() = raw.getInt(SAVE_KEY, 0) == 1
+
     /** Forget which file is the vault (the file itself is not touched). */
     fun forgetVault() {
         raw.edit().remove("file").remove("name").remove("key").remove("recent").remove("fingerprint").apply()
@@ -70,6 +73,7 @@ internal class VaultPrefs(context: Context) {
 
     companion object {
         const val FILE = "vault"
+        const val SAVE_KEY = "autofill_save" // the choice row in the vault settings stores its index here
         val AUTO_LOCK_MINUTES = longArrayOf(1, 2, 5, 10, 30)
         const val DEFAULT_AUTO_LOCK = 2 // index of 5 minutes
     }

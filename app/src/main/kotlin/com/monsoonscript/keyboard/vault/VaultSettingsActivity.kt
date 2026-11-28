@@ -52,6 +52,8 @@ internal class VaultSettingsActivity : VaultBaseActivity() {
             if (AutofillSetup.supported(this@VaultSettingsActivity)) {
                 c.add(autofillRow())
                 c.add(note(getString(R.string.autofill_setting_note)))
+                c.add(choiceRow(getString(R.string.autofill_save_setting), VaultPrefs.SAVE_KEY, listOf(getString(R.string.autofill_save_screen), getString(R.string.autofill_save_at_once)), 0))
+                c.add(note(getString(R.string.autofill_save_note)))
             } else {
                 c.add(note(getString(R.string.autofill_setting_unsupported)))
             }
