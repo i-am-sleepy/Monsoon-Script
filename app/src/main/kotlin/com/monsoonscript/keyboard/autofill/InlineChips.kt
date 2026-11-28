@@ -7,7 +7,7 @@ import android.os.Build
 import android.service.autofill.InlinePresentation
 import android.view.autofill.AutofillManager
 import android.view.inputmethod.InlineSuggestionsRequest
-import androidx.annotation.RequiresApi
+import android.annotation.TargetApi
 import androidx.autofill.inline.UiVersions
 import androidx.autofill.inline.v1.InlineSuggestionUi
 import com.monsoonscript.keyboard.vault.VaultMainActivity
@@ -17,7 +17,7 @@ import com.monsoonscript.keyboard.vault.VaultMainActivity
  * one entry into the content the keyboard's request allows. Only titles and user names go in; like the dropdown items, a chip needs a tap before any password
  * is fetched. Where the keyboard's style is not one this can draw, [presentation] gives null and that item stays in the dropdown only.
  */
-@RequiresApi(Build.VERSION_CODES.R)
+@TargetApi(Build.VERSION_CODES.R)
 internal class InlineChips(context: Context, private val request: InlineSuggestionsRequest) {
     // Long-pressing a chip opens this (a required part of the format); the vault is the natural place.
     private val attribution: PendingIntent =

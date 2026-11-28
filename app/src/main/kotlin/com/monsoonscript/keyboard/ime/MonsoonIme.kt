@@ -77,7 +77,7 @@ import com.monsoonscript.keyboard.theme.ThemeStore
 import com.monsoonscript.keyboard.theme.palette
 import com.monsoonscript.keyboard.autofill.InlineStrip
 import com.monsoonscript.keyboard.autofill.InlineStripHost
-import androidx.annotation.RequiresApi
+import android.annotation.TargetApi
 
 /**
  * The keyboard service.
@@ -375,7 +375,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     /** The bar over the strip that hosts the chips; null below Android 11 (the dropdown menu is used there). */
     private var inlineBar: InlineStripHost? = null
 
-    @RequiresApi(Build.VERSION_CODES.R)
+    @TargetApi(Build.VERSION_CODES.R)
     override fun onCreateInlineSuggestionsRequest(uiExtras: Bundle): InlineSuggestionsRequest? {
         val kb = keyboard ?: return null
         if (!VaultPrefs(this).hasVault) return null // nothing of ours to suggest; another Autofill service may still use the dropdown
@@ -386,7 +386,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.R)
+    @TargetApi(Build.VERSION_CODES.R)
     override fun onInlineSuggestionsResponse(response: InlineSuggestionsResponse): Boolean {
         val bar = inlineBar ?: return false
         if (panelSearch || shownPanel != null) return false // the strip is not on screen: Android falls back to its dropdown

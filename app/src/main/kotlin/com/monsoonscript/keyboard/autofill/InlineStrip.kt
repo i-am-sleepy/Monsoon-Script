@@ -17,12 +17,12 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.inline.InlineContentView
 import android.widget.inline.InlinePresentationSpec
-import androidx.annotation.RequiresApi
+import android.annotation.TargetApi
 import androidx.autofill.inline.UiVersions
 import androidx.autofill.inline.v1.InlineSuggestionUi
 
 /** The keyboard's side of Autofill chips (E1.21, D102): what it asks the Autofill service for, and the strip-high bar that shows what comes back. Android 11+. */
-@RequiresApi(Build.VERSION_CODES.R)
+@TargetApi(Build.VERSION_CODES.R)
 internal object InlineStrip {
     private const val MAX_CHIPS = 6
 
@@ -43,7 +43,7 @@ internal object InlineStrip {
  * a new field or an empty answer take it away again and the strip is back. Nothing here knows an entry: the chips are drawn by Android from what the Autofill
  * service gave, and a tap on one goes straight to the service.
  */
-@RequiresApi(Build.VERSION_CODES.R)
+@TargetApi(Build.VERSION_CODES.R)
 internal class InlineStripHost(context: Context, private val colors: () -> Pair<Int, Int>) : FrameLayout(context) {
     private val row = LinearLayout(context).apply {
         orientation = LinearLayout.HORIZONTAL
