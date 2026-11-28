@@ -130,5 +130,5 @@ internal class InlineStripHost(context: Context, private val colors: () -> Pair<
         clear()
     }
 
-    val isShown: Boolean get() = visibility == View.VISIBLE
+    val showing: Boolean get() = visibility == View.VISIBLE
 }

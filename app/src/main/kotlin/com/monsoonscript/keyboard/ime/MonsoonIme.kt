@@ -401,7 +401,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     /** The owner typed: the chips make way for the strip, like the clipboard chip. */
     private fun inlineTyped() {
-        if (Build.VERSION.SDK_INT >= 30) inlineBar?.let { if (it.isShown) it.dismiss() }
+        if (Build.VERSION.SDK_INT >= 30) inlineBar?.let { if (it.showing) it.dismiss() }
     }
 
     /** No full-screen extract UI in landscape (Gboard does not either). */
