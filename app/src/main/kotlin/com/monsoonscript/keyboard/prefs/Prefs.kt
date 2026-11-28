@@ -35,7 +35,7 @@ object Prefs {
     const val EMOJI_KEY = "appearance_emoji_key" // default on: a smiley key right of ?123 / ABC
     const val HEIGHT_PORTRAIT = "appearance_height_portrait" // percent of the standard key height
     const val HEIGHT_LANDSCAPE = "appearance_height_landscape"
-    const val CUTOUT = "appearance_cutout" // landscape: let the keyboard background reach under the camera cutout (L10 step 2c, D100), off by default
+    const val CUTOUT = "appearance_cutout" // landscape: let the keyboard background reach under the camera cutout (L10 step 2c, D103), off by default
     const val KEY_GAP = "appearance_key_gap" // dp between keys
     const val KEY_TEXT_SIZE = "appearance_key_text" // percent of the standard size of the letters on the keys (L10 step 4, D96)
     const val STRIP_TEXT_SIZE = "appearance_strip_text" // percent of the standard size of the text in the suggestion bar

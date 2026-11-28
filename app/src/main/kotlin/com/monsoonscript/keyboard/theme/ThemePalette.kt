@@ -26,6 +26,6 @@ fun ThemeColors.toPalette(
     )
 }
 
-/** The palette of this theme, with its background picture if it has one (L10 step 2, D87; blur and small windows step 2c, D100). */
+/** The palette of this theme, with its background picture if it has one (L10 step 2, D87; blur and small windows step 2c, D103). */
 fun ThemeSpec.palette(context: Context): KeyboardView.Palette =
     colors().toPalette(ThemePictures.backdrop(context, this, false), keyOpacity, keyRoundness, keyBorder, keyShadow, ThemePictures.backdrop(context, this, true))

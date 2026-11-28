@@ -982,7 +982,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
     }
 
     /**
-     * The notch option (L10 step 2c, D100): with it on, the keyboard window is allowed to reach under the camera cutout (landscape), otherwise it keeps the system's
+     * The notch option (L10 step 2c, D103): with it on, the keyboard window is allowed to reach under the camera cutout (landscape), otherwise it keeps the system's
      * default (the window stays clear of the cutout and that strip stays black). Whether a phone lets an input method window do this is up to the phone.
      */
     private fun applyCutoutMode() {

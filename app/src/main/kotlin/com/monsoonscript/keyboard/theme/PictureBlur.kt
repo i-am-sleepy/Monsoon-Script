@@ -1,7 +1,7 @@
 package com.monsoonscript.keyboard.theme
 
 /**
- * The cheap blur of the background pictures (L10 step 2c, D100): the picture is shrunk to [EDGE] pixels on its long side ONCE, blurred with three passes of a box
+ * The cheap blur of the background pictures (L10 step 2c, D103): the picture is shrunk to [EDGE] pixels on its long side ONCE, blurred with three passes of a box
  * blur (together close to a Gaussian) and kept; the views then draw that small picture scaled up, which is smooth by itself. Nothing is blurred while drawing. Works on
  * a plain array of ARGB ints, so it is tested without Android.
  */

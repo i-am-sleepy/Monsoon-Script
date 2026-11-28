@@ -43,7 +43,7 @@ class ThemeSpec(
     val keyBorder: Boolean = false,
     /** A soft shadow under the keys. */
     val keyShadow: Boolean = false,
-    /** How much the picture is blurred behind the keys / behind the small windows (voice, emoji, clipboard), 0..[MAX_BLUR] (L10 step 2c, D100). */
+    /** How much the picture is blurred behind the keys / behind the small windows (voice, emoji, clipboard), 0..[MAX_BLUR] (L10 step 2c, D103). */
     val blurMain: Int = 0,
     val blurPanels: Int = DEFAULT_PANEL_BLUR,
     /** Where the picture sits in the small windows (they can show another part than the keys), portrait / landscape. */

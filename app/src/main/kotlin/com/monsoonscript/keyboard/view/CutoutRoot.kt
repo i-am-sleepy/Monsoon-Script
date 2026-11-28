@@ -5,7 +5,7 @@ import android.graphics.Canvas
 import android.widget.LinearLayout
 
 /**
- * The column that holds the keys and the panels in the keyboard window (L10 step 2c, D100). With the "use the notch area" option on (landscape) the window reaches under
+ * The column that holds the keys and the panels in the keyboard window (L10 step 2c, D103). With the "use the notch area" option on (landscape) the window reaches under
  * the camera cutout and the column gets side padding so the keys stay clear of it; this class paints the background (picture or color) into that padding, and the
  * keys and panels line their own picture up with the whole column ([KeyboardView.Palette]). Without padding it does nothing.
  */
