@@ -6,6 +6,7 @@ import android.content.Intent
 import android.os.Build
 import android.service.autofill.Dataset
 import android.service.autofill.FillResponse
+import android.service.autofill.InlinePresentation
 import android.service.autofill.SaveInfo
 import android.view.autofill.AutofillId
 import android.view.autofill.AutofillValue
@@ -30,14 +31,16 @@ internal object AutofillResponses {
      * The dropdown of a locked vault: one item that opens the unlock card and then shows the real list. A screen with nothing to fill (a sign-up page) still
      * gets the save prompt's description, so a login typed there can be saved; null when there is nothing at all.
      */
-    fun unlockResponse(context: Context, form: ParsedForm): FillResponse? {
+    fun unlockResponse(context: Context, form: ParsedForm, chips: InlineChips? = null): FillResponse? {
         val save = saveInfo(form)
         val ids = form.fillIds
         if (ids.isEmpty()) return save?.let { FillResponse.Builder().setSaveInfo(it).build() }
         val sender = sender(context, Intent(context, AutofillFillActivity::class.java).putForm(form).putExtra(X_MODE, MODE_UNLOCK))
-        val presentation = item(context, context.getString(R.string.autofill_unlock), null)
+        val label = context.getString(R.string.autofill_unlock)
+        val presentation = item(context, label, null)
+        val inline = chips?.presentation(label, null)
         fun build(withSave: Boolean) = FillResponse.Builder().apply {
-            setAuthentication(ids.toTypedArray(), sender, presentation)
+            if (inline != null && Build.VERSION.SDK_INT >= 30) setAuthentication(ids.toTypedArray(), sender, presentation, inline) else setAuthentication(ids.toTypedArray(), sender, presentation)
             if (withSave && save != null) setSaveInfo(save)
         }.build()
         // The save prompt is wanted when the owner types the login by hand instead of unlocking; if this Android refuses the two together, the unlock item alone stays.
@@ -52,7 +55,7 @@ internal object AutofillResponses {
      * The dropdown of an open vault: one item per matching entry; when nothing matched and a password is asked for, one "Search vault…" item; otherwise
      * no items (a username-only form with no match shows no menu). Every response carries the save prompt's description when the screen has a password to save.
      */
-    fun matchResponse(context: Context, form: ParsedForm, matches: List<EntrySummary>): FillResponse? {
+    fun matchResponse(context: Context, form: ParsedForm, matches: List<EntrySummary>, chips: InlineChips? = null): FillResponse? {
         val ids = form.fillIds
         val shown = if (form.codeOnly) matches.filter { it.hasOtp } else matches
         val builder = FillResponse.Builder()
@@ -60,14 +63,15 @@ internal object AutofillResponses {
         if (ids.isNotEmpty()) {
             if (shown.isEmpty()) {
                 if (form.hasPassword) {
-                    builder.addDataset(dataset(context, ids, item(context, context.getString(R.string.autofill_search), null), Intent(context, AutofillSearchActivity::class.java).putForm(form)))
+                    val label = context.getString(R.string.autofill_search)
+                    builder.addDataset(dataset(context, ids, item(context, label, null), Intent(context, AutofillSearchActivity::class.java).putForm(form), chips?.presentation(label, null)))
                     any = true
                 }
             } else {
                 for (e in shown) {
                     val intent = Intent(context, AutofillFillActivity::class.java).putForm(form).putExtra(X_MODE, MODE_FILL).putExtra(X_ENTRY, e.id)
                     val title = e.title.ifBlank { e.url }.ifBlank { context.getString(R.string.autofill_untitled) }
-                    builder.addDataset(dataset(context, ids, item(context, title, e.username), intent))
+                    builder.addDataset(dataset(context, ids, item(context, title, e.username), intent, chips?.presentation(title, e.username)))
                 }
                 any = true
             }
@@ -127,8 +131,9 @@ internal object AutofillResponses {
 
     // The Dataset.Builder(RemoteViews) form is the one that works on every Android from 8.0; the newer Presentations form needs API 33.
     @Suppress("DEPRECATION")
-    private fun dataset(context: Context, ids: List<AutofillId>, presentation: RemoteViews, intent: Intent): Dataset {
+    private fun dataset(context: Context, ids: List<AutofillId>, presentation: RemoteViews, intent: Intent, inline: InlinePresentation? = null): Dataset {
         val b = Dataset.Builder(presentation)
+        if (inline != null && Build.VERSION.SDK_INT >= 30) b.setInlinePresentation(inline) // the same item as a chip in the keyboard's strip (E1.21)
         for (id in ids) b.setValue(id, null) // no value yet: it is fetched after the tap and the unlock
         b.setAuthentication(sender(context, intent))
         return b.build()

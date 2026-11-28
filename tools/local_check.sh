@@ -62,7 +62,7 @@ compile_main() { # $1 = output dir, the rest = extra source files
   rm -rf "$OUT"
   local SRC EXTRA=("${VAULT_EXTRA[@]}")
   if [ -n "$NO_VAULT" ]; then # running tests: the vault screens (and what opens them) are left out, their Parcelize classes cannot be built here
-    SRC=$(cd "$MAIN/kotlin" && find . -name '*.kt' -not -path './vault/*' | xargs grep -L 'keyboard\.vault\|monsoonscript\.vault\|Vault[A-Za-z]*Activity')
+    SRC=$(cd "$MAIN/kotlin" && find . -name '*.kt' -not -path './vault/*' | xargs grep -L 'keyboard\.vault\|monsoonscript\.vault\|Vault[A-Za-z]*Activity\|androidx\.')
     EXTRA=()
   else
     SRC=$(cd "$MAIN/kotlin" && find . -name '*.kt')

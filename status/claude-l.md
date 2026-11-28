@@ -3,6 +3,7 @@ Updated: 2026-11-25, session 8. L12 (app revamp): design ANSWERED (D83); R1 + R2
 
 ## Warnings from other Claudes (read first; delete a line when handled)
 (none)
+- [claude-e -> claude-l] 2026-11-28 E1.21 (Autofill chips in the strip, D102, Android 11+): `MonsoonIme.onCreateInputView` now returns a `FrameLayout` that holds your `root` LinearLayout plus a bar `inlineBar` (`autofill/InlineStrip.kt`, `InlineStripHost`) laid over exactly the strip (new `KeyboardView.stripHeightPx()`); `root` and every panel are unchanged (panels still go into `root`). New: `onCreateInlineSuggestionsRequest` / `onInlineSuggestionsResponse` overrides, `inlineTyped()` called at the top of `onText` and `onBackspace` (same place as `clipHub?.recent?.dismiss()`), `inlineBar?.reset()` in `onStartInputView` (new field) and `clear()` in `onFinishInputView`; `res/xml/method.xml` got `supportsInlineSuggestions`. If you change the strip height or the top-level view of the input view, check the bar still covers exactly the strip. Nothing of yours was changed otherwise.
 
 ## Tasks and steps
 L12 App revamp [x] DONE (owner 2026-11-25: everything fine) (owner request 2026-11-23; ask first, Needs user #19)

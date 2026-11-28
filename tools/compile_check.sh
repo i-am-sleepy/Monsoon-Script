@@ -5,7 +5,8 @@
 # Needs: java, python3, git, and a Gradle install whose lib/ has the embedded Kotlin compiler (the sandbox has /opt/gradle/lib; override with GRADLE_LIB=...).
 # The android.jar comes from github.com/Sable/android-platforms (API 35 stubs), fetched once into $TMPDIR/monsoon-compile-check.
 # The vault screens (app/.../vault/) talk to :vault, so its data classes and VaultClient are compiled along (the AIDL-generated IVault is a stand-in, the Parcelize
-# compiler plugin is not run, so its "describeContents" complaints are ignored). To check :vault itself use tools/vault_compile_check.sh.
+# compiler plugin is not run, so its "describeContents" complaints are ignored). Libraries from Gradle that the app uses (androidx.autofill, E1.21) are stood in
+# by signature-only Java files in tools/stubs/ (compile check only, never part of the build). To check :vault itself use tools/vault_compile_check.sh.
 set -e
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 WORK=${TMPDIR:-/tmp}/monsoon-compile-check
@@ -48,7 +49,7 @@ cd "$ROOT/app/src/main/kotlin"
 set +e
 java -cp "$CP" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -jvm-target 17 \
   -cp "$(j 'kotlin-stdlib-[0-9]*.jar'):$JAR" -d "$WORK/out" $(find . -name '*.kt') "$WORK/R.kt" \
-  "$VAULT/VaultModel.kt" "$VAULT/VaultClient.kt" "$WORK/stubs/parcelize.kt" "$WORK/stubs/VaultServiceStub.kt" "$WORK/stubs/IVault.java" > "$WORK/all.log" 2>&1
+  "$VAULT/VaultModel.kt" "$VAULT/VaultClient.kt" "$WORK/stubs/parcelize.kt" "$WORK/stubs/VaultServiceStub.kt" "$WORK/stubs/IVault.java" $(find "$ROOT/tools/stubs" -name '*.java') > "$WORK/all.log" 2>&1
 python3 -I - "$WORK/all.log" <<'PY'
 import re, sys
 noise = ('describeContents', 'writeToParcel', 'is not abstract and does not implement')

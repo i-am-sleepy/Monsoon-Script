@@ -46,4 +46,7 @@
     <string name="autofill_save_screen">Open the save screen first</string>
     <string name="autofill_save_at_once">Save at once</string>
     <string name="autofill_save_note">After you log in, Android asks \"Save password?\". With the save screen you can change the title, folder and details first; saving at once puts it in the main folder.</string>
+
+    <!-- Chips in the keyboard strip (E1.21) -->
+    <string name="autofill_chips_close">Close suggestions</string>
 </resources>

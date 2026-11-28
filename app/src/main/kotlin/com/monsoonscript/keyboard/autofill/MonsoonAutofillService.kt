@@ -26,13 +26,14 @@ internal class MonsoonAutofillService : AutofillService() {
             callback.onSuccess(null)
             return
         }
+        val chips = if (Build.VERSION.SDK_INT >= 30) InlineChips.of(this, request.inlineSuggestionsRequest) else null // chips in the keyboard's strip, when it asked for them
         val cancelled = AtomicBoolean(false)
         cancellationSignal.setOnCancelListener { cancelled.set(true) }
         VaultHub.client(this).async({ v -> if (v.status().unlocked) v.matches(form.webDomain ?: "", form.packageName) else null }) { r ->
             if (cancelled.get()) return@async
             val response = r.fold(
-                onSuccess = { matches -> if (matches == null) AutofillResponses.unlockResponse(this, form) else AutofillResponses.matchResponse(this, form, matches) },
-                onFailure = { e -> if (VaultHub.isLocked(e)) AutofillResponses.unlockResponse(this, form) else null }, // not reachable: offer nothing rather than an error
+                onSuccess = { matches -> if (matches == null) AutofillResponses.unlockResponse(this, form, chips) else AutofillResponses.matchResponse(this, form, matches, chips) },
+                onFailure = { e -> if (VaultHub.isLocked(e)) AutofillResponses.unlockResponse(this, form, chips) else null }, // not reachable: offer nothing rather than an error
             )
             callback.onSuccess(response)
         }

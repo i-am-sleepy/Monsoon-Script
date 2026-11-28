@@ -40,10 +40,12 @@ internal class AutofillFillActivity : Activity() {
         val f = form ?: return cancel()
         val client = VaultHub.client(this)
         when (intent.getStringExtra(X_MODE)) {
-            AutofillResponses.MODE_UNLOCK ->
+            AutofillResponses.MODE_UNLOCK -> {
+                val chips = InlineChips.fromIntent(this, intent) // the owner tapped the "Unlock vault" chip: the list comes back as chips again
                 client.async({ it.matches(f.webDomain ?: "", f.packageName) }) { r ->
-                    r.fold({ matches -> finishWith(AutofillResponses.matchResponse(this, f, matches)) }, ::fail)
+                    r.fold({ matches -> finishWith(AutofillResponses.matchResponse(this, f, matches, chips)) }, ::fail)
                 }
+            }
             AutofillResponses.MODE_FILL -> {
                 val id = intent.getStringExtra(X_ENTRY) ?: return cancel()
                 client.async({ AutofillResponses.filled(it, id, f) }) { r ->

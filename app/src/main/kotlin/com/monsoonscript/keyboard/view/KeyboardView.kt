@@ -276,6 +276,9 @@ class KeyboardView(context: Context) : View(context) {
         invalidate()
     }
 
+    /** The strip's height in pixels (E1.21: the Autofill chips' bar covers exactly this part at the top). */
+    fun stripHeightPx(): Int = stripHeight().toInt()
+
     /** The height this view measures to with the strip shown; the emoji panel takes the same height so the window does not jump. */
     fun desiredHeight(): Int = (stripHeight() + currentRowH() * rowSlots() + padTop + padBottom).toInt()
 

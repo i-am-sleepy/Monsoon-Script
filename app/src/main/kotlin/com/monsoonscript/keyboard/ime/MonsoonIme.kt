@@ -5,25 +5,31 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.graphics.drawable.ColorDrawable
+import android.graphics.Color
 import android.inputmethodservice.InputMethodService
 import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.os.Bundle
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import android.view.Gravity
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import android.view.inputmethod.InputContentInfo
 import android.view.inputmethod.InputMethod
 import android.view.inputmethod.InputMethodManager
+import android.view.inputmethod.InlineSuggestionsRequest
+import android.view.inputmethod.InlineSuggestionsResponse
 import android.widget.LinearLayout
 import android.widget.Toast
+import android.widget.FrameLayout
 import com.monsoonscript.keyboard.R
 import com.monsoonscript.keyboard.calc.CalcEngine
 import com.monsoonscript.keyboard.calc.CalcOffer
@@ -68,6 +74,9 @@ import com.monsoonscript.keyboard.voice.VoiceLang
 import java.io.IOException
 import com.monsoonscript.keyboard.theme.ThemeStore
 import com.monsoonscript.keyboard.theme.palette
+import com.monsoonscript.keyboard.autofill.InlineStrip
+import com.monsoonscript.keyboard.autofill.InlineStripHost
+import androidx.annotation.RequiresApi
 
 /**
  * The keyboard service.
@@ -322,6 +331,17 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         r.orientation = LinearLayout.VERTICAL
         r.addView(v, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
         root = r
+        // E1.21: Android 11+ Autofill chips sit in a bar over the strip, so the input view is a frame that holds the keyboard column and that bar.
+        var top: View = r
+        inlineBar = null
+        if (Build.VERSION.SDK_INT >= 30) {
+            val frame = FrameLayout(this)
+            frame.addView(r, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            val bar = InlineStripHost(this) { (keyboard?.palette?.bg ?: Color.BLACK) to (keyboard?.palette?.textMuted ?: Color.GRAY) }
+            frame.addView(bar, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, v.stripHeightPx(), Gravity.TOP))
+            inlineBar = bar
+            top = frame
+        }
         // A new input view (rotation, dark mode, font size, ...) means the panels of the old one are gone: every lazily built panel must be forgotten here. The voice
         // panel was missing from this list, so after a rebuild a tap on the mic hid the NEW keys and showed the OLD panel, which is not on screen: an empty keyboard
         // until Back (the owner's "voice panel sometimes invisible", cured only by an update = a new process).
@@ -337,7 +357,41 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         searchBuf.setLength(0)
         applyPrefs()
         applySystemBars()
-        return r
+        return top
+    }
+
+    // ---- E1.21 (D102): Autofill chips in the strip, Android 11+. The vault's Autofill service answers; this only asks and hosts what comes back (autofill/InlineStrip.kt).
+
+    /** The bar over the strip that hosts the chips; null below Android 11 (the dropdown menu is used there). */
+    private var inlineBar: InlineStripHost? = null
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onCreateInlineSuggestionsRequest(uiExtras: Bundle): InlineSuggestionsRequest? {
+        val kb = keyboard ?: return null
+        if (!VaultPrefs(this).hasVault) return null // nothing of ours to suggest; another Autofill service may still use the dropdown
+        return try {
+            InlineStrip.request(this, uiExtras, kb.stripHeightPx())
+        } catch (_: RuntimeException) {
+            null // never let Autofill break typing: the dropdown stays
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    override fun onInlineSuggestionsResponse(response: InlineSuggestionsResponse): Boolean {
+        val bar = inlineBar ?: return false
+        if (panelSearch || shownPanel != null) return false // the strip is not on screen: Android falls back to its dropdown
+        return try {
+            bar.show(response.inlineSuggestions)
+            true
+        } catch (_: RuntimeException) {
+            bar.clear()
+            false
+        }
+    }
+
+    /** The owner typed: the chips make way for the strip, like the clipboard chip. */
+    private fun inlineTyped() {
+        if (Build.VERSION.SDK_INT >= 30) inlineBar?.let { if (it.isShown) it.dismiss() }
     }
 
     /** No full-screen extract UI in landscape (Gboard does not either). */
@@ -474,7 +528,10 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
-        if (!restarting) closePanels() // a new field starts on the letter keys (a restart of the same field keeps the panel)
+        if (!restarting) {
+            closePanels() // a new field starts on the letter keys (a restart of the same field keeps the panel)
+            if (Build.VERSION.SDK_INT >= 30) inlineBar?.reset() // and may show Autofill chips again
+        }
         if (panelSearch) flushSearchComposing() else composer?.clear()
         dropSuggestions()
         val inputType = info?.inputType ?: 0
@@ -510,6 +567,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
 
     override fun onFinishInputView(finishingInput: Boolean) {
         super.onFinishInputView(finishingInput)
+        if (Build.VERSION.SDK_INT >= 30) inlineBar?.clear()
         clipHub?.lock?.setPanelOpen(false) // the keyboard went away: the lock timer starts now
         currentInputConnection?.finishComposingText()
         composer?.clear()
@@ -1058,6 +1116,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
         val ic = currentInputConnection ?: return
         lastFix = null // any typing ends the chance to undo the last fix
         clipHub?.recent?.dismiss() // typing means the chip is not wanted
+        inlineTyped()
         if (text != " ") skipTrigger = null
         if (text == " " && applyDirectShortcut(ic)) return
         if (text == " " && applyAutoFix(ic)) return
@@ -1121,6 +1180,7 @@ class MonsoonIme : InputMethodService(), KeyboardView.Listener {
             searchBackspace()
             return
         }
+        inlineTyped()
         val comp = composer
         val ic = currentInputConnection
         if (avroActive && comp != null && comp.isComposing && ic != null) {

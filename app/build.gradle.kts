@@ -88,6 +88,9 @@ dependencies {
     // E1.13: the password-manager adapter (runs in its own process, D44). Brings the KeePassDX engine along; its R8 rules ride in consumer-rules.pro.
     implementation(project(":vault"))
 
+    // E1.21 (D102, owner allowed): builds the content and style of Android 11+ inline Autofill suggestions (the chips in the keyboard strip).
+    implementation("androidx.autofill:autofill:1.3.0")
+
     // Pure-JVM unit tests for the language engines (run in CI, see .github/workflows/build.yml).
     testImplementation("junit:junit:4.13.2")
 }
